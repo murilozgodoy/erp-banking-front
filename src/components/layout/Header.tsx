@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router'
 
-const links = [{ to: '/', label: 'Início' }]
+const links = [
+  { to: '/', label: 'Início' },
+  { to: '/login', label: 'Login' },
+]
 
 export function Header() {
   return (

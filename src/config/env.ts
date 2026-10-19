@@ -15,4 +15,10 @@ export const env = {
   scoreApiUrl: required('VITE_SCORE_API_URL'),
   transactionsApiUrl: required('VITE_TRANSACTIONS_API_URL'),
   apiTimeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 10000),
+  auth0: {
+    domain: required('VITE_AUTH0_DOMAIN'),
+    clientId: required('VITE_AUTH0_CLIENT_ID'),
+    // Identificador da API no Auth0. Sem ele o Auth0 não emite JWT para as APIs.
+    audience: import.meta.env.VITE_AUTH0_AUDIENCE || undefined,
+  },
 } as const
