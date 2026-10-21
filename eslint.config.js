@@ -25,6 +25,11 @@ export default defineConfig([
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
+  {
+    // Helpers e testes não passam pelo Fast Refresh.
+    files: ['src/test/**', '**/*.test.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
   // Deve ser o último: desliga regras de estilo que conflitam com o Prettier.
   prettier,
 ])

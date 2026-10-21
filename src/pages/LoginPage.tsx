@@ -1,55 +1,47 @@
 import { useAuth0 } from '@auth0/auth0-react'
+import { Navigate, useLocation } from 'react-router'
 
-const buttonClass = 'rounded-lg px-4 py-2 text-sm font-medium'
+import { Alert } from '@/components/ui/Alert'
+import { Button } from '@/components/ui/Button'
+import { Spinner } from '@/components/ui/Spinner'
 
 export function LoginPage() {
-  const { isLoading, isAuthenticated, error, user, loginWithRedirect, logout } = useAuth0()
+  const { isLoading, isAuthenticated, error, loginWithRedirect } = useAuth0()
+  const location = useLocation()
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? '/'
 
-  const login = () => loginWithRedirect({ appState: { returnTo: '/login' } })
-  const signup = () =>
+  if (isLoading) return <Spinner label="Carregando sessão…" />
+  if (isAuthenticated) return <Navigate to={returnTo} replace />
+
+  const login = (signup = false) =>
     loginWithRedirect({
-      appState: { returnTo: '/login' },
-      authorizationParams: { screen_hint: 'signup' },
+      appState: { returnTo },
+      authorizationParams: signup ? { screen_hint: 'signup' } : undefined,
     })
 
-  if (isLoading) return <p className="text-slate-500">Carregando…</p>
-
   return (
-    <section className="mx-auto max-w-md space-y-4 rounded-lg border border-slate-200 bg-white p-6">
-      <h1 className="text-2xl font-bold">Login</h1>
-
-      {isAuthenticated ? (
-        <>
-          <p className="text-slate-600">Logado como {user?.email}</p>
-          <pre className="overflow-x-auto rounded bg-slate-100 p-3 text-xs">
-            {JSON.stringify(user, null, 2)}
-          </pre>
-          <button
-            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-            className={`${buttonClass} bg-slate-200 text-slate-900 hover:bg-slate-300`}
-          >
-            Sair
-          </button>
-        </>
-      ) : (
-        <>
-          {error && <p className="text-sm text-red-700">Erro: {error.message}</p>}
-          <div className="flex gap-3">
-            <button
-              onClick={login}
-              className={`${buttonClass} bg-indigo-700 text-white hover:bg-indigo-800`}
-            >
-              Entrar
-            </button>
-            <button
-              onClick={signup}
-              className={`${buttonClass} border border-indigo-700 text-indigo-700 hover:bg-indigo-50`}
-            >
-              Criar conta
-            </button>
-          </div>
-        </>
+    <section className="mx-auto max-w-md space-y-6 rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">ERP Banking e Crédito</h1>
+        <p className="text-slate-600">
+          Entre com sua conta para cadastrar clientes, avaliar score e operar contas e crédito.
+        </p>
+      </div>
+      {error && (
+        <Alert tone="error" title="Não foi possível entrar">
+          {error.message}
+        </Alert>
       )}
+      <div className="flex gap-3">
+        <Button onClick={() => login()}>Entrar</Button>
+        <Button variant="secondary" onClick={() => login(true)}>
+          Criar conta
+        </Button>
+      </div>
+      <p className="text-xs text-slate-500">
+        Autenticação via Auth0 (OAuth 2.0 com Authorization Code + PKCE). O que cada perfil pode
+        fazer é definido pelas permissões atribuídas no Auth0.
+      </p>
     </section>
   )
 }

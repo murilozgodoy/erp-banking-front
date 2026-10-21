@@ -1,10 +1,12 @@
 import { createBrowserRouter } from 'react-router'
 
 import { Auth0ProviderWithNavigate } from '@/components/auth/Auth0ProviderWithNavigate'
+import { RequireAuth } from '@/components/auth/RequireAuth'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { ProfilePage } from '@/pages/ProfilePage'
 
 export const router = createBrowserRouter([
   {
@@ -13,8 +15,14 @@ export const router = createBrowserRouter([
       {
         element: <MainLayout />,
         children: [
-          { index: true, element: <HomePage /> },
           { path: 'login', element: <LoginPage /> },
+          {
+            element: <RequireAuth />,
+            children: [
+              { index: true, element: <HomePage /> },
+              { path: 'perfil', element: <ProfilePage /> },
+            ],
+          },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
