@@ -12,7 +12,14 @@ import { errorMessage } from '@/lib/errors'
 import { checkServicesHealth } from '@/services/health'
 
 /** Atalhos do painel, exibidos conforme as permissões do usuário. */
-const modules: { to: string; title: string; description: string; permission: Permission }[] = []
+const modules: { to: string; title: string; description: string; permission: Permission }[] = [
+  {
+    to: '/clientes',
+    title: 'Clientes',
+    description: 'Cadastro, anamnese financeira e score de crédito',
+    permission: 'read:customers',
+  },
+]
 
 export function HomePage() {
   const { user } = useAuth0()

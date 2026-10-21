@@ -13,7 +13,15 @@ function paths(routes: RouteObject[]): string[] {
 describe('router', () => {
   it('registra as páginas da aplicação', () => {
     expect(paths(router.routes)).toEqual(
-      expect.arrayContaining(['login', '(index)', 'perfil', '*']),
+      expect.arrayContaining([
+        'login',
+        '(index)',
+        'perfil',
+        '*',
+        'clientes',
+        'clientes/novo',
+        'clientes/:id',
+      ]),
     )
   })
 })

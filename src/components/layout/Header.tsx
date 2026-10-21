@@ -9,6 +9,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 /** Itens do menu; os que têm `permission` só aparecem para quem pode acessá-los. */
 const links: { to: string; label: string; permission?: Permission }[] = [
   { to: '/', label: 'Início' },
+  { to: '/clientes', label: 'Clientes', permission: 'read:customers' },
 ]
 
 export function Header() {
