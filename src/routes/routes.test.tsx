@@ -23,6 +23,7 @@ describe('router', () => {
         'clientes/:id',
         'contas',
         'contas/:id',
+        'creditos',
       ]),
     )
   })

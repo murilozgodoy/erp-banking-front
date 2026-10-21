@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 import { CustomerAccounts } from '@/components/accounts/CustomerAccounts'
 import { Can } from '@/components/auth/Can'
 import { RequirePermission } from '@/components/auth/RequirePermission'
+import { CustomerCredits } from '@/components/credits/CustomerCredits'
 import { AnamnesisCard } from '@/components/customers/AnamnesisCard'
 import { ScorePanel } from '@/components/scores/ScorePanel'
 import { Alert } from '@/components/ui/Alert'
@@ -68,6 +69,10 @@ function CustomerDetail() {
 
       <Can permission="read:accounts">
         <CustomerAccounts customerId={c.id} />
+      </Can>
+
+      <Can permission="read:credits">
+        <CustomerCredits customerId={c.id} />
       </Can>
     </section>
   )

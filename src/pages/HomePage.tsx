@@ -25,6 +25,12 @@ const modules: { to: string; title: string; description: string; permission: Per
     description: 'Abertura de contas, transações e extratos',
     permission: 'read:accounts',
   },
+  {
+    to: '/creditos',
+    title: 'Crédito',
+    description: 'Pedidos de crédito decididos a partir do score',
+    permission: 'read:credits',
+  },
 ]
 
 export function HomePage() {

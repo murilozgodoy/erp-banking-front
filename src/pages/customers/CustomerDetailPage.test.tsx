@@ -8,7 +8,7 @@ import type { Permission } from '@/auth/permissions'
 import { useApi } from '@/hooks/useApi'
 import { fakeApi } from '@/test/api'
 import { auth0State } from '@/test/auth0'
-import { account, customer, evaluation, strategies } from '@/test/fixtures'
+import { account, credit, customer, evaluation, strategies } from '@/test/fixtures'
 import { renderPage } from '@/test/render'
 
 import { CustomerDetailPage } from './CustomerDetailPage'
@@ -179,6 +179,39 @@ describe('CustomerDetailPage', () => {
     api.accounts.list.mockRejectedValue(httpError(403, null))
     renderDetail(['read:customers', 'read:accounts'])
     expect(await screen.findByRole('alert')).toHaveTextContent('Você não tem permissão')
+  })
+
+  it('lista os pedidos de crédito do cliente e solicita crédito para ele', async () => {
+    const user = userEvent.setup()
+    api.credits.list.mockResolvedValue([credit()])
+    api.credits.request.mockResolvedValue(credit({ id: 9 }))
+    renderDetail(['read:customers', 'read:credits', 'write:credits'])
+
+    expect(await screen.findByText('#7')).toBeInTheDocument()
+    expect(api.credits.list).toHaveBeenCalledWith(1)
+    expect(screen.queryByLabelText('ID do cliente')).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Valor solicitado (R$)'), '3000')
+    await user.click(screen.getByRole('button', { name: 'Solicitar crédito' }))
+    expect(api.credits.request).toHaveBeenCalledWith({
+      customerId: 1,
+      valor: 3000,
+      prazoMeses: 12,
+    })
+    expect(await screen.findByText('Crédito aprovado')).toBeInTheDocument()
+  })
+
+  it('crédito: estado vazio e erro', async () => {
+    api.credits.list.mockResolvedValue([])
+    const { unmount } = renderDetail(['read:customers', 'read:credits'])
+    expect(
+      await screen.findByText('Nenhum pedido de crédito para este cliente.'),
+    ).toBeInTheDocument()
+    unmount()
+
+    api.credits.list.mockRejectedValue(httpError(502, { error: 'Score API respondeu 500' }))
+    renderDetail(['read:customers', 'read:credits'])
+    expect(await screen.findByRole('alert')).toHaveTextContent('Score API respondeu 500')
   })
 
   it('cliente inexistente', async () => {

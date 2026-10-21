@@ -5,6 +5,7 @@ import { RequireAuth } from '@/components/auth/RequireAuth'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { AccountDetailPage } from '@/pages/accounts/AccountDetailPage'
 import { AccountsPage } from '@/pages/accounts/AccountsPage'
+import { CreditsPage } from '@/pages/credits/CreditsPage'
 import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage'
 import { CustomersPage } from '@/pages/customers/CustomersPage'
 import { NewCustomerPage } from '@/pages/customers/NewCustomerPage'
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
               { path: 'clientes/:id', element: <CustomerDetailPage /> },
               { path: 'contas', element: <AccountsPage /> },
               { path: 'contas/:id', element: <AccountDetailPage /> },
+              { path: 'creditos', element: <CreditsPage /> },
               { path: 'perfil', element: <ProfilePage /> },
             ],
           },
