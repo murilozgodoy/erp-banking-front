@@ -10,6 +10,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 const links: { to: string; label: string; permission?: Permission }[] = [
   { to: '/', label: 'Início' },
   { to: '/clientes', label: 'Clientes', permission: 'read:customers' },
+  { to: '/contas', label: 'Contas', permission: 'read:accounts' },
 ]
 
 export function Header() {

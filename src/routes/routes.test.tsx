@@ -21,6 +21,8 @@ describe('router', () => {
         'clientes',
         'clientes/novo',
         'clientes/:id',
+        'contas',
+        'contas/:id',
       ]),
     )
   })

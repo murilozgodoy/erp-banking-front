@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 
+import { CustomerAccounts } from '@/components/accounts/CustomerAccounts'
 import { Can } from '@/components/auth/Can'
 import { RequirePermission } from '@/components/auth/RequirePermission'
 import { AnamnesisCard } from '@/components/customers/AnamnesisCard'
@@ -63,6 +64,10 @@ function CustomerDetail() {
 
       <Can permission="read:scores">
         <ScorePanel customerId={c.id} />
+      </Can>
+
+      <Can permission="read:accounts">
+        <CustomerAccounts customerId={c.id} />
       </Can>
     </section>
   )

@@ -19,6 +19,12 @@ const modules: { to: string; title: string; description: string; permission: Per
     description: 'Cadastro, anamnese financeira e score de crédito',
     permission: 'read:customers',
   },
+  {
+    to: '/contas',
+    title: 'Contas',
+    description: 'Abertura de contas, transações e extratos',
+    permission: 'read:accounts',
+  },
 ]
 
 export function HomePage() {

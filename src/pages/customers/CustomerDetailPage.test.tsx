@@ -8,7 +8,7 @@ import type { Permission } from '@/auth/permissions'
 import { useApi } from '@/hooks/useApi'
 import { fakeApi } from '@/test/api'
 import { auth0State } from '@/test/auth0'
-import { customer, evaluation, strategies } from '@/test/fixtures'
+import { account, customer, evaluation, strategies } from '@/test/fixtures'
 import { renderPage } from '@/test/render'
 
 import { CustomerDetailPage } from './CustomerDetailPage'
@@ -153,6 +153,32 @@ describe('CustomerDetailPage', () => {
         expect.stringContaining('indisponível'),
       ]),
     )
+  })
+
+  it('lista as contas do cliente e abre conta já vinculada a ele', async () => {
+    const user = userEvent.setup()
+    api.accounts.list.mockResolvedValue([account()])
+    api.accounts.create.mockResolvedValue(account({ id: 8 }))
+    renderDetail(['read:customers', 'read:accounts', 'write:accounts'])
+
+    expect(await screen.findByRole('link', { name: 'Conta #5' })).toBeInTheDocument()
+    expect(api.accounts.list).toHaveBeenCalledWith(1)
+    expect(screen.queryByLabelText('ID do cliente')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Abrir conta' }))
+    expect(api.accounts.create).toHaveBeenCalledWith({ customerId: 1, saldoInicial: 0 })
+    expect(await screen.findByTestId('location')).toHaveTextContent('/contas/8')
+  })
+
+  it('contas: estado vazio e erro', async () => {
+    api.accounts.list.mockResolvedValue([])
+    const { unmount } = renderDetail(['read:customers', 'read:accounts'])
+    expect(await screen.findByText('Nenhuma conta aberta para este cliente.')).toBeInTheDocument()
+    unmount()
+
+    api.accounts.list.mockRejectedValue(httpError(403, null))
+    renderDetail(['read:customers', 'read:accounts'])
+    expect(await screen.findByRole('alert')).toHaveTextContent('Você não tem permissão')
   })
 
   it('cliente inexistente', async () => {

@@ -3,6 +3,8 @@ import { createBrowserRouter } from 'react-router'
 import { Auth0ProviderWithNavigate } from '@/components/auth/Auth0ProviderWithNavigate'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { MainLayout } from '@/components/layout/MainLayout'
+import { AccountDetailPage } from '@/pages/accounts/AccountDetailPage'
+import { AccountsPage } from '@/pages/accounts/AccountsPage'
 import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage'
 import { CustomersPage } from '@/pages/customers/CustomersPage'
 import { NewCustomerPage } from '@/pages/customers/NewCustomerPage'
@@ -26,6 +28,8 @@ export const router = createBrowserRouter([
               { path: 'clientes', element: <CustomersPage /> },
               { path: 'clientes/novo', element: <NewCustomerPage /> },
               { path: 'clientes/:id', element: <CustomerDetailPage /> },
+              { path: 'contas', element: <AccountsPage /> },
+              { path: 'contas/:id', element: <AccountDetailPage /> },
               { path: 'perfil', element: <ProfilePage /> },
             ],
           },
