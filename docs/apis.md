@@ -1,36 +1,46 @@
 # APIs, regras de negócio e modelos de dados
 
+Todas as rotas, exceto `/health`, exigem `Authorization: Bearer <access token>` e a permissão
+indicada (ver [auth0.md](auth0.md)). Sem token: 401; sem a permissão: 403.
+
 ## Endpoints
 
-### Onboarding API (`:8001`)
+### Onboarding API (`:8081`)
 
-| Método | Rota                        | Descrição                                        |
-| ------ | --------------------------- | ------------------------------------------------ |
-| POST   | `/customers`                | Cria cliente                                     |
-| GET    | `/customers/{id}`           | Consulta cliente (usado internamente pelo Score) |
-| PUT    | `/customers/{id}/anamnesis` | Grava a anamnese                                 |
-| GET    | `/health`                   | Health check                                     |
+| Método | Rota                           | Permissão         | Descrição                                                                     |
+| ------ | ------------------------------ | ----------------- | ----------------------------------------------------------------------------- |
+| GET    | `/customers?q=&limit=&offset=` | `read:customers`  | Lista clientes (mais recentes primeiro); `q` busca por nome ou dígitos do CPF |
+| POST   | `/customers`                   | `write:customers` | Cria cliente (endereço e perfil financeiro opcionais)                         |
+| GET    | `/customers/{id}`              | `read:customers`  | Consulta cliente (usado internamente pelo Score)                              |
+| PUT    | `/customers/{id}/anamnesis`    | `write:customers` | Grava a anamnese                                                              |
+| GET    | `/health`                      | pública           | Health check                                                                  |
 
-### Credit Score API (`:8002`)
+### Credit Score API (`:8082`)
 
-| Método | Rota                            | Descrição                                                                         |
-| ------ | ------------------------------- | --------------------------------------------------------------------------------- |
-| POST   | `/scores/evaluations`           | Body `{customer_id, strategy?}`. Chama o Onboarding, aplica a Strategy e persiste |
-| GET    | `/scores/customers/{id}/latest` | Score vigente (usado pelo Transactions)                                           |
-| GET    | `/health`                       | Health check                                                                      |
+| Método | Rota                               | Permissão      | Descrição                                                                                       |
+| ------ | ---------------------------------- | -------------- | ----------------------------------------------------------------------------------------------- |
+| POST   | `/scores/evaluations`              | `write:scores` | Body `{customer_id, strategy?}`. Chama o Onboarding (token relay), aplica a Strategy e persiste |
+| GET    | `/scores/evaluations?customer_id=` | `read:scores`  | Histórico de avaliações do cliente                                                              |
+| GET    | `/scores/customers/{id}/latest`    | `read:scores`  | Score vigente (usado pelo Transactions)                                                         |
+| GET    | `/scores/strategies`               | `read:scores`  | Strategies disponíveis na Factory (`simple`, `weighted`) e qual é a padrão                      |
+| GET    | `/health`                          | pública        | Health check                                                                                    |
 
 ### Transactions API (`:8080`)
 
-| Método | Rota             | Descrição                                      |
-| ------ | ---------------- | ---------------------------------------------- |
-| POST   | `/accounts`      | Cria conta                                     |
-| GET    | `/accounts/{id}` | Consulta conta                                 |
-| POST   | `/transactions`  | Body `{accountId, tipo: CREDIT\|DEBIT, valor}` |
-| POST   | `/credits`       | Consulta o Score e decide o pedido de crédito  |
-| GET    | `/credits/{id}`  | Consulta pedido de crédito                     |
-| GET    | `/health`        | Health check                                   |
+| Método | Rota                          | Permissão        | Descrição                                                   |
+| ------ | ----------------------------- | ---------------- | ----------------------------------------------------------- |
+| GET    | `/accounts?customerId=`       | `read:accounts`  | Lista contas (todas ou de um cliente)                       |
+| POST   | `/accounts`                   | `write:accounts` | Cria conta                                                  |
+| GET    | `/accounts/{id}`              | `read:accounts`  | Consulta conta                                              |
+| GET    | `/accounts/{id}/transactions` | `read:accounts`  | Extrato, com o saldo após cada lançamento                   |
+| POST   | `/transactions`               | `write:accounts` | Body `{accountId, tipo: CREDIT\|DEBIT, valor}`              |
+| GET    | `/credits?customerId=`        | `read:credits`   | Lista pedidos de crédito com dados do contrato              |
+| POST   | `/credits`                    | `write:credits`  | Consulta o Score (token relay) e decide o pedido de crédito |
+| GET    | `/credits/{id}`               | `read:credits`   | Consulta pedido de crédito                                  |
+| GET    | `/health`                     | pública          | Health check                                                |
 
 > Atenção às convenções de nomes: as APIs Python usam `snake_case` e a API Java usa `camelCase` nos bodies JSON.
+> As APIs Python devolvem datas em UTC sem fuso (`2026-10-21T15:00:00`); a API Java devolve com `Z`.
 
 ## Regras de decisão de crédito
 

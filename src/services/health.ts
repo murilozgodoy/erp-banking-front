@@ -1,4 +1,6 @@
-import { onboardingApi, scoreApi, transactionsApi } from './http'
+import { env } from '@/config/env'
+
+import { createHttpClient } from './http'
 
 export interface ServiceHealth {
   name: string
@@ -7,17 +9,19 @@ export interface ServiceHealth {
 }
 
 const services = [
-  { name: 'Onboarding API', client: onboardingApi },
-  { name: 'Credit Score API', client: scoreApi },
-  { name: 'Transactions API', client: transactionsApi },
+  { name: 'Onboarding API', url: env.onboardingApiUrl },
+  { name: 'Credit Score API', url: env.scoreApiUrl },
+  { name: 'Transactions API', url: env.transactionsApiUrl },
 ]
 
-export async function checkServicesHealth(): Promise<ServiceHealth[]> {
+/** `/health` é público nos 3 serviços: usa clients sem token. */
+export async function checkServicesHealth(
+  createClient = createHttpClient,
+): Promise<ServiceHealth[]> {
   return Promise.all(
-    services.map(async ({ name, client }) => {
-      const url = client.defaults.baseURL ?? ''
+    services.map(async ({ name, url }) => {
       try {
-        await client.get('/health')
+        await createClient(url).get('/health')
         return { name, url, online: true }
       } catch {
         return { name, url, online: false }

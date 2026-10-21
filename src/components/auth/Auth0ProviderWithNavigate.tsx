@@ -19,6 +19,10 @@ export function Auth0ProviderWithNavigate() {
         redirect_uri: window.location.origin,
         audience: env.auth0.audience,
       }}
+      // Mantém a sessão ao recarregar a página mesmo com cookies de terceiros bloqueados.
+      cacheLocation="localstorage"
+      useRefreshTokens
+      useRefreshTokensFallback
       onRedirectCallback={onRedirectCallback}
     >
       <Outlet />
