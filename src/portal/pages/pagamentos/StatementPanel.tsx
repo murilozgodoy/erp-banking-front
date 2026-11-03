@@ -9,7 +9,8 @@ import type { StatementEntry } from '../../types'
 import { Button } from '../../ui/Button'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { Segmented } from '../../ui/Segmented'
-import { EmptyState, ErrorState, Panel, PanelSkeleton } from '../../ui/Surface'
+import { EmptyState, ErrorState, Panel } from '../../ui/Surface'
+import { RowsSkeleton } from './RowsSkeleton'
 import { useStatement } from './queries'
 
 type Periodo = '7' | '30' | '90'
@@ -104,9 +105,7 @@ export function StatementPanel() {
       flush
     >
       {statement.isPending ? (
-        <div className="px-5 pb-5">
-          <PanelSkeleton rows={6} label="Carregando extrato" />
-        </div>
+        <RowsSkeleton rows={6} label="Carregando extrato" />
       ) : statement.isError ? (
         <div className="px-5 pb-5">
           <ErrorState

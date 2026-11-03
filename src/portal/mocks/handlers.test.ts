@@ -440,11 +440,10 @@ describe('transactions /me', () => {
       expect(divergente.status).toBe(422)
       expect(divergente.data.error).toBe('VALOR_DIVERGENTE')
 
-      const passado = await chamar<{ error: string; campos: object }>(
-        `${T}/me/payments`,
-        'POST',
-        { ...pedido, agendado_para: '2000-01-01' },
-      )
+      const passado = await chamar<{ error: string; campos: object }>(`${T}/me/payments`, 'POST', {
+        ...pedido,
+        agendado_para: '2000-01-01',
+      })
       expect(passado.status).toBe(400)
       expect(Object.keys(passado.data.campos)).toEqual(['agendado_para'])
 

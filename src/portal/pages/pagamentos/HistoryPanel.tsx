@@ -8,7 +8,8 @@ import type { Payment } from '../../types'
 import { Button } from '../../ui/Button'
 import { Money } from '../../ui/Money'
 import { Pill, type Tone } from '../../ui/Pill'
-import { EmptyState, ErrorState, Panel, PanelSkeleton } from '../../ui/Surface'
+import { EmptyState, ErrorState, Panel } from '../../ui/Surface'
+import { RowsSkeleton } from './RowsSkeleton'
 import { TIPO_LABEL } from './model'
 import { usePaymentHistory } from './queries'
 
@@ -29,9 +30,7 @@ export function HistoryPanel({ onNew }: { onNew: () => void }) {
   return (
     <Panel id="historico" title="Histórico de pagamentos" flush>
       {history.isPending ? (
-        <div className="px-5 pb-5">
-          <PanelSkeleton rows={4} label="Carregando histórico de pagamentos" />
-        </div>
+        <RowsSkeleton rows={4} label="Carregando histórico de pagamentos" />
       ) : history.isError ? (
         <div className="px-5 pb-5">
           <ErrorState

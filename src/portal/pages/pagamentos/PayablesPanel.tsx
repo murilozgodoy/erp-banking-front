@@ -11,7 +11,8 @@ import { DataTable, type Column } from '../../ui/DataTable'
 import { Money } from '../../ui/Money'
 import { Pill } from '../../ui/Pill'
 import { Segmented } from '../../ui/Segmented'
-import { EmptyState, ErrorState, Panel, PanelSkeleton } from '../../ui/Surface'
+import { EmptyState, ErrorState, Panel } from '../../ui/Surface'
+import { RowsSkeleton } from './RowsSkeleton'
 import { CATEGORIA_LABEL, pagavel, STATUS_PILL } from './model'
 
 const FILTROS: { value: PayableStatus; label: string }[] = [
@@ -20,6 +21,8 @@ const FILTROS: { value: PayableStatus; label: string }[] = [
   { value: 'AGENDADO', label: 'Agendadas' },
   { value: 'PAGO', label: 'Pagas' },
 ]
+
+const PAGE = 10
 
 const VAZIO: Record<PayableStatus, { title: string; text: string }> = {
   ABERTO: {
@@ -61,7 +64,19 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
     for (const conta of itens) result[conta.status]++
     return result
   }, [itens])
-  const rows = useMemo(() => itens.filter((c) => c.status === filtro), [itens, filtro])
+  const [limit, setLimit] = useState(PAGE)
+  // Ordem de vencimento antes de paginar (pagas: mais recentes primeiro).
+  const rows = useMemo(
+    () =>
+      itens
+        .filter((c) => c.status === filtro)
+        .sort((a, b) =>
+          filtro === 'PAGO'
+            ? b.vencimento.localeCompare(a.vencimento)
+            : a.vencimento.localeCompare(b.vencimento),
+        ),
+    [itens, filtro],
+  )
 
   const columns: Column<Payable>[] = [
     {
@@ -148,16 +163,17 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
             value: f.value,
             label: query.data ? `${f.label} ${counts[f.value]}` : f.label,
           }))}
-          onChange={setFiltro}
+          onChange={(value) => {
+            setFiltro(value)
+            setLimit(PAGE)
+          }}
           className="max-w-full overflow-x-auto"
         />
       }
       flush
     >
       {query.isPending ? (
-        <div className="px-5 pb-5">
-          <PanelSkeleton rows={5} label="Carregando contas a pagar" />
-        </div>
+        <RowsSkeleton rows={5} label="Carregando contas a pagar" />
       ) : query.isError ? (
         <div className="px-5 pb-5">
           <ErrorState
@@ -167,35 +183,44 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
           />
         </div>
       ) : (
-        <DataTable
-          key={filtro}
-          caption={`Contas a pagar: ${FILTROS.find((f) => f.value === filtro)?.label}`}
-          columns={columns}
-          rows={rows}
-          rowKey={(c) => c.id}
-          initialSort={{ key: 'vencimento', direction: filtro === 'PAGO' ? 'desc' : 'asc' }}
-          empty={
-            <EmptyState
-              icon={
-                filtro === 'AGENDADO' ? (
-                  <CalendarClock className="size-5" />
-                ) : (
-                  <Receipt className="size-5" />
-                )
-              }
-              title={empty.title}
-              action={
-                filtro === 'ABERTO' ? (
-                  <Button variant="secondary" size="sm" onClick={onNew}>
-                    Novo pagamento
-                  </Button>
-                ) : undefined
-              }
-            >
-              {empty.text}
-            </EmptyState>
-          }
-        />
+        <>
+          <DataTable
+            key={filtro}
+            caption={`Contas a pagar: ${FILTROS.find((f) => f.value === filtro)?.label}`}
+            columns={columns}
+            rows={rows.slice(0, limit)}
+            rowKey={(c) => c.id}
+            initialSort={{ key: 'vencimento', direction: filtro === 'PAGO' ? 'desc' : 'asc' }}
+            empty={
+              <EmptyState
+                icon={
+                  filtro === 'AGENDADO' ? (
+                    <CalendarClock className="size-5" />
+                  ) : (
+                    <Receipt className="size-5" />
+                  )
+                }
+                title={empty.title}
+                action={
+                  filtro === 'ABERTO' ? (
+                    <Button variant="secondary" size="sm" onClick={onNew}>
+                      Novo pagamento
+                    </Button>
+                  ) : undefined
+                }
+              >
+                {empty.text}
+              </EmptyState>
+            }
+          />
+          {rows.length > limit && (
+            <div className="border-t border-line px-5 py-3">
+              <Button variant="ghost" size="sm" onClick={() => setLimit((n) => n + PAGE * 2)}>
+                Mostrar mais contas ({rows.length - limit} restantes)
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </Panel>
   )

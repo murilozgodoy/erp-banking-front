@@ -1,4 +1,4 @@
-import { Landmark, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -8,11 +8,12 @@ import { errorMessage } from '@/lib/errors'
 import { useAnalysis, useOverview } from '../../layout/queries'
 import { daysFromToday, money } from '../../lib/format'
 import type { Payable } from '../../types'
-import { Button, ButtonLink } from '../../ui/Button'
+import { Button } from '../../ui/Button'
 import { InsightBlock, type InsightOffer } from '../../ui/InsightBlock'
 import { Money } from '../../ui/Money'
 import { StatStrip, type Stat } from '../../ui/StatStrip'
-import { EmptyState, ErrorState, PageHeader, Panel } from '../../ui/Surface'
+import { OnboardingPendingState } from '../../ui/OnboardingPending'
+import { ErrorState, PageHeader } from '../../ui/Surface'
 import { HistoryPanel } from './HistoryPanel'
 import { isOnboardingPendente, pagavel } from './model'
 import { PayablesPanel } from './PayablesPanel'
@@ -83,20 +84,7 @@ export function PaymentsPage() {
           title="Pagamentos"
           description="Saldo, contas a pagar, PIX, boletos e extrato."
         />
-        <Panel>
-          <EmptyState
-            icon={<Landmark className="size-5" />}
-            title="Sua conta PJ ainda está sendo aberta"
-            action={
-              <ButtonLink to="/app/status" variant="secondary" size="sm">
-                Acompanhar a análise
-              </ButtonLink>
-            }
-          >
-            Assim que a análise do cadastro terminar, abrimos a conta e trazemos as contas a pagar
-            do ERP para cá. Daí você paga PIX, boletos e TED por esta aba.
-          </EmptyState>
-        </Panel>
+        <OnboardingPendingState area="A conta PJ, com pagamentos e extrato," />
       </>
     )
   }

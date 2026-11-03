@@ -294,6 +294,25 @@ describe('PaymentsPage', () => {
     server.events.removeAllListeners()
   })
 
+  it('histórico: mostra mais pagamentos e tenta de novo após erro', async () => {
+    let falhar = true
+    server.use(
+      http.get(`${T}/me/payments`, () =>
+        falhar ? new HttpResponse(null, { status: 503 }) : HttpResponse.json(db.pagamentos()),
+      ),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    const historico = screen.getByRole('region', { name: 'Histórico de pagamentos' })
+    expect(await within(historico).findByText('Não conseguimos carregar o histórico')).toBeVisible()
+    falhar = false
+    await user.click(within(historico).getByRole('button', { name: 'Tentar de novo' }))
+    await user.click(
+      await within(historico).findByRole('button', { name: 'Mostrar mais pagamentos' }),
+    )
+    expect(within(historico).getAllByRole('listitem').length).toBeGreaterThan(8)
+  })
+
   it('estados vazios ensinam o que fazer', async () => {
     server.use(
       http.get(`${T}/me/payables`, () =>
@@ -341,8 +360,8 @@ describe('PaymentsPage', () => {
   it('409 ONBOARDING_PENDENTE: explica que a conta está sendo aberta', async () => {
     db.setMockStatus('EM_ANALISE')
     renderPage()
-    expect(await screen.findByText('Sua conta PJ ainda está sendo aberta')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Acompanhar a análise' })).toHaveAttribute(
+    expect(await screen.findByText('Seu cadastro ainda está em análise')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver andamento da análise' })).toHaveAttribute(
       'href',
       '/app/status',
     )
