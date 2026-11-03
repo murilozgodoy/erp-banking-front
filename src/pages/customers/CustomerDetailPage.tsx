@@ -103,8 +103,8 @@ function RegistrationCard({ customer }: { customer: Customer }) {
       <dl className="grid gap-3 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="grid grid-cols-3 gap-2">
-            <dt className="text-slate-500">{label}</dt>
-            <dd className="col-span-2 text-slate-900">{value}</dd>
+            <dt className="text-ink-muted">{label}</dt>
+            <dd className="col-span-2 text-ink">{value}</dd>
           </div>
         ))}
       </dl>

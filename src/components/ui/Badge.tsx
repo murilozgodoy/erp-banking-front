@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
 
 const tones = {
-  neutral: 'bg-slate-100 text-slate-700',
-  success: 'bg-emerald-100 text-emerald-800',
-  warning: 'bg-amber-100 text-amber-800',
-  danger: 'bg-red-100 text-red-800',
-  info: 'bg-indigo-100 text-indigo-800',
+  neutral: 'bg-sunken text-ink',
+  success: 'bg-positive-soft text-positive',
+  warning: 'bg-warning-soft text-warning',
+  danger: 'bg-negative-soft text-negative',
+  info: 'bg-accent-soft text-accent',
 }
 
 export type BadgeTone = keyof typeof tones

@@ -69,7 +69,7 @@ export function ScorePanel({ customerId }: { customerId: number }) {
 
         {history.data && history.data.length > 1 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-slate-700">Histórico de avaliações</h3>
+            <h3 className="text-sm font-semibold text-ink">Histórico de avaliações</h3>
             <Table headers={['Data', 'Strategy', 'Score', 'Faixa']}>
               {history.data.map((evaluation) => (
                 <tr key={evaluation.id}>
@@ -93,19 +93,19 @@ function LatestScore({ evaluation }: { evaluation: ScoreEvaluation }) {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="space-y-2">
-        <p className="text-sm text-slate-500">Score vigente</p>
-        <p className="text-4xl font-bold text-slate-900">
+        <p className="text-sm text-ink-muted">Score vigente</p>
+        <p className="text-4xl font-bold text-ink">
           {formatNumber(evaluation.score, 0)}
-          <span className="text-base font-normal text-slate-400"> / 1000</span>
+          <span className="text-base font-normal text-ink-faint"> / 1000</span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <RiskBadge range={evaluation.faixa_risco} />
           {evaluation.decision && <DecisionBadge decision={evaluation.decision.decisao} />}
         </div>
         {evaluation.decision && (
-          <p className="text-sm text-slate-600">{evaluation.decision.motivo}</p>
+          <p className="text-sm text-ink-muted">{evaluation.decision.motivo}</p>
         )}
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-muted">
           Strategy {evaluation.strategy_usada} · {formatDateTime(evaluation.created_at)}
         </p>
       </div>

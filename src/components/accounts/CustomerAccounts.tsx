@@ -35,7 +35,7 @@ export function CustomerAccounts({ customerId }: { customerId: number }) {
           <AccountsTable accounts={accounts.data} />
         )}
         <Can permission="write:accounts">
-          <div className="border-t border-slate-100 pt-4">
+          <div className="border-t border-line pt-4">
             <OpenAccountForm customerId={customerId} />
           </div>
         </Can>

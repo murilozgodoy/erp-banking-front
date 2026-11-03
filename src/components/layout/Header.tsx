@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Link, NavLink } from 'react-router'
 
 import type { Permission } from '@/auth/permissions'
+import { ErpIaLogo } from '@/components/brand/Logo'
 import { Button } from '@/components/ui/Button'
 import { usePermissions } from '@/hooks/usePermissions'
 
@@ -26,11 +27,11 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3">
         <div className="flex items-center gap-8">
-          <Link to="/" className="text-lg font-semibold text-indigo-700">
-            ERP Banking
+          <Link to="/" aria-label="ErpIa, início" className="rounded-control">
+            <ErpIaLogo className="[&>span]:text-lg" />
           </Link>
           {isAuthenticated && (
             <nav aria-label="Principal" className="flex gap-4 text-sm">
@@ -45,9 +46,7 @@ export function Header() {
                     to={to}
                     end={to === '/'}
                     className={({ isActive }) =>
-                      isActive
-                        ? 'font-medium text-indigo-700'
-                        : 'text-slate-600 hover:text-slate-900'
+                      isActive ? 'font-medium text-accent' : 'text-ink-muted hover:text-ink'
                     }
                   >
                     {label}
@@ -58,10 +57,7 @@ export function Header() {
         </div>
         {isAuthenticated && (
           <div className="flex items-center gap-3">
-            <Link
-              to="/perfil"
-              className="flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900"
-            >
+            <Link to="/perfil" className="flex items-center gap-2 text-sm text-ink hover:text-ink">
               {user?.picture && (
                 <img src={user.picture} alt="" className="size-8 rounded-full border" />
               )}

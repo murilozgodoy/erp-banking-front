@@ -35,7 +35,7 @@ describe('MainLayout / Header', () => {
     vi.mocked(useAuth0).mockReturnValue(auth0State({ authenticated: false }))
     renderPage(<MainLayout />)
 
-    expect(screen.getByRole('link', { name: 'ERP Banking' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'ErpIa, início' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument()
   })

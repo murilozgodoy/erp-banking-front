@@ -12,10 +12,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
       {accounts.map((account) => (
         <tr key={account.id}>
           <td>
-            <Link
-              to={`/contas/${account.id}`}
-              className="font-medium text-indigo-700 hover:underline"
-            >
+            <Link to={`/contas/${account.id}`} className="font-medium text-accent hover:underline">
               Conta #{account.id}
             </Link>
           </td>

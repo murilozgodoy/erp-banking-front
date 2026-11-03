@@ -1,6 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { Navigate, useLocation } from 'react-router'
 
+import { ErpIaLogo, Faisca } from '@/components/brand/Logo'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
@@ -20,11 +21,15 @@ export function LoginPage() {
     })
 
   return (
-    <section className="mx-auto max-w-md space-y-6 rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">ERP Banking e Crédito</h1>
-        <p className="text-slate-600">
-          Entre com sua conta para cadastrar clientes, avaliar score e operar contas e crédito.
+    <section className="mx-auto flex max-w-md flex-col gap-8 py-10 sm:py-16">
+      <ErpIaLogo size="lg" />
+      <div className="space-y-3">
+        <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink">
+          Sua operação, lida por IA. Seu crédito, na hora certa.
+        </h1>
+        <p className="text-ink-muted">
+          ERP com conta PJ, pagamentos e crédito integrados. A ErpIa acompanha vendas, recebíveis e
+          contas a pagar e mostra a oportunidade de crédito antes de o caixa apertar.
         </p>
       </div>
       {error && (
@@ -32,15 +37,18 @@ export function LoginPage() {
           {error.message}
         </Alert>
       )}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button onClick={() => login()}>Entrar</Button>
         <Button variant="secondary" onClick={() => login(true)}>
-          Criar conta
+          Criar conta da empresa
         </Button>
       </div>
-      <p className="text-xs text-slate-500">
-        Autenticação via Auth0 (OAuth 2.0 com Authorization Code + PKCE). O que cada perfil pode
-        fazer é definido pelas permissões atribuídas no Auth0.
+      <p className="flex items-start gap-2 border-t border-line pt-6 text-xs text-ink-muted">
+        <Faisca label={null} className="mt-0.5" />
+        <span>
+          A Faísca marca o que a ErpIa infere a partir dos seus dados: insights, oportunidades e
+          valores pré-aprovados. Login seguro via Auth0 (Authorization Code + PKCE).
+        </span>
       </p>
     </section>
   )

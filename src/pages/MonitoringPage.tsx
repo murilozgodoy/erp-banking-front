@@ -114,15 +114,15 @@ function Monitoring() {
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-lg border border-slate-200 p-4 transition hover:border-indigo-300 hover:shadow"
+                className="block rounded-lg border border-line p-4 transition hover:border-accent/40 hover:shadow"
               >
-                <p className="font-medium text-indigo-700">{label}</p>
-                <p className="text-sm text-slate-600">{description}</p>
+                <p className="font-medium text-accent">{label}</p>
+                <p className="text-sm text-ink-muted">{description}</p>
               </a>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-ink-muted">
           O Swagger das APIs Python (<code>/onboarding/docs</code>, <code>/score/docs</code>) fica
           atrás do Auth0: a própria página exige o access token, então não abre direto no navegador
           (401).

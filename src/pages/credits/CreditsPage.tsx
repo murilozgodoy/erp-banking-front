@@ -78,7 +78,7 @@ function CreditsList() {
             : 'Nenhum pedido de crédito.'}
         </EmptyState>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-line bg-surface shadow-sm">
           <CreditsTable credits={credits.data} />
         </div>
       )}

@@ -5,7 +5,7 @@ export function Table({ headers, children }: { headers: string[]; children: Reac
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-slate-200 text-xs text-slate-500 uppercase">
+        <thead className="border-b border-line text-xs text-ink-muted uppercase">
           <tr>
             {headers.map((header) => (
               <th key={header} scope="col" className="px-3 py-2 font-medium">
@@ -14,7 +14,7 @@ export function Table({ headers, children }: { headers: string[]; children: Reac
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 [&_td]:px-3 [&_td]:py-2">{children}</tbody>
+        <tbody className="divide-y divide-line [&_td]:px-3 [&_td]:py-2">{children}</tbody>
       </table>
     </div>
   )

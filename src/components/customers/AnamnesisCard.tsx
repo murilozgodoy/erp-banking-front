@@ -20,21 +20,21 @@ export function AnamnesisCard({ customer }: { customer: Customer }) {
         {anamnesis ? (
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <dt className="text-slate-500">Dívidas ativas</dt>
+              <dt className="text-ink-muted">Dívidas ativas</dt>
               <dd className="text-lg font-semibold">{formatCurrency(anamnesis.dividas_ativas)}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Comprometimento da renda</dt>
+              <dt className="text-ink-muted">Comprometimento da renda</dt>
               <dd className="text-lg font-semibold">
                 {formatPercent(anamnesis.comprometimento_renda, 1)}
               </dd>
             </div>
-            <p className="col-span-2 text-xs text-slate-500">
+            <p className="col-span-2 text-xs text-ink-muted">
               Atualizada em {formatDateTime(anamnesis.updated_at)}
             </p>
           </dl>
         ) : (
-          <p className="text-sm text-slate-500">Anamnese ainda não registrada.</p>
+          <p className="text-sm text-ink-muted">Anamnese ainda não registrada.</p>
         )}
         <Can permission="write:customers">
           <AnamnesisForm customer={customer} />
@@ -70,7 +70,7 @@ function AnamnesisForm({ customer }: { customer: Customer }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 border-t border-slate-100 pt-4">
+    <form onSubmit={submit} className="space-y-3 border-t border-line pt-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <InputField
           label="Dívidas ativas (R$)"
