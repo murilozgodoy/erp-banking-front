@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { Faisca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
+import { AskAssistant } from '../assistant/AskAssistant'
 import { money, pct } from '../lib/format'
 import type { Insight, InsightSeveridade, ProdutoCredito } from '../types'
 
@@ -41,13 +42,23 @@ interface InsightBlockProps {
   insight?: Pick<Insight, 'titulo' | 'texto' | 'severidade'>
   offer?: InsightOffer
   className?: string
+  /**
+   * Mostra "Perguntar à ErpIa sobre isso" (abre o assistente com a pergunta pré-preenchida).
+   * Só aparece dentro do portal (com o `AssistantProvider`). Padrão: `true`.
+   */
+  askAssistant?: boolean
 }
 
 /**
  * Bloco de IA de cada aba: o insight ligado à oferta de crédito que o resolve, marcado pela
  * Faísca (DESIGN.md). O lado esquerdo diz o que está acontecendo; o lado lima, como resolver.
  */
-export function InsightBlock({ insight, offer, className }: InsightBlockProps) {
+export function InsightBlock({
+  insight,
+  offer,
+  className,
+  askAssistant = true,
+}: InsightBlockProps) {
   const reduce = useReducedMotion()
   if (!insight && !offer) return null
   const sev = insight ? severity[insight.severidade] : null
@@ -78,6 +89,7 @@ export function InsightBlock({ insight, offer, className }: InsightBlockProps) {
               <Faisca />
             </p>
             <p className="mt-0.5 max-w-[70ch] text-sm text-ink-muted">{insight.texto}</p>
+            {askAssistant && <AskAssistant titulo={insight.titulo} texto={insight.texto} />}
           </div>
         </div>
       )}
