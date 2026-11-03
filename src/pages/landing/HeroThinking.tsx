@@ -1,8 +1,12 @@
 import { animate, m, useInView, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Faisca } from '@/components/brand/Logo'
-import { FAISCA_PATH, MARK_FILL, MARK_LINES } from '@/components/brand/geometry'
+import {
+  ReadingMark as ThinkingMark,
+  ReadingStep as Step,
+  ReadingSwap as Swap,
+} from '@/components/brand/ReadingSteps'
 import { cn } from '@/lib/cn'
 
 import { CASHFLOW, CASHFLOW_ANTECIPADO, CHART, smoothPath, toX, toY } from './cashflow'
@@ -44,8 +48,6 @@ function reachedAt(t: number) {
 
 /** O estado final, mostrado parado quando o visitante pede menos movimento. */
 const FINAL = CUE.lift
-
-const STEP_DURATION = 1.2
 
 const integer = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
 const thousands = new Intl.NumberFormat('pt-BR', {
@@ -231,137 +233,6 @@ export function HeroThinking({ className }: { className?: string }) {
         </div>
       </m.div>
     </div>
-  )
-}
-
-/** Símbolo da ErpIa em que só a Faísca se mexe: um quarto de volta lento enquanto lê. */
-function ThinkingMark({ thinking }: { thinking: boolean }) {
-  return (
-    <svg viewBox="0 0 32 32" className="size-6 shrink-0" aria-hidden>
-      <rect width="32" height="32" rx="9" fill={MARK_FILL.dark} />
-      {MARK_LINES.map((bar) => (
-        <rect key={bar.y} x="8" y={bar.y} width={bar.width} height="3" rx="1.5" fill="#EEF2EC" />
-      ))}
-      <m.path
-        d={FAISCA_PATH}
-        fill="#C6F24E"
-        initial={false}
-        animate={thinking ? { rotate: [0, 90], scale: [1, 0.78, 1] } : { rotate: 0, scale: 1 }}
-        transition={
-          thinking
-            ? { duration: 1.8, ease: 'easeInOut', repeat: Infinity, repeatDelay: 0.5 }
-            : { duration: 0.3, ease }
-        }
-      />
-    </svg>
-  )
-}
-
-/** Texto que troca no mesmo lugar (crossfade com 6 px de deslocamento). */
-function Swap({ shown, still, children }: { shown: boolean; still: boolean; children: string }) {
-  return (
-    <m.span
-      className="col-start-1 row-start-1 whitespace-nowrap"
-      initial={false}
-      animate={shown ? { opacity: 1, y: 0 } : { opacity: 0, y: still ? 0 : -6 }}
-      transition={{ duration: 0.28, ease }}
-    >
-      {children}
-    </m.span>
-  )
-}
-
-interface StepProps {
-  shown: boolean
-  done: boolean
-  still: boolean
-  label: ReactNode
-  /** Tempo (s) da linha de progresso até a etapa concluir. */
-  duration?: number
-  /** Etapa que encontrou algo que pede atenção: termina com "!" em vez de check. */
-  attention?: boolean
-}
-
-/**
- * Uma linha do trace: o texto sobe de trás de uma máscara; o status é uma linha fina que se
- * completa no tempo da etapa e vira um check (ou um sinal de atenção) desenhado.
- */
-function Step({
-  shown,
-  done,
-  still,
-  label,
-  duration = STEP_DURATION,
-  attention = false,
-}: StepProps) {
-  const from = still ? false : undefined
-  return (
-    <li className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-2.5">
-      <svg
-        viewBox="0 0 16 16"
-        className="mt-[0.1875rem] size-4"
-        fill="none"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <m.g
-          initial={from ?? { opacity: 0 }}
-          animate={{ opacity: shown && !done ? 1 : 0 }}
-          transition={{ duration: 0.18, ease }}
-        >
-          <path d="M2.5 8h11" className="stroke-line-strong" />
-          <m.path
-            d="M2.5 8h11"
-            className="stroke-ink-muted"
-            initial={from ?? { pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: shown ? 1 : 0, opacity: shown ? 1 : 0 }}
-            transition={{
-              pathLength: { duration: shown ? duration : 0, ease: 'linear' },
-              opacity: { duration: 0.18 },
-            }}
-          />
-        </m.g>
-        {attention ? (
-          <g className="stroke-warning">
-            <m.path
-              d="M8 3v6.25"
-              initial={from ?? { pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: done ? 1 : 0, opacity: done ? 1 : 0 }}
-              transition={{ duration: 0.24, ease }}
-            />
-            <m.circle
-              cx="8"
-              cy="12.6"
-              r="0.6"
-              className="fill-warning"
-              initial={from ?? { opacity: 0 }}
-              animate={{ opacity: done ? 1 : 0 }}
-              transition={{ duration: 0.18, ease, delay: done && !still ? 0.18 : 0 }}
-            />
-          </g>
-        ) : (
-          <m.path
-            d="M3.25 8.4 6.4 11.5l6.35-7"
-            className="stroke-accent"
-            initial={from ?? { pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: done ? 1 : 0, opacity: done ? 1 : 0 }}
-            transition={{ duration: 0.28, ease }}
-          />
-        )}
-      </svg>
-      <span className="block overflow-hidden">
-        <m.span
-          className="block text-sm text-ink-muted"
-          initial={from ?? { opacity: 0, y: 8 }}
-          animate={shown ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-          transition={{ duration: 0.28, ease }}
-        >
-          {label}
-        </m.span>
-      </span>
-    </li>
   )
 }
 

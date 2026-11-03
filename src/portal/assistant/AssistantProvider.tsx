@@ -18,6 +18,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const chat = useAssistant({ sub: user?.sub, rota: pathname })
+  const nome = (user?.given_name ?? user?.name)?.trim().split(/\s+/)[0]
+  const firstName = nome && !nome.includes('@') ? nome : undefined
 
   const openAssistant = useCallback((options?: OpenAssistantOptions) => {
     if (options?.prefill) setDraft(options.prefill.slice(0, MAX_CHARS))
@@ -38,8 +40,18 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, [toggle])
 
   const value = useMemo<AssistantContextValue>(
-    () => ({ open, openAssistant, close, toggle, rota: pathname, chat, draft, setDraft }),
-    [open, openAssistant, close, toggle, pathname, chat, draft],
+    () => ({
+      open,
+      openAssistant,
+      close,
+      toggle,
+      rota: pathname,
+      chat,
+      draft,
+      setDraft,
+      firstName,
+    }),
+    [open, openAssistant, close, toggle, pathname, chat, draft, firstName],
   )
 
   return (

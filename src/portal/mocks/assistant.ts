@@ -288,7 +288,7 @@ const MARCADORES: [string, number, Record<string, string>][] = [
 export function assistantHandlers(base: string): HttpHandler[] {
   return [
     http.post(`${base}/me/assistant/messages`, async ({ request }) => {
-      if (import.meta.env.MODE !== 'test') await delay(800)
+      if (import.meta.env.MODE !== 'test') await delay(2400)
       if (!db.onboardingAprovado()) {
         return HttpResponse.json(
           { error: 'ONBOARDING_PENDENTE', status: db.me().onboarding_status },
