@@ -9,7 +9,7 @@ import {
 } from 'motion/react'
 import { useEffect, useId, useState } from 'react'
 
-import { Faisca, Marca } from '@/components/brand/Logo'
+import { Marca } from '@/components/brand/Logo'
 import { formatCurrency, formatPercent } from '@/lib/format'
 
 import { ArrowRightIcon } from './icons'
@@ -38,7 +38,6 @@ const reais = new Intl.NumberFormat('pt-BR', {
 const inteiros = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
 
 const meses = (n: number) => `${n} ${n === 1 ? 'mês' : 'meses'}`
-const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1)
 const pct = (parte: number, todo: number) => `${Math.round((parte / todo) * 100)}%`
 
 /** Revelação ao rolar: 10 px + opacidade, ease-out-expo, filhos em cascata de 70 ms. */
@@ -90,7 +89,7 @@ function Slider({ id, label, min, max, step, value, format, onChange }: SliderPr
       <label htmlFor={id} className="text-sm text-ink-muted">
         {label}
       </label>
-      <div className="relative mt-10">
+      <div className="relative mt-9">
         <output
           htmlFor={id}
           style={{ left: thumbCenter(ratio), transform: `translateX(-${ratio * 100}%)` }}
@@ -118,10 +117,6 @@ function Slider({ id, label, min, max, step, value, format, onChange }: SliderPr
           onChange={(e) => onChange(Number(e.target.value))}
           className={rangeInput}
         />
-      </div>
-      <div aria-hidden className="tabular flex justify-between text-xs text-ink-faint">
-        <span>{format(min)}</span>
-        <span>{format(max)}</span>
       </div>
     </div>
   )
@@ -194,7 +189,7 @@ function ParcelBars({
   const linhas = tabelaPrice(valor, produto.taxaMensal, prazo)
   const parcela = linhas[0].juros + linhas[0].amortizacao
   return (
-    <figure className="mt-6 flex flex-1 flex-col">
+    <figure className="mt-5 flex flex-1 flex-col">
       <div
         aria-hidden
         data-testid="parcelas"
@@ -212,64 +207,40 @@ function ParcelBars({
           </span>
         ))}
       </div>
-      <div aria-hidden className="tabular mt-1.5 flex justify-between text-xs text-ink-faint">
-        <span>1º mês</span>
-        <span>{prazo}º mês</span>
-      </div>
-      <figcaption className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint">
+      <figcaption className="tabular mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-faint">
         <span className="flex items-center gap-1.5">
           <span aria-hidden className="size-2 rounded-[2px] bg-accent" />
           Amortização
         </span>
         <span className="flex items-center gap-1.5">
           <span aria-hidden className="size-2 rounded-[2px] bg-line-strong" />
-          Juros, que caem a cada mês
+          Juros
         </span>
+        <span className="ml-auto">{prazo} parcelas</span>
       </figcaption>
     </figure>
   )
 }
 
-/**
- * Antecipação: bruto contra líquido. A barra de baixo é o valor cheio, que só chega no prazo; a de
- * cima é o que entra hoje, e a diferença entre as duas é o custo.
- */
-function BrutoLiquido({
-  valor,
-  liquido,
-  prazo,
-}: {
-  valor: number
-  liquido: number
-  prazo: number
-}) {
-  const linhas = [
-    { rotulo: 'Hoje, antecipando', ratio: liquido / valor, cor: 'bg-accent' },
-    { rotulo: `Em ${meses(prazo)}, sem antecipar`, ratio: 1, cor: 'bg-ink-faint/45' },
-  ]
+/** Antecipação: uma barra só. A trilha é o valor bruto; o preenchimento, o líquido que entra hoje. */
+function BrutoLiquido({ valor, liquido }: { valor: number; liquido: number }) {
+  const ratio = liquido / valor
   return (
-    <figure className="mt-6 flex flex-1 flex-col justify-end">
-      <div aria-hidden data-testid="bruto-liquido" className="space-y-3.5">
-        {linhas.map((linha) => (
-          <div key={linha.cor}>
-            <div className="tabular flex justify-between gap-4 text-xs text-ink-muted">
-              <span>{linha.rotulo}</span>
-              <span className="font-medium text-ink">{pct(linha.ratio, 1)}</span>
-            </div>
-            <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-line">
-              <m.span
-                className={`block h-full origin-left rounded-full ${linha.cor}`}
-                initial={false}
-                animate={{ scaleX: linha.ratio }}
-                transition={springy}
-              />
-            </div>
-          </div>
-        ))}
+    <figure className="mt-5 flex flex-1 flex-col justify-end">
+      <div aria-hidden data-testid="bruto-liquido">
+        <div className="tabular flex justify-between gap-4 text-xs text-ink-muted">
+          <span>Líquido sobre o bruto</span>
+          <span className="font-medium text-ink">{pct(ratio, 1)}</span>
+        </div>
+        <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-ink-faint/25">
+          <m.span
+            className="block h-full origin-left rounded-full bg-accent"
+            initial={false}
+            animate={{ scaleX: ratio }}
+            transition={springy}
+          />
+        </div>
       </div>
-      <figcaption className="mt-3 text-xs text-ink-faint">
-        A diferença, {pct(valor - liquido, valor)} do bruto, é o custo de receber agora.
-      </figcaption>
     </figure>
   )
 }
@@ -305,7 +276,7 @@ function ProductOption({
   return (
     <m.label
       variants={reveal}
-      className="group relative flex min-h-11 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-center has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent lg:items-center lg:justify-start lg:px-5 lg:py-4 lg:text-left"
+      className="group relative flex min-h-11 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-center has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent lg:justify-start lg:px-5 lg:py-3.5 lg:text-left"
     >
       {selected && (
         <m.span
@@ -344,15 +315,8 @@ function ProductOption({
         >
           {produto.nome}
         </span>
-        <span id={descId} className="hidden lg:block">
-          <span className="mt-1.5 block max-w-[52ch] text-[0.9375rem] leading-relaxed text-ink-muted">
-            <span className="font-medium text-credit-ink">Sugerido quando</span>{' '}
-            {minuscula(produto.quando)}
-          </span>
-          <span className="mt-2.5 flex items-center gap-1.5 text-sm text-ink-faint">
-            <ScreenIcon />
-            Aparece em {produto.telas}
-          </span>
+        <span id={descId} className="mt-1 hidden text-[0.9375rem] text-ink-muted lg:block">
+          {produto.quando}
         </span>
       </span>
     </m.label>
@@ -407,8 +371,10 @@ export function CreditSimulator() {
               <h3 className="text-xl font-semibold tracking-[-0.01em] text-ink">
                 Simule {produto.nome.toLowerCase()}
               </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted lg:hidden">
-                Aparece em {produto.telas}. Sugerido quando {minuscula(produto.quando)}
+              <p className="mt-1 text-sm text-ink-muted lg:hidden">{produto.quando}</p>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-faint">
+                <ScreenIcon />
+                Aparece em {produto.telas}
               </p>
             </m.div>
             <span className="tabular mt-0.5 shrink-0 rounded-full bg-sunken px-2.5 py-1 text-xs whitespace-nowrap text-ink-muted">
@@ -416,7 +382,7 @@ export function CreditSimulator() {
             </span>
           </div>
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-8">
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 sm:gap-8">
             <Slider
               id={`${ids}-valor`}
               label={desconto ? 'Valor dos recebíveis' : 'Valor'}
@@ -440,61 +406,45 @@ export function CreditSimulator() {
           </div>
 
           <div
-            className="mt-7 flex flex-1 flex-col rounded-panel bg-sunken p-5 sm:p-6"
+            className="mt-6 flex flex-1 flex-col rounded-panel bg-sunken p-5 sm:p-6"
             aria-live="polite"
           >
             <m.div key={productId} {...swap} className="flex flex-1 flex-col">
-              <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-                <div>
-                  <p className="text-sm text-ink-muted">
-                    {desconto ? 'Você recebe hoje' : 'Parcela mensal estimada'}
-                  </p>
-                  <div className="mt-2">
-                    <Contador
-                      value={
-                        resultado.modalidade === 'parcelas' ? resultado.parcela : resultado.liquido
-                      }
-                    />
-                  </div>
-                </div>
-                <dl className="grid grid-cols-2 gap-x-5 gap-y-1 text-sm sm:gap-x-6">
-                  {resultado.modalidade === 'parcelas' ? (
-                    <>
-                      <div>
-                        <dt className="text-ink-faint">Total a pagar</dt>
-                        <dd className="tabular text-base font-medium text-ink">
-                          {formatCurrency(resultado.total)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-ink-faint">Juros no período</dt>
-                        <dd className="tabular text-base font-medium text-ink">
-                          {formatCurrency(resultado.juros)}
-                        </dd>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <dt className="text-ink-faint">Valor bruto</dt>
-                        <dd className="tabular text-base font-medium text-ink">
-                          {reais.format(valor)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-ink-faint">Custo da antecipação</dt>
-                        <dd className="tabular text-base font-medium text-ink">
-                          {formatCurrency(resultado.custo)}
-                        </dd>
-                      </div>
-                    </>
-                  )}
-                </dl>
+              <p className="text-sm text-ink-muted">
+                {desconto ? 'Você recebe hoje' : 'Parcela mensal estimada'}
+              </p>
+              <div className="mt-2">
+                <Contador
+                  value={
+                    resultado.modalidade === 'parcelas' ? resultado.parcela : resultado.liquido
+                  }
+                />
               </div>
+              <dl className="tabular mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm text-ink-faint sm:gap-x-2">
+                <div className="flex gap-1.5">
+                  <dt>{desconto ? 'Valor bruto' : 'Total'}</dt>
+                  <dd className="font-medium text-ink">
+                    {resultado.modalidade === 'parcelas'
+                      ? formatCurrency(resultado.total)
+                      : reais.format(valor)}
+                  </dd>
+                </div>
+                <span aria-hidden className="hidden sm:inline">
+                  ·
+                </span>
+                <div className="flex gap-1.5">
+                  <dt>{desconto ? 'custo' : 'juros'}</dt>
+                  <dd className="font-medium text-ink">
+                    {formatCurrency(
+                      resultado.modalidade === 'parcelas' ? resultado.juros : resultado.custo,
+                    )}
+                  </dd>
+                </div>
+              </dl>
               {resultado.modalidade === 'parcelas' ? (
                 <ParcelBars produto={produto} valor={valor} prazo={prazoAtual} />
               ) : (
-                <BrutoLiquido valor={valor} liquido={resultado.liquido} prazo={prazoAtual} />
+                <BrutoLiquido valor={valor} liquido={resultado.liquido} />
               )}
             </m.div>
           </div>
@@ -503,9 +453,8 @@ export function CreditSimulator() {
             Simular com os meus números
             <ArrowRightIcon />
           </button>
-          <p className="mt-3 text-xs leading-relaxed text-ink-faint">
-            Taxa ilustrativa de {taxa} ao mês, só para referência. Não é proposta: taxa, CET e
-            limite reais dependem da análise da sua empresa.
+          <p className="mt-2.5 text-xs text-ink-faint">
+            Taxa ilustrativa. Condições reais dependem da análise da sua empresa.
           </p>
         </m.div>
       </div>
@@ -518,7 +467,7 @@ export function CreditSection() {
     <section
       id="credito"
       aria-labelledby="credito-title"
-      className="border-t border-line bg-surface py-20 sm:py-28"
+      className="border-t border-line bg-surface py-16 sm:py-24"
     >
       <div className={container}>
         <div className="grid gap-6 lg:grid-cols-12 lg:items-end">
@@ -526,18 +475,12 @@ export function CreditSection() {
             Crédito em cada tela, quando ele resolve um problema real.
           </h2>
           <div className="lg:col-span-6 lg:col-start-7">
-            <p className={`${lead} max-w-[60ch]`}>
-              A <Marca /> cruza vendas, recebíveis, estoque e contas a pagar e só sugere crédito
-              quando ele cobre uma necessidade que aparece nos seus números. Cada sugestão mostra
-              valor pré-aprovado, custo e o motivo.
-            </p>
-            <p className="mt-4 flex items-center gap-2 text-sm text-credit-ink">
-              <Faisca label={null} />
-              Tudo o que a IA sugere vem marcado com a Faísca.
+            <p className={`${lead} max-w-[48ch]`}>
+              A <Marca /> só sugere crédito quando ele resolve algo que aparece nos seus números.
             </p>
           </div>
         </div>
-        <div className="mt-12 sm:mt-14">
+        <div className="mt-10 sm:mt-12">
           <CreditSimulator />
         </div>
       </div>

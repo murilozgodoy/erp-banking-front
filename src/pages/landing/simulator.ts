@@ -12,7 +12,7 @@ export interface CreditProduct {
   rotulo: string
   /** Onde o produto aparece no portal. */
   telas: string
-  /** Quando a ErpIa sugere o produto. */
+  /** Quando a ErpIa sugere o produto, numa linha curta (até 60 caracteres). */
   quando: string
   /** Taxa ilustrativa ao mês (0,0219 = 2,19% a.m.). */
   taxaMensal: number
@@ -28,7 +28,7 @@ export const CREDIT_PRODUCTS: CreditProduct[] = [
     nome: 'Antecipação de recebíveis',
     rotulo: 'Antecipação',
     telas: 'Vendas e Recebíveis',
-    quando: 'O caixa projetado fica negativo e há vendas no cartão ou boletos a receber.',
+    quando: 'Quando o caixa projetado fica negativo',
     taxaMensal: 0.0139,
     modalidade: 'desconto',
     prazoMin: 1,
@@ -39,7 +39,7 @@ export const CREDIT_PRODUCTS: CreditProduct[] = [
     nome: 'Capital de giro',
     rotulo: 'Capital de giro',
     telas: 'Pagamentos e Pendências',
-    quando: 'O saldo não cobre as contas da semana ou um fornecedor está para atrasar.',
+    quando: 'Quando o saldo não cobre as contas da semana',
     taxaMensal: 0.0219,
     modalidade: 'parcelas',
     prazoMin: 3,
@@ -50,7 +50,7 @@ export const CREDIT_PRODUCTS: CreditProduct[] = [
     nome: 'Financiamento de estoque',
     rotulo: 'Estoque',
     telas: 'Estoque',
-    quando: 'Itens de alto giro ficam abaixo do mínimo e comprar em volume sai mais barato.',
+    quando: 'Quando itens de alto giro ficam abaixo do mínimo',
     taxaMensal: 0.0179,
     modalidade: 'parcelas',
     prazoMin: 3,
@@ -61,8 +61,7 @@ export const CREDIT_PRODUCTS: CreditProduct[] = [
     nome: 'Alavancagem',
     rotulo: 'Alavancagem',
     telas: 'Visão geral e Crédito',
-    quando:
-      'Margem e receita recorrente sustentam um passo maior, como uma loja ou uma contratação.',
+    quando: 'Quando a margem sustenta um passo maior',
     taxaMensal: 0.0159,
     modalidade: 'parcelas',
     prazoMin: 6,

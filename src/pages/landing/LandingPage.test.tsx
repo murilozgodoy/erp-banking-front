@@ -81,7 +81,7 @@ describe('LandingPage', () => {
     render(<LandingPage />)
     expect(screen.getByText('Parcela mensal estimada')).toBeInTheDocument()
     expect(screen.getByText(/7\.653,32/)).toBeInTheDocument()
-    expect(screen.getByText(/Taxa ilustrativa de 2,19% ao mês/)).toBeInTheDocument()
+    expect(screen.getByText('2,19% a.m., ilustrativa')).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Valor'), { target: { value: '100000' } })
     fireEvent.change(screen.getByLabelText('Prazo'), { target: { value: '24' } })

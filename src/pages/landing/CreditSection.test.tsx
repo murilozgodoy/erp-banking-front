@@ -33,7 +33,7 @@ const renderSection = () =>
   )
 
 describe('CreditSection', () => {
-  it('lista os 4 produtos como grupo de rádio, com onde aparecem e quando a IA sugere', () => {
+  it('lista os 4 produtos como grupo de rádio, cada um com uma linha curta', () => {
     renderSection()
     const grupo = screen.getByRole('group', { name: 'Produto de crédito' })
     const radios = within(grupo).getAllByRole('radio')
@@ -41,9 +41,8 @@ describe('CreditSection', () => {
     expect(screen.getByRole('radio', { name: 'Capital de giro' })).toBeChecked()
 
     const estoque = screen.getByRole('radio', { name: 'Financiamento de estoque' })
-    expect(estoque).toHaveAccessibleDescription(
-      /Sugerido quando itens de alto giro ficam abaixo do mínimo.*Aparece em Estoque/,
-    )
+    expect(estoque).toHaveAccessibleDescription('Quando itens de alto giro ficam abaixo do mínimo')
+    expect(screen.queryByText(/Sugerido quando/)).not.toBeInTheDocument()
     // Rótulo curto do controle segmentado do celular.
     expect(within(grupo).getByText('Estoque')).toBeInTheDocument()
   })
@@ -60,18 +59,27 @@ describe('CreditSection', () => {
     expect(screen.getByText('1,79% a.m., ilustrativa')).toBeInTheDocument()
   })
 
+  it('mostra onde aparece só o produto selecionado, no cabeçalho do simulador', async () => {
+    renderSection()
+    expect(screen.getAllByText(/^Aparece em/)).toHaveLength(1)
+    expect(screen.getByText('Aparece em Pagamentos e Pendências')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: 'Antecipação de recebíveis' }))
+    expect(screen.getByText('Aparece em Vendas e Recebíveis')).toBeInTheDocument()
+    expect(screen.queryByText('Aparece em Pagamentos e Pendências')).not.toBeInTheDocument()
+  })
+
   it('desenha uma barra por parcela e acompanha o prazo', () => {
     renderSection()
     expect(screen.getByTestId('parcelas').children).toHaveLength(12)
-    expect(screen.getByText('12º mês')).toBeInTheDocument()
+    expect(screen.getByText('12 parcelas')).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Prazo'), { target: { value: '20' } })
     expect(screen.getByTestId('parcelas').children).toHaveLength(20)
-    expect(screen.getByText('20º mês')).toBeInTheDocument()
+    expect(screen.getByText('20 parcelas')).toBeInTheDocument()
     expect(screen.getByLabelText('Prazo')).toHaveAttribute('aria-valuetext', '20 meses')
   })
 
-  it('antecipação compara bruto e líquido', async () => {
+  it('antecipação compara líquido e bruto numa barra só', async () => {
     renderSection()
     await userEvent.click(screen.getByRole('radio', { name: 'Antecipação de recebíveis' }))
     fireEvent.change(screen.getByLabelText('Valor dos recebíveis'), {
@@ -83,10 +91,9 @@ describe('CreditSection', () => {
     expect(screen.getByText(/95\.830,00/)).toBeInTheDocument()
     expect(screen.getByText(/4\.170,00/)).toBeInTheDocument()
     const visual = screen.getByTestId('bruto-liquido')
-    expect(within(visual).getByText('Hoje, antecipando')).toBeInTheDocument()
+    expect(within(visual).getByText('Líquido sobre o bruto')).toBeInTheDocument()
     expect(within(visual).getByText('96%')).toBeInTheDocument()
-    expect(within(visual).getByText('Em 3 meses, sem antecipar')).toBeInTheDocument()
-    expect(screen.getByText(/A diferença, 4% do bruto/)).toBeInTheDocument()
+    expect(screen.queryByText(/A diferença/)).not.toBeInTheDocument()
   })
 
   it('a bolha do controle mostra o valor atual', () => {
@@ -100,6 +107,9 @@ describe('CreditSection', () => {
   it('"Simular com os meus números" abre o cadastro', async () => {
     renderSection()
     await userEvent.click(screen.getByRole('button', { name: /Simular com os meus números/ }))
+    expect(
+      screen.getByText('Taxa ilustrativa. Condições reais dependem da análise da sua empresa.'),
+    ).toBeInTheDocument()
     expect(state.loginWithRedirect).toHaveBeenCalledWith({
       authorizationParams: { screen_hint: 'signup' },
     })
