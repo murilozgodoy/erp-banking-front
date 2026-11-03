@@ -1,3 +1,4 @@
+import { Marca } from '@/components/brand/Logo'
 import { motion, useReducedMotion } from 'motion/react'
 import { CalendarRange, Hourglass } from 'lucide-react'
 import { useMemo } from 'react'
@@ -176,7 +177,7 @@ export function SalesPage() {
             </ButtonLink>
           }
         >
-          Assim que a análise terminar, a ErpIa conecta o ERP e mostra o faturamento aqui.
+          Assim que a análise terminar, a <Marca /> conecta o ERP e mostra o faturamento aqui.
         </EmptyState>
       </Panel>
     )

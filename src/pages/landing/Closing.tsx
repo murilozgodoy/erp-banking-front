@@ -1,4 +1,4 @@
-import { ErpIaLogo } from '@/components/brand/Logo'
+import { ErpIaLogo, Marca } from '@/components/brand/Logo'
 
 import { ArrowRightIcon } from './icons'
 import { container, primaryButton } from './styles'
@@ -53,7 +53,9 @@ export function LandingFooter() {
             Simulações e valores nesta página são ilustrativos. Taxas, limites e CET dependem da
             análise de cada empresa.
           </p>
-          <p>© 2026 ErpIa</p>
+          <p>
+            © 2026 <Marca />
+          </p>
         </div>
       </div>
     </footer>

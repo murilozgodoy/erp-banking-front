@@ -1,10 +1,15 @@
 import { container, lead, sectionTitle } from './styles'
+import { Marca } from '@/components/brand/Logo'
 
 const PILLARS = [
   {
     titulo: 'Login pelo Auth0',
-    texto:
-      'Autenticação com OAuth 2.0 e PKCE, feita pelo Auth0. A ErpIa não recebe nem guarda a sua senha.',
+    texto: (
+      <>
+        Autenticação com OAuth 2.0 e PKCE, feita pelo Auth0. A <Marca /> não recebe nem guarda a sua
+        senha.
+      </>
+    ),
   },
   {
     titulo: 'Dados separados por empresa',

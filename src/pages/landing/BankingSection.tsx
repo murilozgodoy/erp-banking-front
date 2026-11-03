@@ -1,6 +1,6 @@
 import { m } from 'motion/react'
 
-import { Faisca } from '@/components/brand/Logo'
+import { Faisca, Marca } from '@/components/brand/Logo'
 
 import { BarcodeIcon, CalendarIcon, PixIcon } from './icons'
 import { container, ease } from './styles'
@@ -74,7 +74,7 @@ export function BankingSection() {
           </h2>
           <p className="mt-5 max-w-[48ch] text-lg leading-relaxed text-rail-muted">
             Pague, receba e organize a semana sem trocar de sistema. Cada pagamento já entra no
-            fluxo de caixa, e o saldo que você vê é o mesmo que a ErpIa usa para projetar.
+            fluxo de caixa, e o saldo que você vê é o mesmo que a <Marca /> usa para projetar.
           </p>
           <dl className="mt-10 divide-y divide-rail-raised border-y border-rail-raised">
             {FEATURES.map(({ icon: Icon, titulo, texto }) => (

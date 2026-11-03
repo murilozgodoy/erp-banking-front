@@ -1,7 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { Navigate, useLocation } from 'react-router'
 
-import { ErpIaLogo, Faisca } from '@/components/brand/Logo'
+import { ErpIaLogo, Faisca, Marca } from '@/components/brand/Logo'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
@@ -28,8 +28,8 @@ export function LoginPage() {
           Sua operação, lida por IA. Seu crédito, na hora certa.
         </h1>
         <p className="text-ink-muted">
-          ERP com conta PJ, pagamentos e crédito integrados. A ErpIa acompanha vendas, recebíveis e
-          contas a pagar e mostra a oportunidade de crédito antes de o caixa apertar.
+          ERP com conta PJ, pagamentos e crédito integrados. A <Marca /> acompanha vendas,
+          recebíveis e contas a pagar e mostra a oportunidade de crédito antes de o caixa apertar.
         </p>
       </div>
       {error && (
@@ -46,7 +46,7 @@ export function LoginPage() {
       <p className="flex items-start gap-2 border-t border-line pt-6 text-xs text-ink-muted">
         <Faisca label={null} className="mt-0.5" />
         <span>
-          A Faísca marca o que a ErpIa infere a partir dos seus dados: insights, oportunidades e
+          A Faísca marca o que a <Marca /> infere a partir dos seus dados: insights, oportunidades e
           valores pré-aprovados. Login seguro via Auth0 (Authorization Code + PKCE).
         </span>
       </p>

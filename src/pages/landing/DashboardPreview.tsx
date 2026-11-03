@@ -1,6 +1,6 @@
 import { m } from 'motion/react'
 
-import { ErpIaMark, Faisca } from '@/components/brand/Logo'
+import { ErpIaMark, Faisca, Marca } from '@/components/brand/Logo'
 
 import { CASHFLOW, CHART, smoothPath, toX, toY } from './cashflow'
 import { ease } from './styles'
@@ -48,7 +48,7 @@ export function DashboardPreview() {
           <aside className="hidden w-48 shrink-0 flex-col gap-1 bg-rail p-4 text-sm md:flex">
             <div className="mb-5 flex items-center gap-2">
               <ErpIaMark tone="dark" className="size-6" />
-              <span className="font-semibold text-rail-ink">ErpIa</span>
+              <Marca className="font-semibold text-rail-ink" />
             </div>
             {NAV.map((item, i) => (
               <span
