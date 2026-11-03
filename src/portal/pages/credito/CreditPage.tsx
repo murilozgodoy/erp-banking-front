@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, FileText, ShieldOff } from 'lucide-react'
+import { ArrowRight, FileText, MessageSquareText, ShieldOff } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { Faisca } from '@/components/brand/Logo'
+import { Faisca, Marca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
 
 import { useAnalysis } from '../../layout/queries'
@@ -14,6 +14,7 @@ import { PRODUTO_LABEL } from '../../ui/credit'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { MoneyField } from '../../ui/Field'
 import { InsightBlock } from '../../ui/InsightBlock'
+import { Money } from '../../ui/Money'
 import { OnboardingPendingState } from '../../ui/OnboardingPending'
 import { Segmented } from '../../ui/Segmented'
 import { EmptyState, ErrorState, Panel, PageHeader, Skeleton } from '../../ui/Surface'
@@ -69,6 +70,8 @@ function Limits({
       title="Seus limites"
       description="Pré-aprovados pela leitura da sua operação. Escolha um para simular."
       flush
+      // O painel acompanha a altura do simulador; o resumo fica preso ao rodapé.
+      className="flex flex-col [&>:last-child]:flex [&>:last-child]:flex-1 [&>:last-child]:flex-col"
     >
       <div role="radiogroup" aria-labelledby="limites-title" className="border-t border-line">
         {offers.map((offer) => {
@@ -81,7 +84,7 @@ function Limits({
               aria-checked={active}
               onClick={() => onChange(offer)}
               className={cn(
-                'flex w-full items-center gap-3 border-b border-line px-5 py-3 text-left transition-colors duration-150 last:rounded-b-panel last:border-b-0',
+                'flex w-full items-center gap-3 border-b border-line px-5 py-3 text-left transition-colors duration-150',
                 active ? 'bg-accent-soft/60' : 'hover:bg-paper',
               )}
             >
@@ -115,7 +118,101 @@ function Limits({
           )
         })}
       </div>
+      <LimitsSummary offers={offers} />
     </Panel>
+  )
+}
+
+/** Rodapé de "Seus limites": total pré-aprovado, quanto já foi contratado e de onde vem o limite. */
+function LimitsSummary({ offers }: { offers: CreditOffer[] }) {
+  const requests = useCreditRequests()
+  const total = offers.reduce((sum, o) => sum + o.limite, 0)
+  const contratado = (requests.data ?? [])
+    .filter((r) => r.status === 'APROVADO')
+    .reduce((sum, r) => sum + (r.valorAprovado ?? 0), 0)
+  const usado = Math.min(contratado, total)
+  const disponivel = Math.max(0, total - contratado)
+  const fatia = total > 0 ? (usado / total) * 100 : 0
+
+  return (
+    <div className="mt-auto flex flex-col gap-5 px-5 pt-6 pb-5">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p className="text-sm text-ink-muted">Limite total pré-aprovado</p>
+          <span className="flex items-center gap-1">
+            <Faisca label="Pré-aprovado pela ErpIa" />
+            <Money value={total} size="lg" className="text-ink" />
+          </span>
+        </div>
+        {requests.isPending ? (
+          <div role="status" aria-label="Carregando uso do limite" className="space-y-2">
+            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-3.5 w-2/3" />
+          </div>
+        ) : requests.isError ? (
+          <p className="text-xs text-ink-muted">
+            Não conseguimos ver o que já foi contratado. Veja em Propostas e contratos.
+          </p>
+        ) : (
+          <>
+            <div
+              role="meter"
+              aria-label="Uso do limite pré-aprovado"
+              aria-valuemin={0}
+              aria-valuemax={total}
+              aria-valuenow={usado}
+              aria-valuetext={`${money(contratado)} contratados de ${money(total)}; ${money(disponivel)} disponíveis`}
+              className="h-2 w-full overflow-hidden rounded-full bg-sunken"
+            >
+              <div className="h-full rounded-full bg-accent" style={{ width: `${fatia}%` }} />
+            </div>
+            <dl className="tabular grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <dt className="flex items-center gap-1.5 text-ink-muted">
+                  <span aria-hidden className="size-2 rounded-full bg-accent" />
+                  Já contratado
+                </dt>
+                <dd className="mt-0.5 font-semibold text-ink">{money(contratado)}</dd>
+              </div>
+              <div>
+                <dt className="flex items-center gap-1.5 text-ink-muted">
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full border border-line-strong bg-sunken"
+                  />
+                  Disponível
+                </dt>
+                <dd className="mt-0.5 font-semibold text-ink">{money(disponivel)}</dd>
+              </div>
+            </dl>
+          </>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-4">
+        <h3 className="flex items-center gap-1.5 text-sm font-medium text-ink">
+          <Faisca label={null} />
+          <span>
+            Como a <Marca /> calcula seus limites
+          </span>
+        </h3>
+        <p className="text-xs text-ink-muted">
+          Lemos sua receita, os recebíveis a entrar e o estoque, e cruzamos com o seu score. Quando
+          a operação cresce, os limites acompanham na próxima leitura.
+        </p>
+        {/* Por enquanto leva ao início; a Sessão B liga este link ao assistente da ErpIa. */}
+        <ButtonLink
+          to="/app"
+          size="sm"
+          icon={<MessageSquareText aria-hidden className="size-4" />}
+          className="h-auto min-h-8 self-start py-1.5 whitespace-normal"
+        >
+          <span>
+            Perguntar à <Marca /> sobre meus limites
+          </span>
+        </ButtonLink>
+      </div>
+    </div>
   )
 }
 
@@ -407,7 +504,7 @@ export function CreditPage() {
       : ofertaInicial(offers.data, produtoParam)
     const fromLink = !selected && offer.produto === produtoParam && valorParam > 0
     body = (
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-stretch">
         <Limits
           offers={offers.data}
           value={offer.produto}
