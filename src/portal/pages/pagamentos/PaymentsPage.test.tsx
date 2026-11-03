@@ -92,7 +92,7 @@ describe('PaymentsPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }))
     expect(await within(dialog).findByText('Pagamento efetivado')).toBeInTheDocument()
     const receipt = within(dialog).getByRole('region', { name: 'Comprovante de pagamento' })
-    const auth = db.pagamentos()[0].autenticacao
+    const auth = db.pagamentos()[0].autenticacao!
     expect(within(receipt).getByText(auth)).toBeInTheDocument()
 
     await user.click(within(dialog).getByRole('button', { name: 'Copiar autenticação' }))

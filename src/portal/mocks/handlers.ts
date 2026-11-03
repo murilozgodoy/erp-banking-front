@@ -2,9 +2,18 @@ import { delay, http, HttpResponse, type HttpHandler } from 'msw'
 
 import { env } from '@/config/env'
 
-import type { OnboardingPayload, PaymentRequest, ReviewDecision, SimulationRequest } from '../types'
+import type {
+  InviteRequest,
+  OnboardingPayload,
+  PaymentRequest,
+  Permissao,
+  ReviewDecision,
+  SimulationRequest,
+  TeamMemberPatch,
+} from '../types'
 import { assistantHandlers } from './assistant'
 import * as db from './db'
+import * as team from './team'
 import { TEMPLATES } from './templates'
 
 /** Latência realista no navegador; sem espera nos testes. */
@@ -25,9 +34,19 @@ function naoEncontrado(detail: string) {
   return HttpResponse.json({ detail }, { status: 404 })
 }
 
-/** Rotas `/me` do Transactions só respondem com o onboarding aprovado. */
-function protegido(resolver: (request: Request) => Promise<Response> | Response) {
-  return async ({ request }: { request: Request }) => {
+function semPermissao(permissao: Permissao) {
+  return HttpResponse.json({ error: 'SEM_PERMISSAO', permissao }, { status: 403 })
+}
+
+/**
+ * Rotas `/me` do Transactions: só com o onboarding aprovado e, quando indicado, com a permissão
+ * do membro logado (403 `SEM_PERMISSAO`, seção 11).
+ */
+function protegido(
+  resolver: (request: Request, params: Record<string, string>) => Promise<Response> | Response,
+  permissao: Permissao | null = 'ver_financeiro',
+) {
+  return async ({ request, params }: { request: Request; params: Record<string, unknown> }) => {
     await latencia()
     if (!db.onboardingAprovado()) {
       return HttpResponse.json(
@@ -35,8 +54,55 @@ function protegido(resolver: (request: Request) => Promise<Response> | Response)
         { status: 409 },
       )
     }
-    return resolver(request)
+    if (permissao && !team.pode(permissao)) return semPermissao(permissao)
+    return resolver(request, params as Record<string, string>)
   }
+}
+
+function resultadoEquipe<T>(resultado: team.ResultadoEquipe<T>, status = 200) {
+  return resultado.tipo === 'ok'
+    ? resultado.valor === null
+      ? new HttpResponse(null, { status: 204 })
+      : HttpResponse.json(resultado.valor, { status })
+    : HttpResponse.json(resultado.corpo, { status: resultado.http })
+}
+
+function teamHandlers(base: string): HttpHandler[] {
+  const gestor =
+    (
+      resolver: (request: Request, params: Record<string, string>) => Promise<Response> | Response,
+    ) =>
+    async ({ request, params }: { request: Request; params: Record<string, unknown> }) => {
+      await latencia()
+      if (!team.pode('gerenciar_equipe')) return semPermissao('gerenciar_equipe')
+      return resolver(request, params as Record<string, string>)
+    }
+  return [
+    http.get(
+      `${base}/me/team`,
+      gestor(() => HttpResponse.json(team.listar())),
+    ),
+    http.post(`${base}/me/team/invites/:token/accept`, async ({ params }) => {
+      await latencia()
+      return resultadoEquipe(team.aceitar(String(params.token)))
+    }),
+    http.post(
+      `${base}/me/team/invites`,
+      gestor(async (request) =>
+        resultadoEquipe(team.convidar(await corpo<InviteRequest>(request)), 201),
+      ),
+    ),
+    http.patch(
+      `${base}/me/team/:id`,
+      gestor(async (request, params) =>
+        resultadoEquipe(team.atualizar(Number(params.id), await corpo<TeamMemberPatch>(request))),
+      ),
+    ),
+    http.delete(
+      `${base}/me/team/:id`,
+      gestor((_, params) => resultadoEquipe(team.remover(Number(params.id)))),
+    ),
+  ]
 }
 
 const DATA = /^\d{4}-\d{2}-\d{2}$/
@@ -206,7 +272,22 @@ function transactionsHandlers(base: string): HttpHandler[] {
         return resultado.tipo === 'ok'
           ? HttpResponse.json(resultado.resposta, { status: 201 })
           : respostaErro(resultado)
-      }),
+      }, 'pagar'),
+    ),
+    http.get(
+      `${base}/me/payments/pending`,
+      protegido(() => HttpResponse.json(db.pagamentosPendentes()), 'aprovar_pagamentos'),
+    ),
+    ...(['approve', 'reject'] as const).map((decisao) =>
+      http.post(
+        `${base}/me/payments/:id/${decisao}`,
+        protegido((_, params) => {
+          const resultado = db.decidirPagamento(Number(params.id), decisao)
+          return resultado.tipo === 'ok'
+            ? HttpResponse.json(resultado.pagamento)
+            : respostaErro(resultado)
+        }, 'aprovar_pagamentos'),
+      ),
     ),
     http.get(
       `${base}/me/payments`,
@@ -228,7 +309,7 @@ function transactionsHandlers(base: string): HttpHandler[] {
         return resultado.tipo === 'ok'
           ? HttpResponse.json(resultado.simulation, { status: 201 })
           : respostaErro(resultado)
-      }),
+      }, 'pedir_credito'),
     ),
     http.get(
       `${base}/me/credit/offers`,
@@ -237,11 +318,15 @@ function transactionsHandlers(base: string): HttpHandler[] {
     http.post(
       `${base}/me/credit/requests`,
       protegido(async (request) => {
+        // Contratar exige contratar_credito; quem só pede deixa a proposta aguardando.
+        if (!team.pode('contratar_credito') && !team.pode('pedir_credito')) {
+          return semPermissao('contratar_credito')
+        }
         const resultado = db.solicitarCredito(await corpo<db.SolicitacaoInput>(request))
         return resultado.tipo === 'ok'
           ? HttpResponse.json(resultado.request, { status: 201 })
           : respostaErro(resultado)
-      }),
+      }, null),
     ),
     http.get(
       `${base}/me/credit/requests`,
@@ -254,6 +339,7 @@ function transactionsHandlers(base: string): HttpHandler[] {
 export function createHandlers(): HttpHandler[] {
   return [
     ...onboardingHandlers(env.onboardingApiUrl),
+    ...teamHandlers(env.onboardingApiUrl),
     ...scoreHandlers(env.scoreApiUrl),
     ...transactionsHandlers(env.transactionsApiUrl),
     ...assistantHandlers(env.scoreApiUrl),

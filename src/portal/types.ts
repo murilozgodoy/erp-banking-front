@@ -69,6 +69,70 @@ export interface Me {
   customer_id: number | null
   onboarding_status: OnboardingStatus
   empresa: Empresa | null
+  /** Quem está logado dentro da empresa (seção 11). Ausente em APIs antigas = acesso total. */
+  membro?: MembroResumo | null
+}
+
+// ---------- Equipe e permissões (seção 11) ----------
+
+export type Permissao =
+  | 'ver_financeiro'
+  | 'pagar'
+  | 'aprovar_pagamentos'
+  | 'pedir_credito'
+  | 'contratar_credito'
+  | 'gerenciar_estoque'
+  | 'gerenciar_equipe'
+  | 'usar_assistente'
+
+export type Papel = 'DONO' | 'ADMIN' | 'FINANCEIRO' | 'OPERADOR' | 'LEITURA'
+export type MembroStatus = 'CONVIDADO' | 'ATIVO' | 'SUSPENSO'
+
+export interface MembroResumo {
+  id: number
+  nome?: string
+  email?: string
+  papel: Papel
+  permissoes: Permissao[]
+  /** `null` = sem limite. */
+  limite_pagamento: number | null
+  status: MembroStatus
+}
+
+export interface TeamMember extends MembroResumo {
+  nome: string
+  email: string
+  created_at: string
+  updated_at?: string | null
+  /** Só para convites pendentes. */
+  invite_expires_at?: string | null
+}
+
+export interface InviteRequest {
+  email: string
+  nome: string
+  papel: Papel
+  permissoes?: Permissao[]
+  limite_pagamento?: number | null
+}
+
+export interface InviteResponse {
+  membro: TeamMember
+  /** `https://…/convite/<token>`: o front mostra para copiar (sem e-mail na v1). */
+  convite_url: string
+}
+
+export interface TeamMemberPatch {
+  papel?: Papel
+  permissoes?: Permissao[]
+  limite_pagamento?: number | null
+  status?: MembroStatus
+}
+
+/** 403 padronizado quando falta permissão. */
+export interface SemPermissaoError {
+  error: 'SEM_PERMISSAO'
+  permissao: Permissao
 }
 
 export interface OnboardingDraft {
@@ -335,7 +399,8 @@ export interface Comprovante {
 
 export interface PaymentResponse {
   id: number
-  status: 'EFETIVADO' | 'AGENDADO'
+  /** PENDENTE_APROVACAO: acima do limite do membro, sem débito até alguém aprovar. */
+  status: 'EFETIVADO' | 'AGENDADO' | 'PENDENTE_APROVACAO'
   autenticacao: string
   saldo_apos: number
   comprovante: Comprovante
@@ -350,9 +415,12 @@ export interface Payment {
   payable_id: number | null
   agendado_para: string | null
   codigo_barras: string | null
-  status: 'EFETIVADO' | 'AGENDADO' | 'CANCELADO'
-  autenticacao: string
+  status: 'EFETIVADO' | 'AGENDADO' | 'CANCELADO' | 'PENDENTE_APROVACAO' | 'REJEITADO'
+  autenticacao: string | null
   criado_em: string
+  /** Auditoria (seção 11). */
+  created_by_nome?: string | null
+  approved_by?: string | null
 }
 
 /** 422 do `POST /me/payments`. */
@@ -369,6 +437,8 @@ export interface StatementEntry {
   tipo: 'CREDIT' | 'DEBIT'
   valor: number
   saldo_apos: number
+  /** Quem fez (pagamentos do portal); ausente em lançamentos automáticos. */
+  created_by_nome?: string | null
 }
 
 export interface InventoryItem {
@@ -469,12 +539,14 @@ export interface PortalCreditRequest {
   valorSolicitado: number
   prazoMeses: number
   scoreSnapshot: number | null
-  status: 'APROVADO' | 'REVISAO' | 'NEGADO'
+  status: 'APROVADO' | 'REVISAO' | 'NEGADO' | 'AGUARDANDO_CONTRATACAO'
   motivo: string | null
   valorAprovado: number | null
   /** FRAÇÃO ao mês (0.0249 = 2,49% a.m.), ao contrário das simulações (percentual). */
   taxaJuros: number | null
   criadoEm: string
+  /** Auditoria (seção 11). */
+  createdByNome?: string | null
 }
 
 /** 409 das rotas `/me` do Transactions enquanto o onboarding não está aprovado. */

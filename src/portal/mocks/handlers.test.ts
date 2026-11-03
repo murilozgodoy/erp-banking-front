@@ -89,7 +89,12 @@ describe('onboarding', () => {
 
   it('começa sem customer', async () => {
     const { data } = await chamar<Me>(`${O}/me`)
-    expect(data).toEqual({ customer_id: null, onboarding_status: 'NAO_INICIADO', empresa: null })
+    expect(data).toEqual({
+      customer_id: null,
+      onboarding_status: 'NAO_INICIADO',
+      empresa: null,
+      membro: null,
+    })
     const draft = await chamar<OnboardingDraft>(`${O}/me/onboarding`)
     expect(draft.data.updated_at).toBeNull()
   })

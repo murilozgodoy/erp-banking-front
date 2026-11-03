@@ -13,14 +13,17 @@ import { AssistantProvider } from '../assistant/AssistantProvider'
 import { formatCnpj } from '../lib/format'
 import { SkipLink } from '../ui/SkipLink'
 
+import { useMembro } from '../team/useMembro'
+
 import { PORTAL_NAV } from './nav'
 import { useMe, useOverview } from './queries'
 import { useTheme } from './useTheme'
 
 function NavItems({ pendencias, onNavigate }: { pendencias?: number; onNavigate?: () => void }) {
+  const { pode } = useMembro()
   return (
     <ul className="space-y-0.5">
-      {PORTAL_NAV.map((item) => (
+      {PORTAL_NAV.filter((item) => !item.permissao || pode(item.permissao)).map((item) => (
         <li key={item.to}>
           <NavLink
             to={item.to}

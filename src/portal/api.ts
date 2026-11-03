@@ -13,6 +13,8 @@ import type {
   CreditRequestInput,
   GroupBy,
   InventoryReport,
+  InviteRequest,
+  InviteResponse,
   Me,
   OnboardingDraft,
   OnboardingPayload,
@@ -33,6 +35,8 @@ import type {
   Simulation,
   SimulationRequest,
   StatementEntry,
+  TeamMember,
+  TeamMemberPatch,
 } from './types'
 
 /** Remove chaves vazias para não mandar `?from=&to=` às APIs. */
@@ -58,6 +62,13 @@ function onboardingPortal(http: AxiosInstance) {
     draft: () => data<OnboardingDraft>(http.get('/me/onboarding')),
     saveDraft: (payload: OnboardingPayload) =>
       data<OnboardingDraft>(http.put('/me/onboarding', payload)),
+    team: () => data<TeamMember[]>(http.get('/me/team')),
+    invite: (invite: InviteRequest) => data<InviteResponse>(http.post('/me/team/invites', invite)),
+    updateMember: (id: number, patch: TeamMemberPatch) =>
+      data<TeamMember>(http.patch(`/me/team/${id}`, patch)),
+    removeMember: (id: number) => http.delete(`/me/team/${id}`).then(() => undefined),
+    acceptInvite: (token: string) =>
+      data<TeamMember>(http.post(`/me/team/invites/${encodeURIComponent(token)}/accept`)),
     reviews: (status = 'ANALISE_MANUAL') =>
       data<ReviewItem[]>(http.get('/onboarding/reviews', { params: { status } })),
     decide: (customerId: number, decision: ReviewDecision) =>
@@ -95,6 +106,9 @@ function transactionsPortal(http: AxiosInstance) {
       data<PayablesReport>(http.get('/me/payables', { params: params(query) })),
     pay: (payment: PaymentRequest) => data<PaymentResponse>(http.post('/me/payments', payment)),
     payments: () => data<Payment[]>(http.get('/me/payments')),
+    pendingPayments: () => data<Payment[]>(http.get('/me/payments/pending')),
+    approvePayment: (id: number) => data<Payment>(http.post(`/me/payments/${id}/approve`)),
+    rejectPayment: (id: number) => data<Payment>(http.post(`/me/payments/${id}/reject`)),
     statement: (query: Period = {}) =>
       data<StatementEntry[]>(http.get('/me/statement', { params: params(query) })),
     inventory: () => data<InventoryReport>(http.get('/me/inventory')),

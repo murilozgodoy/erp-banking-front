@@ -6,6 +6,7 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { AccountDetailPage } from '@/pages/accounts/AccountDetailPage'
 import { AccountsPage } from '@/pages/accounts/AccountsPage'
 import { AnalisesPage } from '@/pages/analises/AnalisesPage'
+import { InvitePage } from '@/pages/convite/InvitePage'
 import { CreditsPage } from '@/pages/credits/CreditsPage'
 import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage'
 import { CustomersPage } from '@/pages/customers/CustomersPage'
@@ -19,6 +20,7 @@ import { FocusLayout } from '@/portal/layout/FocusLayout'
 import { PortalGate } from '@/portal/layout/PortalGate'
 import { PortalLayout } from '@/portal/layout/PortalLayout'
 import { CreditPage } from '@/portal/pages/credito/CreditPage'
+import { TeamPage } from '@/portal/pages/equipe/TeamPage'
 import { InventoryPage } from '@/portal/pages/estoque/InventoryPage'
 import { OnboardingPage } from '@/portal/pages/onboarding/OnboardingPage'
 import { OverviewPage } from '@/portal/pages/overview/OverviewPage'
@@ -55,6 +57,8 @@ export const router = createBrowserRouter([
           { path: '*', element: <NotFoundPage /> },
         ],
       },
+      // Convite de equipe: público; a própria página leva ao login/cadastro e aceita depois.
+      { path: 'convite/:token', element: <InvitePage /> },
       {
         path: 'app',
         element: <RequireAuth />,
@@ -79,6 +83,7 @@ export const router = createBrowserRouter([
                   { path: 'pendencias', element: <PendenciasPage /> },
                   { path: 'estoque', element: <InventoryPage /> },
                   { path: 'credito', element: <CreditPage /> },
+                  { path: 'equipe', element: <TeamPage /> },
                   { path: '*', element: <Navigate to="/app" replace /> },
                 ],
               },

@@ -19,6 +19,8 @@ const STATUS: Record<Payment['status'], { label: string; tone: Tone }> = {
   EFETIVADO: { label: 'Efetivado', tone: 'positive' },
   AGENDADO: { label: 'Agendado', tone: 'info' },
   CANCELADO: { label: 'Cancelado', tone: 'neutral' },
+  PENDENTE_APROVACAO: { label: 'Pendente de aprovação', tone: 'warning' },
+  REJEITADO: { label: 'Rejeitado', tone: 'negative' },
 }
 
 /** Pagamentos feitos pela conta PJ (portal e ERP), do mais recente ao mais antigo. */
