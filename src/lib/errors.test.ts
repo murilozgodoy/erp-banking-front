@@ -90,4 +90,27 @@ describe('errorMessage', () => {
       'O serviço demorou demais para responder. Tente novamente em instantes.',
     )
   })
+
+  it('APIs do portal: usa a frase do corpo e traduz códigos conhecidos', () => {
+    const portal = (status: number, data: unknown) =>
+      new AxiosError('x', 'ERR', undefined, undefined, {
+        status,
+        data,
+        statusText: '',
+        headers: {},
+        config: {} as never,
+      })
+    expect(
+      errorMessage(
+        portal(400, { error: 'PARAMETRO_INVALIDO', mensagem: 'Período máximo de 400 dias' }),
+      ),
+    ).toBe('Período máximo de 400 dias')
+    expect(
+      errorMessage(portal(422, { error: 'SALDO_INSUFICIENTE', message: 'Faltam R$ 10,00' })),
+    ).toBe('Faltam R$ 10,00')
+    expect(errorMessage(portal(422, { error: 'SIMULACAO_EXPIRADA' }))).toMatch(/expirou/)
+    expect(errorMessage(portal(422, { error: 'CODIGO_NOVO' }))).toBe(
+      'Dados inválidos. Revise os campos e tente novamente.',
+    )
+  })
 })
