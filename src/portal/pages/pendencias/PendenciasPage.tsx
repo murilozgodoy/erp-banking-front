@@ -123,7 +123,7 @@ function PendenciaRow({ pendencia, urgente }: { pendencia: Pendencia; urgente: b
             </p>
           )}
         </div>
-        <div className="flex shrink-0 items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 sm:flex-col sm:flex-nowrap sm:items-end sm:gap-2">
           {pendencia.valor !== null && (
             <p className="sm:text-right">
               <span className="block text-xs text-ink-muted">{meta.valor}</span>
