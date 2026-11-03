@@ -41,7 +41,7 @@ export function ShareBar({
         ]
       : sorted
   return (
-    <figure className={cn('space-y-3', className)}>
+    <figure className={cn('@container space-y-3', className)}>
       <div
         role="img"
         aria-label={title}
@@ -56,7 +56,8 @@ export function ShareBar({
         ))}
       </div>
       <figcaption>
-        <ul className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+        {/* Duas colunas só quando a legenda inteira cabe (pela largura do painel, não da tela). */}
+        <ul className="grid gap-x-6 gap-y-1.5 text-sm @xl:grid-cols-2">
           {visible.map((share, i) => (
             <li key={share.key} className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2 text-ink">
