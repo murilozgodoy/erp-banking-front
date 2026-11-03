@@ -30,6 +30,19 @@ Auth0 configurado (ver [docs/auth0.md](docs/auth0.md)).
 As variáveis são lidas apenas em `src/config/env.ts`, que falha cedo se faltar alguma. Nunca
 coloque segredos em `VITE_*`: elas vão para o bundle.
 
+## Docker (alternativa à Vercel)
+
+Imagem multi-stage: build com `node:22-alpine` e SPA servida por `nginx-unprivileged` (não-root,
+porta 8080) com fallback de rotas, cache longo em `/assets/`, gzip, headers de segurança e
+`/healthz`. As `VITE_*` são embutidas no build; os padrões apontam para o gateway local
+(`http://localhost:8080`) e podem ser trocados com `--build-arg`:
+
+```bash
+docker build -t erp-banking-front .
+# ex.: docker build --build-arg VITE_ONBOARDING_API_URL=https://api.exemplo.com/onboarding ...
+docker run --rm -p 3000:8080 erp-banking-front   # http://localhost:3000
+```
+
 ## Scripts
 
 | Comando                           | O que faz                         |
