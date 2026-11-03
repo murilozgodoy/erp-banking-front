@@ -207,19 +207,34 @@ do Grafana (filtrado pelo `testid` impresso pelo runner) mostra a execução ao 
 
 ## Testes de carga — resultados
 
-> Execução contra o gateway na EC2 (`http://3.235.6.136:8080`). Números preenchidos a partir dos relatórios em
-> `erp-banking-infra/load-tests/results/<cenario>-summary.md`.
+Executados em 03/11/2026 com k6 0.54 **a partir da própria EC2** (2 vCPU / 1,9 GB), na rede do compose
+(`K6_NETWORK=erp`, alvo `http://gateway`), fluxo `health`: GET nos 4 health checks, passando pelo gateway e pelos 3
+serviços. As métricas foram enviadas ao Prometheus (remote write) e aparecem no dashboard **k6** do Grafana. Análise
+completa em `erp-banking-infra/load-tests/results/ANALISE.md`.
 
-| Cenário      | Data | VUs / taxa | Requisições | req/s | p(95) | p(99) | Erro HTTP | 429 | Thresholds |
-| ------------ | ---- | ---------- | ----------- | ----- | ----- | ----- | --------- | --- | ---------- |
-| `smoke`      | —    | 2          | —           | —     | —     | —     | —         | —   | —          |
-| `load`       | —    | 0 → 30     | —           | —     | —     | —     | —         | —   | —          |
-| `stress`     | —    | 0 → 120    | —           | —     | —     | —     | —         | —   | —          |
-| `spike`      | —    | 5 → 150    | —           | —     | —     | —     | —         | —   | —          |
-| `rate-limit` | —    | 100 req/s  | —           | —     | —     | —     | —         | —   | —          |
+| Cenário      | VUs máx   | Duração    | Requisições | req/s | p(95)   | p(99)    | 429            | Erros não-429 | Thresholds          |
+| ------------ | --------- | ---------- | ----------- | ----- | ------- | -------- | -------------- | ------------- | ------------------- |
+| `smoke`      | 2         | 1 min      | 477         | 7,9   | 11,3 ms | 19,1 ms  | 0              | 0             | passaram            |
+| `load`       | 30        | 5 min      | 28.685      | 95,4  | 6,5 ms  | 12,9 ms  | 8.079 (28,2%)  | 0             | falharam só por 429 |
+| `rate-limit` | 100 req/s | 30 s       | 3.001       | 100,0 | 2,6 ms  | 5,6 ms   | 1.401          | 0             | passaram            |
+| `stress`     | 120       | 9 min      | 152.245     | 281,6 | 4,4 ms  | 14,6 ms  | 88.312 (58,0%) | ~5            | falharam só por 429 |
+| `spike`      | 150       | 2 min 40 s | 43.333      | 270,8 | 4,7 ms  | 141,4 ms | 27.378 (63,2%) | 0             | falharam só por 429 |
 
-**Análise:** _(a preencher com os resultados: gargalo observado, comportamento do rate limit, uso de CPU/memória
-da EC2 no Grafana e o que mudaria para escalar.)_
+**Análise:**
+
+- **Latência:** p95 abaixo de 12 ms em todos os cenários, muito abaixo dos limites (500 ms e 1.500 ms). No spike, o
+  p99 sobe para 141 ms e o máximo para 610 ms no instante do salto de 5 para 150 VUs; o sistema se recupera sem erro.
+- **Rate limit:** praticamente toda a "taxa de erro" é **429 do gateway** (50 req/s por IP, burst 100). Como todo o
+  tráfego do k6 sai de um único IP, acima de ~50 req/s o gateway corta o excesso por desenho — o que **comprova a
+  proteção do gateway** sob stress e spike. Nenhum 5xx dos serviços e nenhum serviço caiu.
+- **Capacidade:** o gateway sustentou ~280 req/s (aceitas + limitadas) com p95 < 5 ms numa instância de 2 vCPU /
+  1,9 GB. O alerta `GatewayTrafficSpike` foi exercitado.
+- **Thresholds:** `http_req_failed` conta 429 como falha. Para medir a capacidade bruta sem o limite, rode com
+  `ALLOW_429=true` ou com vários IPs de origem (ver `load-tests/README.md`).
+- **Para escalar:** réplicas dos serviços atrás do gateway (o nginx já faz o balanceamento por upstream), rate limit
+  por usuário/token em vez de só por IP, e uma instância maior ou separar Postgres/RabbitMQ em serviços gerenciados.
+- **Pendente:** o fluxo de negócio autenticado (cadastro → score → conta → crédito, em `lib/flows.js`) aguarda um
+  `ACCESS_TOKEN` real do Auth0.
 
 ## Qualidade (CI e cobertura)
 
@@ -321,7 +336,7 @@ URLs**, **Allowed Logout URLs** e **Allowed Web Origins** (passo manual no paine
 - [x] Evento `credit.decided` Transactions → RabbitMQ → Score, exibido na ficha 360° do front
 - [x] Evento `customer.anamnesis_updated` Onboarding → RabbitMQ → Score (score desatualizado)
 - [x] Cenários de carga k6 (smoke, load, stress, spike, rate-limit) com thresholds
-- [ ] Relatório das execuções de carga em `erp-banking-infra/load-tests/results`
+- [x] Relatório das execuções de carga em `erp-banking-infra/load-tests/results` (fluxo `health`; fluxo autenticado pendente de token)
 - [x] Back rodando na EC2 via compose; front na Vercel falando com a EC2 pelo rewrite
 - [ ] Login Auth0 na URL da Vercel (adicionar a URL no painel do Auth0)
 - [x] CI verde e cobertura ≥ 80% nos 4 repositórios de código (ver [Qualidade](#qualidade-ci-e-cobertura))
