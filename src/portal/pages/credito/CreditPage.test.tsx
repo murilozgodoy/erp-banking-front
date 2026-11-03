@@ -148,8 +148,10 @@ describe('CreditPage', () => {
     expect(within(dialog).getByText('Valor aprovado')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'Concluir' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    // Cabeçalho + todas as propostas do mock (as iniciais e a recém-contratada).
     const propostas = screen.getByRole('table', { name: 'Propostas e contratos de crédito' })
-    await waitFor(() => expect(within(propostas).getAllByRole('row')).toHaveLength(3))
+    const esperado = db.propostas().length + 1
+    await waitFor(() => expect(within(propostas).getAllByRole('row')).toHaveLength(esperado))
   })
 
   it('valor em análise vira proposta em revisão', async () => {
