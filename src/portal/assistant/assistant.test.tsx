@@ -14,13 +14,12 @@ import { InsightBlock } from '../ui/InsightBlock'
 import { AssistantLauncher } from './AssistantLauncher'
 import { AssistantProvider } from './AssistantProvider'
 import { Markdown } from './markdown'
-import { iconFor, insightQuestion, screenFor, suggestionsFor } from './suggestions'
-import { classify, storageKey, toApiMessages, type ChatEntry } from './useAssistant'
+import { chipLabel, iconFor, insightQuestion, screenFor, suggestionsFor } from './suggestions'
+import { classify, storageKey } from './useAssistant'
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }))
 
 const URL = 'http://score.test/me/assistant/messages'
-const KEY = storageKey('auth0|tester')
 
 function Where() {
   const location = useLocation()
@@ -77,19 +76,26 @@ describe('Assistente ErpIa', () => {
   const server = useMockApi('APROVADO')
 
   beforeEach(() => {
-    sessionStorage.clear()
+    localStorage.clear()
     vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ['read:self', 'write:self'] }))
   })
-  afterEach(() => sessionStorage.clear())
+  afterEach(() => localStorage.clear())
 
-  /** Responde com `RESPOSTA` e guarda os corpos recebidos; `gate` segura a resposta. */
+  /**
+   * Responde com `RESPOSTA` (já com `conversation_id` e `message_id`, como o back) e guarda os
+   * corpos recebidos; `gate` segura a resposta.
+   */
   function answerWith(response = RESPOSTA, gate?: Promise<void>) {
     const bodies: AssistantRequest[] = []
     server.use(
       http.post(URL, async ({ request }) => {
         bodies.push((await request.json()) as AssistantRequest)
         if (gate) await gate
-        return HttpResponse.json(response)
+        return HttpResponse.json({
+          ...response,
+          conversation_id: 'c-teste',
+          message_id: bodies.length * 2,
+        })
       }),
     )
     return bodies
@@ -180,9 +186,11 @@ describe('Assistente ErpIa', () => {
     expect(within(log).getByRole('button', { name: 'Simular antecipação' })).toBeInTheDocument()
     // Rotas fora do portal não viram botão (a resposta é tratada como dado).
     expect(within(log).queryByRole('button', { name: 'Site externo' })).not.toBeInTheDocument()
-    expect(
-      within(log).getByRole('button', { name: 'Qual adquirente concentra mais?' }),
-    ).toBeInTheDocument()
+    // Sugestão com rótulo curto; a pergunta inteira fica no nome acessível e no title.
+    const chip = within(log).getByRole('button', { name: 'Qual adquirente concentra mais?' })
+    expect(chip).toHaveTextContent(chipLabel('Qual adquirente concentra mais?'))
+    expect(chip).toHaveTextContent(/^Qual adquirente concentra$/)
+    expect(chip).toHaveAttribute('title', 'Qual adquirente concentra mais?')
   })
 
   it('a sugestão vira pergunta; as sugestões ficam só abaixo da última resposta', async () => {
@@ -195,11 +203,13 @@ describe('Assistente ErpIa', () => {
     )
     await user.click(await screen.findByRole('button', { name: 'Qual adquirente concentra mais?' }))
     await waitFor(() => expect(bodies).toHaveLength(2))
-    expect(bodies[1].messages).toEqual([
-      { role: 'user', content: suggestionsFor('/app/recebiveis')[0].pergunta },
-      { role: 'assistant', content: RESPOSTA.resposta },
-      { role: 'user', content: 'Qual adquirente concentra mais?' },
-    ])
+    // O histórico fica no back: a segunda pergunta vai só com o id da conversa.
+    expect(bodies[0]).not.toHaveProperty('conversation_id')
+    expect(bodies[1]).toEqual({
+      conversation_id: 'c-teste',
+      messages: [{ role: 'user', content: 'Qual adquirente concentra mais?' }],
+      rota: '/app/recebiveis',
+    })
     await waitFor(() => expect(screen.getAllByText('Baseado em:')).toHaveLength(2))
     expect(screen.getAllByRole('button', { name: 'Qual adquirente concentra mais?' })).toHaveLength(
       1,
@@ -293,7 +303,9 @@ describe('Assistente ErpIa', () => {
     server.use(
       http.post(URL, () => {
         calls += 1
-        return calls === 1 ? HttpResponse.error() : HttpResponse.json(RESPOSTA)
+        return calls === 1
+          ? HttpResponse.error()
+          : HttpResponse.json({ ...RESPOSTA, conversation_id: 'c-1', message_id: 2 })
       }),
     )
     const user = userEvent.setup()
@@ -305,56 +317,6 @@ describe('Assistente ErpIa', () => {
     expect(await screen.findByText('R$ 120 mil')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getAllByRole('heading', { name: /Minha pergunta/ })).toHaveLength(1)
-  })
-
-  it('guarda as conversas na sessão: retomar, voltar, apagar uma e apagar tudo', async () => {
-    answerWith()
-    const user = userEvent.setup()
-    const { unmount } = renderAssistant()
-    await user.click(launcher())
-    await user.type(composer(), 'Quanto tenho?{Enter}')
-    await screen.findByText('R$ 120 mil')
-    const saved = JSON.parse(sessionStorage.getItem(KEY) ?? '{}') as {
-      conversations: { titulo: string; entries: ChatEntry[] }[]
-    }
-    expect(saved.conversations[0].titulo).toBe('Quanto tenho?')
-    expect(saved.conversations[0].entries.map((entry) => entry.role)).toEqual(['user', 'assistant'])
-    unmount()
-
-    renderAssistant()
-    await user.click(launcher())
-    // A conversa aberta volta com a sessão, já resumida.
-    expect(screen.getByText('R$ 120 mil')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Leitura concluída/ })).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Voltar' }))
-    expect(screen.getByText('Olá, Maria.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Conversas' }))
-    const item = screen.getByRole('button', { name: /^Quanto tenho\?/ })
-    expect(item).toHaveTextContent('2 mensagens')
-    await user.click(item)
-    expect(screen.getByText('R$ 120 mil')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Conversas' }))
-    await user.click(screen.getByRole('button', { name: 'Apagar a conversa "Quanto tenho?"' }))
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
-    await user.click(screen.getByRole('button', { name: 'Apagar a conversa "Quanto tenho?"' }))
-    await user.click(screen.getByRole('button', { name: 'Apagar' }))
-    expect(screen.getByText('Suas conversas desta sessão aparecem aqui.')).toBeInTheDocument()
-    expect(sessionStorage.getItem(KEY)).toBeNull()
-
-    // Duas conversas e "Apagar todo o histórico", com confirmação na própria lista.
-    await user.click(screen.getByRole('button', { name: 'Conversas' }))
-    await user.type(composer(), 'Outra{Enter}')
-    await screen.findByText('R$ 120 mil')
-    await user.click(screen.getByRole('button', { name: 'Nova conversa' }))
-    await user.type(composer(), 'Mais uma{Enter}')
-    await waitFor(() => expect(screen.getAllByText('R$ 120 mil')).toHaveLength(1))
-    await user.click(screen.getByRole('button', { name: 'Conversas' }))
-    expect(screen.getAllByRole('button', { name: /^Apagar a conversa/ })).toHaveLength(2)
-    await user.click(screen.getByRole('button', { name: 'Apagar todo o histórico' }))
-    await user.click(screen.getByRole('button', { name: 'Apagar tudo' }))
-    expect(screen.getByText('Suas conversas desta sessão aparecem aqui.')).toBeInTheDocument()
   })
 
   it('o cabeçalho expande o painel e "Voltar" fecha na tela inicial', async () => {
@@ -370,33 +332,6 @@ describe('Assistente ErpIa', () => {
     expect(screen.getByText('Olá, Maria.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Voltar' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-  })
-
-  it('manda no máximo 20 mensagens, começando por uma pergunta', async () => {
-    const history: ChatEntry[] = Array.from({ length: 24 }, (_, index) =>
-      index % 2 === 0
-        ? { id: `q${index}`, role: 'user', content: `Pergunta ${index}` }
-        : {
-            id: `a${index}`,
-            role: 'assistant',
-            content: `Resposta ${index}`,
-            fontes: [],
-            acoes: [],
-            sugestoes: [],
-          },
-    )
-    sessionStorage.setItem(KEY, JSON.stringify(history))
-    const bodies = answerWith()
-    const user = userEvent.setup()
-    renderAssistant()
-    await user.click(launcher())
-    expect(screen.getByText('Resposta 23')).toBeInTheDocument()
-    await user.type(composer(), 'Nova{Enter}')
-    await waitFor(() => expect(bodies).toHaveLength(1))
-    const { messages } = bodies[0]
-    expect(messages).toHaveLength(19)
-    expect(messages[0]).toEqual({ role: 'user', content: 'Pergunta 6' })
-    expect(messages.at(-1)).toEqual({ role: 'user', content: 'Nova' })
   })
 
   it('Shift+Enter quebra a linha e o contador aparece perto do limite', async () => {
@@ -496,16 +431,6 @@ describe('regras do assistente', () => {
     for (const sugestao of suggestionsFor('/app/credito')) {
       expect(sugestao.label.split(' ').length).toBeLessThanOrEqual(4)
     }
-  })
-
-  it('corta o histórico em 20 mensagens sem começar por uma resposta', () => {
-    const entries: ChatEntry[] = Array.from({ length: 19 }, (_, index) => ({
-      id: String(index),
-      role: 'user',
-      content: String(index),
-    }))
-    expect(toApiMessages(entries, 'x')).toHaveLength(20)
-    expect(toApiMessages([], 'x')).toEqual([{ role: 'user', content: 'x' }])
   })
 
   it('classifica os erros', () => {

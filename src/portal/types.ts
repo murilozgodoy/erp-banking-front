@@ -563,8 +563,12 @@ export interface AssistantMessage {
   content: string
 }
 
-/** Corpo de `POST /me/assistant/messages`: até 20 mensagens e a tela atual. */
+/**
+ * Corpo de `POST /me/assistant/messages` (seções 9 e 10). Com `conversation_id`, vai só a pergunta
+ * nova (o histórico vem do banco); sem ele, o servidor cria a conversa.
+ */
 export interface AssistantRequest {
+  conversation_id?: string
   messages: AssistantMessage[]
   /** Tela atual (ex. `/app/recebiveis`), para contextualizar a resposta. */
   rota?: string
@@ -601,6 +605,47 @@ export interface AssistantResponse {
   acoes: Acao[]
 }
 
-/** Erros do assistente: 503 sem chave da IA, 429 limite por minuto, 409 onboarding pendente. */
+/** Resposta de `POST /me/assistant/messages` com a conversa persistida (seção 10). */
+export interface AssistantReply extends AssistantResponse {
+  conversation_id: string
+  message_id: number
+}
+
+/** Item de `GET /me/assistant/conversations` (mais recentes primeiro). */
+export interface ConversationSummary {
+  id: string
+  titulo: string
+  /** ISO 8601 em UTC. */
+  updated_at: string
+  mensagens: number
+}
+
+/** Mensagem guardada (as do usuário têm as listas vazias). */
+export interface StoredMessage {
+  id: number
+  role: 'user' | 'assistant'
+  content: string
+  fontes: Fonte[]
+  acoes: Acao[]
+  sugestoes: string[]
+  created_at: string
+}
+
+/** `GET /me/assistant/conversations/{id}`. */
+export interface ConversationDetail {
+  id: string
+  titulo: string
+  mensagens: StoredMessage[]
+}
+
+/**
+ * Erros do assistente: 503 sem a IA (com `conversation_id` quando a pergunta foi salva), 429
+ * limite por minuto, 409 onboarding pendente, 404 conversa de outro usuário ou apagada e 403 sem
+ * a permissão `usar_assistente` (funcionários).
+ */
 export type AssistantErrorCode =
-  'ASSISTENTE_INDISPONIVEL' | 'LIMITE_ASSISTENTE' | 'ONBOARDING_PENDENTE'
+  | 'ASSISTENTE_INDISPONIVEL'
+  | 'LIMITE_ASSISTENTE'
+  | 'ONBOARDING_PENDENTE'
+  | 'CONVERSA_NAO_ENCONTRADA'
+  | 'SEM_PERMISSAO'

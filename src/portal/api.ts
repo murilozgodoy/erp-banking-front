@@ -6,9 +6,11 @@ import { env } from '@/config/env'
 import { createHttpClient, type AccessTokenGetter } from '@/services/http'
 
 import type {
+  AssistantReply,
   AssistantRequest,
-  AssistantResponse,
   BusinessAnalysis,
+  ConversationDetail,
+  ConversationSummary,
   CreditOffer,
   CreditRequestInput,
   GroupBy,
@@ -87,11 +89,21 @@ function scorePortal(http: AxiosInstance) {
     myAnalysis: () => data<BusinessAnalysis>(http.get('/me/analysis')),
     analysisOf: (customerId: number) =>
       data<BusinessAnalysis>(http.get(`/scores/analyses/${customerId}`)),
-    /** Assistente ErpIa (seção 9): resposta inteira, sem streaming. */
+    /** Assistente ErpIa (seções 9 e 10): resposta inteira, sem streaming, já salva na conversa. */
     assistant: (request: AssistantRequest) =>
-      data<AssistantResponse>(
+      data<AssistantReply>(
         http.post('/me/assistant/messages', request, { timeout: ASSISTANT_TIMEOUT_MS }),
       ),
+    conversations: (query: { limit?: number; offset?: number } = {}) =>
+      data<ConversationSummary[]>(http.get('/me/assistant/conversations', { params: query })),
+    conversation: (id: string) =>
+      data<ConversationDetail>(http.get(`/me/assistant/conversations/${encodeURIComponent(id)}`)),
+    deleteConversation: async (id: string) => {
+      await http.delete(`/me/assistant/conversations/${encodeURIComponent(id)}`)
+    },
+    deleteConversations: async () => {
+      await http.delete('/me/assistant/conversations')
+    },
   }
 }
 
