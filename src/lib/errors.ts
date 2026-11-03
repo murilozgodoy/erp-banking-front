@@ -123,6 +123,20 @@ const ERROR_CODES: Record<string, string> = {
   SIMULACAO_NAO_ENCONTRADA: 'Simulação não encontrada. Simule de novo.',
   SIMULACAO_JA_UTILIZADA: 'Esta simulação já foi contratada.',
   SIMULACAO_EXPIRADA: 'A simulação expirou. Simule de novo para ver as condições atuais.',
+  // Equipe e permissões (seção 11).
+  SEM_PERMISSAO: 'Você não tem permissão para esta ação. Peça a um administrador da empresa.',
+  DONO_PROTEGIDO: 'O dono da empresa não pode ser editado, suspenso nem removido.',
+  AUTO_EDICAO: 'Você não pode alterar o seu próprio acesso. Peça a outro administrador.',
+  MEMBRO_SUSPENSO: 'Seu acesso foi suspenso pelo administrador da empresa.',
+  MEMBRO_NAO_ENCONTRADO: 'Esta pessoa não está mais na equipe. Atualize a lista.',
+  CONVITE_NAO_ENCONTRADO: 'Convite não encontrado. Confira o link ou peça um novo.',
+  DONO_UNICO: 'A empresa tem um único dono, e ele não pode ser trocado por aqui.',
+  EMAIL_JA_CADASTRADO: 'Este e-mail já faz parte da equipe.',
+  CONVITE_PENDENTE: 'Já existe um convite pendente para este e-mail. Revogue-o para enviar outro.',
+  CONFLITO_CONCORRENTE:
+    'Outra pessoa alterou este acesso agora há pouco. Atualize e tente de novo.',
+  JA_VINCULADO: 'Esta conta já pertence a outra empresa.',
+  CONVITE_EXPIRADO: 'Este convite expirou. Peça um novo link a quem convidou você.',
 }
 
 function translate(detail: string): string {

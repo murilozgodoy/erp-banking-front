@@ -1,5 +1,6 @@
 import { PAPEIS, PERMISSOES } from '../team/permissions'
 import type {
+  AcceptInviteResponse,
   InviteRequest,
   InviteResponse,
   MembroResumo,
@@ -10,8 +11,11 @@ import type {
 } from '../types'
 
 /**
- * Equipe da empresa no mock (seção 11). O membro logado é o DONO por padrão; para ver o portal
- * como outro papel, use `?membro=admin|financeiro|operador|leitura` (fica salvo no navegador).
+ * Equipe da empresa no mock (seção 11, contrato final do Onboarding). O membro logado é o DONO
+ * por padrão; para ver o portal como outro papel, use `?membro=admin|financeiro|operador|leitura`
+ * (fica salvo no navegador).
+ *
+ * Erros como no back: `{error: CODIGO}` (o front traduz o código) e 422 com `campos`.
  */
 
 const CHAVE = 'erp-portal-membro'
@@ -22,6 +26,9 @@ const PAPEL_DA_URL: Record<string, Papel> = {
   operador: 'OPERADOR',
   leitura: 'LEITURA',
 }
+/** O mesmo `CUSTOMER_ID` do `db.ts` (a Aurora Pães). */
+const EMPRESA_ID = 1042
+const DIA = 86_400_000
 
 type Registro = TeamMember & { token: string | null }
 
@@ -29,13 +36,15 @@ let equipe: Registro[] | null = null
 let seq = 10
 let logado: Papel | null = null
 
-function iso(diasAtras: number): string {
-  return new Date(Date.now() - diasAtras * 86_400_000).toISOString()
+function iso(dias: number): string {
+  return new Date(Date.now() + dias * DIA).toISOString()
 }
 
 function inicial(): Registro[] {
+  const base = { convite_expira_em: null, token: null }
   return [
     {
+      ...base,
       id: 1,
       nome: 'Marina Costa',
       email: 'marina@aurorapaes.com.br',
@@ -43,10 +52,11 @@ function inicial(): Registro[] {
       permissoes: [...PERMISSOES],
       limite_pagamento: null,
       status: 'ATIVO',
-      created_at: iso(120),
-      token: null,
+      created_at: iso(-120),
+      updated_at: iso(-120),
     },
     {
+      ...base,
       id: 2,
       nome: 'Rafael Lima',
       email: 'financeiro@aurorapaes.com.br',
@@ -54,10 +64,11 @@ function inicial(): Registro[] {
       permissoes: [...PAPEIS.FINANCEIRO.permissoes],
       limite_pagamento: 20_000,
       status: 'ATIVO',
-      created_at: iso(60),
-      token: null,
+      created_at: iso(-60),
+      updated_at: iso(-60),
     },
     {
+      ...base,
       id: 3,
       nome: 'Júlia Santos',
       email: 'compras@aurorapaes.com.br',
@@ -65,8 +76,8 @@ function inicial(): Registro[] {
       permissoes: [...PAPEIS.OPERADOR.permissoes],
       limite_pagamento: 2_000,
       status: 'ATIVO',
-      created_at: iso(30),
-      token: null,
+      created_at: iso(-30),
+      updated_at: iso(-30),
     },
     {
       id: 4,
@@ -76,8 +87,9 @@ function inicial(): Registro[] {
       permissoes: [...PAPEIS.LEITURA.permissoes],
       limite_pagamento: null,
       status: 'CONVIDADO',
-      created_at: iso(2),
-      invite_expires_at: new Date(Date.now() + 5 * 86_400_000).toISOString(),
+      created_at: iso(-2),
+      updated_at: iso(-2),
+      convite_expira_em: iso(5),
       token: 'convite-demo-contador',
     },
   ]
@@ -126,7 +138,9 @@ export function membroAtual(): TeamMember {
     permissoes: [...PAPEIS[papel].permissoes],
     limite_pagamento: papel === 'OPERADOR' ? 2_000 : null,
     status: 'ATIVO',
-    created_at: iso(10),
+    created_at: iso(-10),
+    updated_at: iso(-10),
+    convite_expira_em: null,
   }
 }
 
@@ -145,60 +159,94 @@ function semToken(registro: Registro | TeamMember): TeamMember {
   return membro
 }
 
+/** O DONO primeiro, depois na ordem de entrada (como o back). */
 export function listar(): TeamMember[] {
-  return registros().map(semToken)
+  return [...registros()]
+    .sort((a, b) => Number(b.papel === 'DONO') - Number(a.papel === 'DONO') || a.id - b.id)
+    .map(semToken)
 }
 
 export type ResultadoEquipe<T> =
   { tipo: 'ok'; valor: T } | { tipo: 'erro'; http: number; corpo: Record<string, unknown> }
 
-function erro<T>(http: number, corpo: Record<string, unknown>): ResultadoEquipe<T> {
-  return { tipo: 'erro', http, corpo }
+function erro<T>(http: number, codigo: string, extra: Record<string, unknown> = {}) {
+  return { tipo: 'erro', http, corpo: { error: codigo, ...extra } } as ResultadoEquipe<T>
+}
+
+function invalido<T>(campos: Record<string, string>) {
+  return erro<T>(422, 'validation_failed', { campos })
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PAPEIS_CONVIDAVEIS: Papel[] = ['ADMIN', 'FINANCEIRO', 'OPERADOR', 'LEITURA']
+const SEM_LIMITE_PERMITIDO: Papel[] = ['DONO', 'ADMIN']
 
 function permissoesValidas(lista: unknown): lista is Permissao[] {
   return Array.isArray(lista) && lista.every((p) => PERMISSOES.includes(p as Permissao))
 }
 
+/** Quem não é DONO só concede o que tem: a primeira permissão que falta, se houver. */
+function alemDoQueTem(permissoes: Permissao[]): Permissao | undefined {
+  const autor = membroAtual()
+  if (autor.papel === 'DONO') return undefined
+  return permissoes.find((p) => !autor.permissoes.includes(p))
+}
+
+/** Pagar sem limite só para DONO/ADMIN; o limite, quando há, é positivo. */
+function erroDeLimite(
+  papel: Papel,
+  permissoes: Permissao[],
+  limite: number | null | undefined,
+): string | undefined {
+  if (limite !== undefined && limite !== null && !(limite > 0)) {
+    return 'O limite precisa ser maior que zero.'
+  }
+  if (permissoes.includes('pagar') && !SEM_LIMITE_PERMITIDO.includes(papel) && limite == null) {
+    return 'Defina um limite de pagamento para quem pode pagar.'
+  }
+  return undefined
+}
+
 export function convidar(req: Partial<InviteRequest>): ResultadoEquipe<InviteResponse> {
   const campos: Record<string, string> = {}
   if (!req.nome?.trim()) campos.nome = 'Informe o nome.'
-  if (!req.email || !EMAIL.test(req.email)) campos.email = 'Informe um e-mail válido.'
+  if (!req.email || !EMAIL.test(req.email.trim())) campos.email = 'Informe um e-mail válido.'
   if (!req.papel || !PAPEIS_CONVIDAVEIS.includes(req.papel)) {
     campos.papel = 'Escolha Administrador, Financeiro, Operador ou Leitura.'
   }
   if (req.permissoes !== undefined && !permissoesValidas(req.permissoes)) {
     campos.permissoes = 'Permissão desconhecida.'
   }
-  if (
-    req.limite_pagamento !== undefined &&
-    req.limite_pagamento !== null &&
-    !(req.limite_pagamento > 0)
-  ) {
-    campos.limite_pagamento = 'O limite precisa ser maior que zero (ou vazio para sem limite).'
+  if (!campos.papel && !campos.permissoes) {
+    const permissoes = req.permissoes ?? PAPEIS[req.papel!].permissoes
+    const limite = erroDeLimite(req.papel!, permissoes, req.limite_pagamento)
+    if (limite) campos.limite_pagamento = limite
   }
-  if (Object.keys(campos).length) {
-    return erro(400, { error: 'validation_failed', message: 'Dados inválidos.', campos })
-  }
-  const email = req.email!.trim().toLowerCase()
-  if (registros().some((m) => m.email === email && m.status !== 'SUSPENSO')) {
-    return erro(409, { error: 'MEMBRO_JA_EXISTE', message: 'Este e-mail já faz parte da equipe.' })
-  }
+  if (Object.keys(campos).length) return invalido(campos)
+
   const papel = req.papel!
+  const permissoes = req.permissoes ? [...req.permissoes] : [...PAPEIS[papel].permissoes]
+  const falta = alemDoQueTem(papel === 'ADMIN' ? [...PERMISSOES] : permissoes)
+  if (falta) return erro(403, 'SEM_PERMISSAO', { permissao: falta })
+
+  const email = req.email!.trim().toLowerCase()
+  const existente = registros().find((m) => m.email === email)
+  if (existente?.status === 'CONVIDADO') return erro(409, 'CONVITE_PENDENTE')
+  if (existente) return erro(409, 'EMAIL_JA_CADASTRADO')
+
   const token = `convite-${seq}-${Math.random().toString(36).slice(2, 10)}`
+  const agora = new Date().toISOString()
   const registro: Registro = {
     id: seq++,
     nome: req.nome!.trim(),
     email,
     papel,
-    permissoes: req.permissoes ? [...req.permissoes] : [...PAPEIS[papel].permissoes],
+    permissoes,
     limite_pagamento: req.limite_pagamento ?? null,
     status: 'CONVIDADO',
-    created_at: new Date().toISOString(),
-    invite_expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+    created_at: agora,
+    updated_at: agora,
+    convite_expira_em: iso(7),
     token,
   }
   registros().push(registro)
@@ -209,72 +257,69 @@ export function convidar(req: Partial<InviteRequest>): ResultadoEquipe<InviteRes
   }
 }
 
+/** Regras comuns de PATCH e DELETE: existe, não é o DONO, não é a própria pessoa. */
+function alvo(id: number): ResultadoEquipe<Registro> {
+  const registro = registros().find((m) => m.id === id)
+  if (!registro) return erro(404, 'MEMBRO_NAO_ENCONTRADO')
+  if (registro.papel === 'DONO') return erro(403, 'DONO_PROTEGIDO')
+  if (registro.id === membroAtual().id) return erro(403, 'AUTO_EDICAO')
+  return { tipo: 'ok', valor: registro }
+}
+
 export function atualizar(
   id: number,
   patch: Partial<TeamMemberPatch>,
 ): ResultadoEquipe<TeamMember> {
-  const registro = registros().find((m) => m.id === id)
-  if (!registro)
-    return erro(404, { error: 'MEMBRO_NAO_ENCONTRADO', message: 'Pessoa não encontrada.' })
-  if (registro.papel === 'DONO') {
-    return erro(422, {
-      error: 'DONO_IMUTAVEL',
-      message: 'O dono não pode ser editado nem suspenso.',
-    })
-  }
-  if (patch.papel === 'DONO') {
-    return erro(422, { error: 'DONO_IMUTAVEL', message: 'Só existe um dono por empresa.' })
+  const encontrado = alvo(id)
+  if (encontrado.tipo === 'erro') return encontrado
+  const registro = encontrado.valor
+  if (patch.papel === 'DONO') return erro(409, 'DONO_UNICO')
+  if (patch.papel !== undefined && !PAPEIS_CONVIDAVEIS.includes(patch.papel)) {
+    return invalido({ papel: 'Papel desconhecido.' })
   }
   if (patch.permissoes !== undefined && !permissoesValidas(patch.permissoes)) {
-    return erro(400, {
-      error: 'validation_failed',
-      message: 'Dados inválidos.',
-      campos: { permissoes: 'Permissão desconhecida.' },
-    })
+    return invalido({ permissoes: 'Permissão desconhecida.' })
   }
-  if (patch.papel) {
-    registro.papel = patch.papel
-    if (patch.permissoes === undefined) registro.permissoes = [...PAPEIS[patch.papel].permissoes]
-  }
-  if (patch.permissoes) registro.permissoes = [...patch.permissoes]
-  if (patch.limite_pagamento !== undefined) registro.limite_pagamento = patch.limite_pagamento
-  if (patch.status) registro.status = patch.status
+  const papel = patch.papel ?? registro.papel
+  const permissoes =
+    patch.permissoes ?? (patch.papel ? PAPEIS[patch.papel].permissoes : registro.permissoes)
+  const limite =
+    patch.limite_pagamento !== undefined ? patch.limite_pagamento : registro.limite_pagamento
+  const erroLimite = erroDeLimite(papel, permissoes, limite)
+  if (erroLimite) return invalido({ limite_pagamento: erroLimite })
+  const novas = permissoes.filter((p) => !registro.permissoes.includes(p))
+  const falta = alemDoQueTem(papel === 'ADMIN' ? [...PERMISSOES] : novas)
+  if (falta) return erro(403, 'SEM_PERMISSAO', { permissao: falta })
+
+  registro.papel = papel
+  registro.permissoes = [...permissoes]
+  registro.limite_pagamento = limite
+  if (patch.status && registro.status !== 'CONVIDADO') registro.status = patch.status
   registro.updated_at = new Date().toISOString()
   return { tipo: 'ok', valor: semToken(registro) }
 }
 
+/** Remove o membro ou revoga o convite pendente (204). */
 export function remover(id: number): ResultadoEquipe<null> {
+  const encontrado = alvo(id)
+  if (encontrado.tipo === 'erro') return encontrado
   const lista = registros()
-  const registro = lista.find((m) => m.id === id)
-  if (!registro)
-    return erro(404, { error: 'MEMBRO_NAO_ENCONTRADO', message: 'Pessoa não encontrada.' })
-  if (registro.papel === 'DONO') {
-    return erro(422, { error: 'DONO_IMUTAVEL', message: 'O dono não pode ser removido.' })
-  }
-  lista.splice(lista.indexOf(registro), 1)
+  lista.splice(lista.indexOf(encontrado.valor), 1)
   return { tipo: 'ok', valor: null }
 }
 
-export function aceitar(token: string): ResultadoEquipe<TeamMember> {
+export function aceitar(token: string): ResultadoEquipe<AcceptInviteResponse> {
   // Tokens de demonstração dos erros do contrato.
-  if (token === 'convite-expirado') {
-    return erro(410, { error: 'CONVITE_EXPIRADO', message: 'Este convite expirou.' })
-  }
-  if (token === 'convite-outra-empresa') {
-    return erro(409, {
-      error: 'JA_E_DE_OUTRA_EMPRESA',
-      message: 'Este login já faz parte de outra empresa.',
-    })
-  }
+  if (token === 'convite-expirado') return erro(410, 'CONVITE_EXPIRADO')
+  if (token === 'convite-outra-empresa') return erro(409, 'JA_VINCULADO')
   const registro = registros().find((m) => m.token === token)
-  if (!registro) {
-    return erro(404, { error: 'CONVITE_NAO_ENCONTRADO', message: 'Convite não encontrado.' })
-  }
-  if (registro.invite_expires_at && new Date(registro.invite_expires_at) < new Date()) {
-    return erro(410, { error: 'CONVITE_EXPIRADO', message: 'Este convite expirou.' })
+  if (!registro) return erro(404, 'CONVITE_NAO_ENCONTRADO')
+  if (registro.convite_expira_em && new Date(registro.convite_expira_em) < new Date()) {
+    return erro(410, 'CONVITE_EXPIRADO')
   }
   registro.status = 'ATIVO'
   registro.token = null
-  registro.invite_expires_at = null
-  return { tipo: 'ok', valor: semToken(registro) }
+  registro.convite_expira_em = null
+  registro.updated_at = new Date().toISOString()
+  return { tipo: 'ok', valor: { customer_id: EMPRESA_ID, membro: semToken(registro) } }
 }

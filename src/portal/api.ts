@@ -6,6 +6,7 @@ import { env } from '@/config/env'
 import { createHttpClient, type AccessTokenGetter } from '@/services/http'
 
 import type {
+  AcceptInviteResponse,
   AssistantReply,
   AssistantRequest,
   BusinessAnalysis,
@@ -70,7 +71,7 @@ function onboardingPortal(http: AxiosInstance) {
       data<TeamMember>(http.patch(`/me/team/${id}`, patch)),
     removeMember: (id: number) => http.delete(`/me/team/${id}`).then(() => undefined),
     acceptInvite: (token: string) =>
-      data<TeamMember>(http.post(`/me/team/invites/${encodeURIComponent(token)}/accept`)),
+      data<AcceptInviteResponse>(http.post(`/me/team/invites/${encodeURIComponent(token)}/accept`)),
     reviews: (status = 'ANALISE_MANUAL') =>
       data<ReviewItem[]>(http.get('/onboarding/reviews', { params: { status } })),
     decide: (customerId: number, decision: ReviewDecision) =>
