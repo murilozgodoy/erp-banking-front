@@ -323,6 +323,8 @@ demo (2.980 vendas, 4.885 recebíveis, 55 contas a pagar no teste).
 
 <p class="mt small"><span class="faisca">Antecipação pré-aprovada</span> <span class="muted">cobre o vale · 15 pendências abertas</span></p>
 
+<p class="xsmall muted">Estoque: entrada, saída e ajuste de itens, com auditoria de quem moveu.</p>
+
 </div>
 <div class="shot">
 
@@ -335,7 +337,8 @@ demo (2.980 vendas, 4.885 recebíveis, 55 contas a pagar no teste).
 <!--
 Fala: João Vivacqua (1 min 30 s). A visão geral responde "como está minha empresa e o que vem pela frente":
 KPIs comparados ao segmento, caixa projetado de 60 dias e, ao lado, a leitura da ErpIa com a oportunidade de
-crédito que resolve o vale. Tudo isso veio do onboarding + seeder + análise.
+crédito que resolve o vale. Tudo isso veio do onboarding + seeder + análise. O estoque ganhou movimentação
+(entrada, saída e ajuste) com auditoria, que está entrando agora na main.
 -->
 
 ---
@@ -429,33 +432,34 @@ modelo, e o Transactions valida ver_financeiro em cada ferramenta. O modelo nunc
 
 ---
 
+<!-- _class: dense -->
+
 ## Equipe e permissões
 
-<div class="cols">
-<div>
+<div class="cols" style="grid-template-columns:0.8fr 1.2fr;gap:32px">
+<div class="xsmall">
 
-O dono convida funcionários e decide **o que cada um pode fazer**. No Auth0 todos são `cliente`; as permissões finas ficam no nosso banco e o **back aplica**.
+O dono convida e decide **o que cada um pode fazer**. No Auth0 todos são `cliente`; as permissões finas ficam no nosso banco e o **back aplica**.
 
-<p class="mt"><span class="tag">ver_financeiro</span><span class="tag">pagar</span><span class="tag">aprovar_pagamentos</span><span class="tag">pedir_credito</span><span class="tag">contratar_credito</span><span class="tag">gerenciar_estoque</span><span class="tag">gerenciar_equipe</span><span class="tag">usar_assistente</span></p>
+- Presets por papel: **Dono › Admin › Financeiro › Operador › Leitura**, com 8 permissões ajustáveis.
+- **Limite de pagamento**: acima dele, o pagamento fica _pendente_ e outra pessoa aprova.
+- Quem não é dono não convida acima do próprio papel nem do próprio limite.
+- Convite por link de uso único (hash, 7 dias).
 
 </div>
-<div>
-
-| Papel      | Preset                                    |
-| ---------- | ----------------------------------------- |
-| DONO/ADMIN | todas                                     |
-| FINANCEIRO | pagar, aprovar, pedir crédito, assistente |
-| OPERADOR   | pagar até um limite, estoque              |
-| LEITURA    | só ver o financeiro                       |
-
-<p class="small mt"><strong>Aprovação de pagamentos:</strong> acima do limite o pagamento fica
-<em>pendente</em>, sem debitar, até outra pessoa aprovar. Convite por link de uso único (hash, 7 dias).</p>
-
+<div class="cols" style="gap:10px 14px">
+<div><img class="shot" src="img/final/equipe.png" alt="Lista da equipe"><p class="caption" style="margin:4px 0 0;font-size:13px">Equipe: papel, status, permissões e limite</p></div>
+<div><img class="shot" src="img/final/equipe-convite.png" alt="Convidar pessoa"><p class="caption" style="margin:4px 0 0;font-size:13px">Convidar pessoa: presets por papel</p></div>
+<div><img class="shot" src="img/final/equipe-convite-limite.png" alt="Limite de pagamento"><p class="caption" style="margin:4px 0 0;font-size:13px">Permissões finas e limite de pagamento</p></div>
+<div><img class="shot" src="img/final/pagamentos-aprovacao.png" alt="Aguardando aprovação"><p class="caption" style="margin:4px 0 0;font-size:13px">Pagamentos: bandeja "Aguardando aprovação"</p></div>
 </div>
 </div>
 
 <!--
-Fala: Vinicius (1 min). Regra dos quatro olhos: quem paga não aprova o próprio pagamento. Sem permissão, o botão
+Fala: Vinicius (1 min). Regra dos quatro olhos: quem paga não aprova o próprio pagamento (na captura, os dois
+pagamentos da Júlia, operadora com limite de R$ 2.000, esperam a aprovação do Rafael, do financeiro). Hierarquia
+DONO > ADMIN > FINANCEIRO > OPERADOR > LEITURA: quem não é dono não convida nem promove acima do próprio papel e
+não dá limite maior que o seu (onboarding #20, front #79). Sem permissão, o botão
 aparece desabilitado com o motivo, em vez de sumir. Auditoria: created_by e approved_by.
 -->
 
@@ -554,7 +558,7 @@ Fala: João Baungartner (1 min 30 s). Escolher dois para aprofundar se o tempo a
 
 <div class="kpis k3">
 <div class="kpi"><span class="v">28</span><span class="l">rotas e fluxos revisados nos 3 serviços + gateway</span></div>
-<div class="kpi"><span class="v">11</span><span class="l">correções mergeadas</span></div>
+<div class="kpi"><span class="v">12</span><span class="l">correções mergeadas</span></div>
 <div class="kpi ok"><span class="v">0</span><span class="l">vazamentos entre empresas</span></div>
 </div>
 
@@ -580,6 +584,7 @@ Fala: João Baungartner (1 min 30 s). Escolher dois para aprofundar se o tempo a
 | Score      | ex-membro lia conversas da empresa antiga → filtro pela atual |
 | Score      | CNPJ e respostas em log dos consumers → removido              |
 | Gateway    | token do convite no log do nginx → `/invites/***/accept`      |
+| Onboarding | gestor acima do próprio papel/limite → hierarquia e teto      |
 
 <p class="xsmall faint mt">Teste de 404 entre empresas: corpo idêntico ao de id inexistente, nenhum dado alheio, nada muda no banco.</p>
 
@@ -590,8 +595,9 @@ Fala: João Baungartner (1 min 30 s). Escolher dois para aprofundar se o tempo a
 Fala: João Baungartner (1 min). A Sessão B revisou rota a rota o que um cliente consegue fazer com ids de outra
 empresa: aprovar ou rejeitar pagamento, pagar conta, usar simulação ou recebíveis, editar membro, aceitar convite,
 ler conversa do assistente. Tudo responde 404 igual a um id inexistente e nada muda no banco; aprovações
-concorrentes geram exatamente 1 débito. Um item segue em andamento: gestor não DONO acima do próprio limite ou
-papel (PR da Sessão C).
+concorrentes geram exatamente 1 débito. O último item, gestor não DONO convidando ou promovendo acima do próprio
+papel ou limite, foi concluído (onboarding #20 + front #79: hierarquia DONO > ADMIN > FINANCEIRO > OPERADOR >
+LEITURA e teto do limite), por isso são 12 correções.
 
 Riscos aceitos, com motivo:
 - o cache do /me tem 60 s, de propósito;
