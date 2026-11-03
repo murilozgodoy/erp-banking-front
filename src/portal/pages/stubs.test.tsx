@@ -10,7 +10,6 @@ import { OverviewPage } from './overview/OverviewPage'
 import { PaymentsPage } from './pagamentos/PaymentsPage'
 import { PendenciasPage } from './pendencias/PendenciasPage'
 import { ReceivablesPage } from './recebiveis/ReceivablesPage'
-import { StatusPage } from './status/StatusPage'
 import { SalesPage } from './vendas/SalesPage'
 
 // Esqueleto das abas: cada agente substitui a sua página e este teste pela suíte real.
@@ -24,7 +23,6 @@ describe('páginas do portal (esqueleto)', () => {
     [InventoryPage, 'Estoque'],
     [CreditPage, 'Crédito'],
     [OnboardingPage, 'Cadastro da empresa'],
-    [StatusPage, 'Análise do cadastro'],
     [AnalisesPage, 'Fila de análise'],
   ])('%o tem título', (Page, title) => {
     render(<Page />)
