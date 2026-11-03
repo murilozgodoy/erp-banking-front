@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useId } from 'react'
 
 import { cn } from '@/lib/cn'
@@ -20,6 +20,8 @@ export function Segmented<T extends string>({
   className,
 }: SegmentedProps<T>) {
   const layoutId = useId()
+  // A troca de seleção desliza; com "reduzir movimento", o indicador só muda de lugar.
+  const reduce = useReducedMotion()
   return (
     <div
       role="radiogroup"
@@ -49,14 +51,16 @@ export function Segmented<T extends string>({
               )
             }}
             className={cn(
-              'relative h-7 rounded-[5px] px-3 text-xs font-medium transition-colors duration-150',
+              'relative h-7 rounded-[5px] px-3 text-xs font-medium transition-colors duration-150 pointer-coarse:h-11',
               active ? 'text-ink' : 'text-ink-muted hover:text-ink',
             )}
           >
             {active && (
               <motion.span
                 layoutId={layoutId}
-                transition={{ type: 'spring', duration: 0.25, bounce: 0 }}
+                transition={
+                  reduce ? { duration: 0 } : { type: 'spring', duration: 0.25, bounce: 0 }
+                }
                 className="absolute inset-0 rounded-[5px] bg-surface shadow-sm"
               />
             )}

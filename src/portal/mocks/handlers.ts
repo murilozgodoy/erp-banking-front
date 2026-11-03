@@ -3,6 +3,7 @@ import { delay, http, HttpResponse, type HttpHandler } from 'msw'
 import { env } from '@/config/env'
 
 import type { OnboardingPayload, PaymentRequest, ReviewDecision, SimulationRequest } from '../types'
+import { assistantHandlers } from './assistant'
 import * as db from './db'
 import { TEMPLATES } from './templates'
 
@@ -255,5 +256,6 @@ export function createHandlers(): HttpHandler[] {
     ...onboardingHandlers(env.onboardingApiUrl),
     ...scoreHandlers(env.scoreApiUrl),
     ...transactionsHandlers(env.transactionsApiUrl),
+    ...assistantHandlers(env.scoreApiUrl),
   ]
 }

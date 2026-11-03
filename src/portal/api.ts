@@ -6,6 +6,8 @@ import { env } from '@/config/env'
 import { createHttpClient, type AccessTokenGetter } from '@/services/http'
 
 import type {
+  AssistantRequest,
+  AssistantResponse,
   BusinessAnalysis,
   CreditOffer,
   CreditRequestInput,
@@ -63,11 +65,22 @@ function onboardingPortal(http: AxiosInstance) {
   }
 }
 
+/**
+ * O assistente pode levar até 45 s no back (tool use + modelo): o timeout padrão do client
+ * cortaria a resposta no meio.
+ */
+export const ASSISTANT_TIMEOUT_MS = 50_000
+
 function scorePortal(http: AxiosInstance) {
   return {
     myAnalysis: () => data<BusinessAnalysis>(http.get('/me/analysis')),
     analysisOf: (customerId: number) =>
       data<BusinessAnalysis>(http.get(`/scores/analyses/${customerId}`)),
+    /** Assistente ErpIa (seção 9): resposta inteira, sem streaming. */
+    assistant: (request: AssistantRequest) =>
+      data<AssistantResponse>(
+        http.post('/me/assistant/messages', request, { timeout: ASSISTANT_TIMEOUT_MS }),
+      ),
   }
 }
 

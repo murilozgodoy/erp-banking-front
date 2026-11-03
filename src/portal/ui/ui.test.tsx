@@ -55,6 +55,13 @@ describe('primitivas do portal', () => {
     expect(screen.getByText('+R$ 10,00').parentElement).toHaveClass('text-positive')
   })
 
+  it('Money não esmaece os centavos (AA também em negative/positive)', () => {
+    const { container } = render(<Money value={-37756.9} signed />)
+    const cents = screen.getByText(',90')
+    expect(cents).not.toHaveClass('opacity-60')
+    expect(container.querySelector('[class*="opacity-"]')).toBeNull()
+  })
+
   it('Delta usa seta e sinal, e inverte o significado quando subir é ruim', () => {
     const { container, rerender } = render(<Delta value={4} context="vs. mês anterior" />)
     expect(screen.getByText('+4,0%')).toHaveClass('text-positive')
@@ -202,6 +209,11 @@ describe('primitivas do portal', () => {
     expect(screen.getByLabelText(/Razão social/)).toHaveAccessibleDescription('Como no CNPJ')
     expect(screen.getByLabelText('Margem')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('UF')).toHaveAccessibleDescription('Escolha a UF')
+    // Com erro, a ajuda some da tela: aria-describedby não aponta para um id inexistente.
+    render(<TextField label="CNPJ" hint="Só números" error="CNPJ inválido" />)
+    const cnpj = screen.getByLabelText('CNPJ')
+    expect(cnpj.getAttribute('aria-describedby')?.split(' ')).toHaveLength(1)
+    expect(cnpj).toHaveAccessibleDescription('CNPJ inválido')
     const money = screen.getByLabelText('Faturamento')
     expect(money).toHaveValue('1.000,00')
     await userEvent.clear(money)
@@ -211,6 +223,25 @@ describe('primitivas do portal', () => {
     expect(money).toHaveValue('2.500,50')
     expect(parseBrlInput('')).toBeNull()
     expect(parseBrlInput('R$ 1.234,56')).toBe(1234.56)
+  })
+})
+
+describe('layout em telas estreitas e de toque', () => {
+  it('Panel pode encolher num grid (min-w-0) e os alvos sobem para 44 px no toque', () => {
+    render(
+      <Panel title="Extrato" id="extrato">
+        <Button size="sm">Pagar</Button>
+        <Segmented
+          label="Período"
+          value="7"
+          options={[{ value: '7', label: '7 dias' }]}
+          onChange={() => {}}
+        />
+      </Panel>,
+    )
+    expect(screen.getByRole('region', { name: 'Extrato' })).toHaveClass('min-w-0')
+    expect(screen.getByRole('button', { name: 'Pagar' })).toHaveClass('pointer-coarse:h-11')
+    expect(screen.getByRole('radio', { name: '7 dias' })).toHaveClass('pointer-coarse:h-11')
   })
 })
 
@@ -237,6 +268,12 @@ describe('DataTable', () => {
     },
     { key: 'acao', header: 'Ação', cell: () => '—' },
   ]
+
+  it('rola dentro do próprio contêiner, que contém o texto sr-only das células', () => {
+    render(<DataTable caption="Itens" columns={columns} rows={rows} rowKey={(r) => r.id} />)
+    const scroller = screen.getByRole('table').parentElement!
+    expect(scroller).toHaveClass('relative', 'overflow-x-auto')
+  })
 
   it('ordena pelos cabeçalhos com aria-sort', async () => {
     render(<DataTable caption="Itens" columns={columns} rows={rows} rowKey={(r) => r.id} />)

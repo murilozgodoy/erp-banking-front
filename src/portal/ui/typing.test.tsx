@@ -1,13 +1,14 @@
 import { render, renderHook, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
+import type * as Motion from 'motion/react'
 
 import { InsightBlock } from './InsightBlock'
 import { useTypewriter } from './useTypewriter'
 
 const reduced = vi.hoisted(() => ({ value: false }))
 vi.mock('motion/react', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('motion/react')>()),
+  ...(await importOriginal<typeof Motion>()),
   useReducedMotion: () => reduced.value,
 }))
 

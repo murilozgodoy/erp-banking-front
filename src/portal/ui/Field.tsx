@@ -30,7 +30,8 @@ export function FieldShell({ label, hint, error, required, children, className }
   const id = useId()
   const hintId = `${id}-hint`
   const errorId = `${id}-error`
-  const describedBy = [error && errorId, hint && hintId].filter(Boolean).join(' ') || undefined
+  // O erro substitui a ajuda na tela: aponta só para o que está renderizado.
+  const describedBy = error ? errorId : hint ? hintId : undefined
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <label htmlFor={id} className="text-sm font-medium text-ink">

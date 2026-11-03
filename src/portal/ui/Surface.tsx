@@ -42,7 +42,7 @@ export function Panel({ title, description, actions, children, className, flush,
   return (
     <section
       aria-labelledby={title ? headingId : undefined}
-      className={cn('rounded-panel border border-line bg-surface shadow-raised', className)}
+      className={cn('min-w-0 rounded-panel border border-line bg-surface shadow-raised', className)}
     >
       {(title || actions) && (
         <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4 pb-3">

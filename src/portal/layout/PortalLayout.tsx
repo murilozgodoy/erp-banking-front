@@ -8,9 +8,10 @@ import { ErpIaLogo } from '@/components/brand/Logo'
 import { usePermissions } from '@/hooks/usePermissions'
 import { cn } from '@/lib/cn'
 
-import { formatCnpj, money } from '../lib/format'
+import { AssistantLauncher } from '../assistant/AssistantLauncher'
+import { AssistantProvider } from '../assistant/AssistantProvider'
+import { formatCnpj } from '../lib/format'
 import { SkipLink } from '../ui/SkipLink'
-import { Skeleton } from '../ui/Surface'
 
 import { PORTAL_NAV } from './nav'
 import { useMe, useOverview } from './queries'
@@ -27,7 +28,7 @@ function NavItems({ pendencias, onNavigate }: { pendencias?: number; onNavigate?
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                'group flex h-9 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150',
+                'group flex h-9 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150 pointer-coarse:h-11',
                 '[&_svg]:size-[18px] [&_svg]:shrink-0',
                 isActive
                   ? 'bg-rail-raised text-rail-ink [&_svg]:text-[#C6F24E]'
@@ -52,6 +53,14 @@ function NavItems({ pendencias, onNavigate }: { pendencias?: number; onNavigate?
 
 /** Shell do portal: rail grafite com a navegação e a conta, área de trabalho em papel. */
 export function PortalLayout() {
+  return (
+    <AssistantProvider>
+      <PortalShell />
+    </AssistantProvider>
+  )
+}
+
+function PortalShell() {
   const { user, logout } = useAuth0()
   const { isStaff } = usePermissions()
   const queryClient = useQueryClient()
@@ -115,10 +124,11 @@ export function PortalLayout() {
       </nav>
 
       <div className="space-y-0.5 border-t border-rail-raised pt-4">
+        <AssistantLauncher />
         {isStaff && (
           <Link
             to="/"
-            className="flex h-9 items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink"
+            className="flex h-9 items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink pointer-coarse:h-11"
           >
             <ArrowLeftRight aria-hidden className="size-[18px]" />
             Ir para o backoffice
@@ -127,7 +137,7 @@ export function PortalLayout() {
         <button
           type="button"
           onClick={toggle}
-          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink"
+          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink pointer-coarse:h-11"
         >
           {theme === 'dark' ? (
             <Sun aria-hidden className="size-[18px]" />
@@ -139,7 +149,7 @@ export function PortalLayout() {
         <button
           type="button"
           onClick={signOut}
-          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink"
+          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink pointer-coarse:h-11"
         >
           <LogOut aria-hidden className="size-[18px]" />
           Sair
@@ -167,7 +177,7 @@ export function PortalLayout() {
           aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
-          className="grid size-9 place-items-center rounded-control text-rail-ink hover:bg-rail-raised"
+          className="grid size-9 place-items-center rounded-control text-rail-ink hover:bg-rail-raised pointer-coarse:size-11"
         >
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
@@ -175,20 +185,6 @@ export function PortalLayout() {
       {menuOpen && <div className="fixed inset-0 top-14 z-20 bg-rail lg:hidden">{rail}</div>}
 
       <div className="min-w-0">
-        <div className="flex h-14 items-center justify-end gap-4 border-b border-line bg-paper px-4 sm:px-8 lg:sticky lg:top-0 lg:z-10">
-          <p className="flex items-baseline gap-2 text-sm text-ink-muted">
-            Saldo disponível
-            {overview.isPending ? (
-              <Skeleton className="h-4 w-24 self-center" />
-            ) : overview.data ? (
-              <span className="tabular text-base font-semibold text-ink">
-                {money(overview.data.saldo)}
-              </span>
-            ) : (
-              <span className="text-ink-faint">—</span>
-            )}
-          </p>
-        </div>
         <main
           id="conteudo"
           tabIndex={-1}
