@@ -1,0 +1,16 @@
+# Só o necessário para o build entra no contexto da imagem.
+node_modules
+dist
+coverage
+.git
+.github
+.vscode
+.idea
+*.log
+*.local
+# Os .env locais não podem vazar para o build: as VITE_* vêm dos --build-arg.
+.env
+.env.*
+Dockerfile
+.dockerignore
+docs
