@@ -10,7 +10,7 @@ import { EmptyState, Panel } from '../../ui/Surface'
 import type { Oportunidade } from '../../types'
 
 /** Quantas ofertas aparecem antes de "Ver mais" (o painel divide a altura com o gráfico). */
-const VISIBLE = 3
+const VISIBLE = 2
 
 function prazo(meses: number): string {
   return `até ${meses} ${meses === 1 ? 'mês' : 'meses'}`

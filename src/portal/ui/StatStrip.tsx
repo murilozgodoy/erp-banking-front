@@ -18,10 +18,13 @@ export interface Stat {
 export function StatStrip({
   stats,
   loading = false,
+  columns = 'auto',
   className,
 }: {
   stats: Stat[]
   loading?: boolean
+  /** `three`: no máximo 3 colunas (2 × 3 no tablet, 3 × 2 no desktop), para colunas estreitas. */
+  columns?: 'auto' | 'three'
   className?: string
 }) {
   return (
@@ -29,8 +32,9 @@ export function StatStrip({
       aria-busy={loading || undefined}
       className={cn(
         'grid grid-cols-2 overflow-hidden rounded-panel border border-line bg-surface shadow-raised sm:grid-cols-3',
-        stats.length >= 4 && 'lg:grid-cols-4',
-        stats.length >= 6 && 'xl:grid-cols-6',
+        columns === 'auto' && stats.length >= 4 && 'lg:grid-cols-4',
+        columns === 'auto' && stats.length >= 6 && 'xl:grid-cols-6',
+        columns === 'three' && 'sm:grid-cols-2 lg:grid-cols-3',
         className,
       )}
     >
