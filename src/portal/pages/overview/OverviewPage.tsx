@@ -161,7 +161,7 @@ function Loaded({
 
   return (
     <>
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid gap-5 xl:grid-cols-12 xl:items-start">
         <CashPanel
           className="xl:col-span-8"
           saldo={overview.saldo}
@@ -171,7 +171,7 @@ function Loaded({
         />
         <div className="xl:col-span-4">
           {ready ? (
-            <OpportunitiesPanel oportunidades={oportunidades} className="h-full" />
+            <OpportunitiesPanel oportunidades={oportunidades} />
           ) : (
             analysisFallback('Carregando as oportunidades de crédito')
           )}
