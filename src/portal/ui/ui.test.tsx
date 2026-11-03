@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useState, type ReactNode } from 'react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -32,15 +33,27 @@ function MoneyHarness({ onValue }: { onValue: (value: number | null) => void }) 
   )
 }
 
+/** Roteador + React Query: as ações de crédito do InsightBlock leem as permissões do `/me`. */
+function Providers({ children }: { children: ReactNode }) {
+  const [client] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  )
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  )
+}
+
 describe('primitivas do portal', () => {
   it('Button mostra carregando e bloqueia; ButtonLink navega', () => {
     render(
-      <MemoryRouter>
+      <Providers>
         <Button loading>Pagar</Button>
         <ButtonLink to="/app/credito" variant="credit">
           Simular
         </ButtonLink>
-      </MemoryRouter>,
+      </Providers>,
     )
     const button = screen.getByRole('button', { name: 'Pagar' })
     expect(button).toBeDisabled()
@@ -147,7 +160,7 @@ describe('primitivas do portal', () => {
 
   it('InsightBlock liga o insight à oferta com link para o simulador', () => {
     render(
-      <MemoryRouter>
+      <Providers>
         <InsightBlock
           insight={{
             titulo: 'Caixa negativo em 18 dias',
@@ -161,7 +174,7 @@ describe('primitivas do portal', () => {
             racional: 'cobre o vale',
           }}
         />
-      </MemoryRouter>,
+      </Providers>,
     )
     const block = screen.getByRole('complementary', { name: 'Insight da ErpIa' })
     expect(within(block).getByText('Caixa negativo em 18 dias')).toBeInTheDocument()
@@ -175,17 +188,17 @@ describe('primitivas do portal', () => {
 
   it('InsightBlock sem conteúdo não renderiza; só insight ou só oferta funciona', () => {
     const { container, rerender } = render(
-      <MemoryRouter>
+      <Providers>
         <InsightBlock />
-      </MemoryRouter>,
+      </Providers>,
     )
     expect(container).toBeEmptyDOMElement()
     rerender(
-      <MemoryRouter>
+      <Providers>
         <InsightBlock insight={{ titulo: 'Leitura', texto: 'ok', severidade: 'info' }} />
         <InsightBlock insight={{ titulo: 'Boa', texto: 'ok', severidade: 'oportunidade' }} />
         <InsightBlock offer={{ produto: 'ALAVANCAGEM', valor: 1000, cta: 'Ver proposta' }} />
-      </MemoryRouter>,
+      </Providers>,
     )
     expect(screen.getByRole('link', { name: /Ver proposta/ })).toBeInTheDocument()
   })

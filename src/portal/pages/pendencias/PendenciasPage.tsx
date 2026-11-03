@@ -21,8 +21,9 @@ import { usePortalApi } from '../../api'
 import { portalKeys, useAnalysis } from '../../layout/queries'
 import { isOnboardingPendente } from '../../lib/apiErrors'
 import { money } from '../../lib/format'
-import type { Pendencia, PendenciaTipo } from '../../types'
+import type { Pendencia, PendenciaTipo, Permissao } from '../../types'
 import { ButtonLink } from '../../ui/Button'
+import { GatedButtonLink } from '../../ui/Gated'
 import { PRODUTO_LABEL, simulatorHref } from '../../ui/credit'
 import { InsightBlock, type InsightOffer } from '../../ui/InsightBlock'
 import { Money } from '../../ui/Money'
@@ -84,6 +85,35 @@ const TIPO: Record<
   },
 }
 
+/** A ação herda a permissão do destino: pagar uma conta exige `pagar`; crédito, `pedir_credito`. */
+function permissaoDaRota(rota: string): Permissao | null {
+  if (rota.startsWith('/app/pagamentos')) return 'pagar'
+  if (rota.startsWith('/app/credito')) return 'pedir_credito'
+  return null
+}
+
+function ActionLink({
+  rota,
+  urgente,
+  children,
+}: {
+  rota: string
+  urgente: boolean
+  children: ReactNode
+}) {
+  const variant = urgente ? 'primary' : 'secondary'
+  const permissao = permissaoDaRota(rota)
+  return permissao ? (
+    <GatedButtonLink permissao={permissao} to={rota} variant={variant} size="sm">
+      {children}
+    </GatedButtonLink>
+  ) : (
+    <ButtonLink to={rota} variant={variant} size="sm">
+      {children}
+    </ButtonLink>
+  )
+}
+
 function PendenciaRow({ pendencia, urgente }: { pendencia: Pendencia; urgente: boolean }) {
   const meta = TIPO[pendencia.tipo]
   const { acao } = pendencia
@@ -131,18 +161,19 @@ function PendenciaRow({ pendencia, urgente }: { pendencia: Pendencia; urgente: b
             </p>
           )}
           {acaoDeCredito ? (
-            <ButtonLink
+            <GatedButtonLink
+              permissao="pedir_credito"
               to={simulatorHref(credito.produto, credito.valor)}
               variant="credit"
               size="sm"
             >
               {acao.label}
               <ArrowRight aria-hidden className="size-4" />
-            </ButtonLink>
+            </GatedButtonLink>
           ) : (
-            <ButtonLink to={acao.rota} variant={urgente ? 'primary' : 'secondary'} size="sm">
+            <ActionLink rota={acao.rota} urgente={urgente}>
               {acao.label}
-            </ButtonLink>
+            </ActionLink>
           )}
         </div>
       </div>

@@ -18,6 +18,7 @@ import {
 } from '../../lib/format'
 import type { Receivable, ReceivableStatus } from '../../types'
 import { Button } from '../../ui/Button'
+import { GatedButton } from '../../ui/Gated'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { SelectField } from '../../ui/Field'
 import { InsightBlock } from '../../ui/InsightBlock'
@@ -370,9 +371,13 @@ export function ReceivablesPage() {
                 <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
                   Limpar
                 </Button>
-                <Button size="sm" onClick={() => setSheet((s) => ({ open: true, key: s.key + 1 }))}>
+                <GatedButton
+                  permissao="pedir_credito"
+                  size="sm"
+                  onClick={() => setSheet((s) => ({ open: true, key: s.key + 1 }))}
+                >
                   Simular antecipação
-                </Button>
+                </GatedButton>
               </div>
             </motion.div>
           )}

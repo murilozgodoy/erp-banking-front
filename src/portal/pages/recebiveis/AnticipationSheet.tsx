@@ -12,10 +12,12 @@ import { ErrorState, Skeleton } from '../../ui/Surface'
 
 import { ContractOutcome } from '../credito/ContractOutcome'
 import {
+  contractLabel,
   creditErrorMessage,
   creditKeys,
   errorCode,
   useContract,
+  useCreditAccess,
   useSimulation,
 } from '../credito/credit'
 import { SimulationResult } from '../credito/SimulationResult'
@@ -49,11 +51,12 @@ export function AnticipationSheet({ open, receivables: atuais, onClose }: Antici
     },
   })
   const done = contract.data
+  const { pede, contrata } = useCreditAccess()
   const indisponivel = errorCode(contract.error) === 'RECEBIVEL_INDISPONIVEL'
 
   const acima = valor !== null && valor > maximo
   const invalido = valor !== null && valor <= 0
-  const valido = open && !done && valor !== null && !acima && !invalido
+  const valido = open && pede && !done && valor !== null && !acima && !invalido
   const sim = useSimulation(
     valido
       ? {
@@ -103,7 +106,7 @@ export function AnticipationSheet({ open, receivables: atuais, onClose }: Antici
               disabled={!simulation || sim.pending || simulation.aprovacao === 'NEGADO'}
               onClick={() => simulation && contract.mutate(simulation.id)}
             >
-              {simulation?.aprovacao === 'ANALISE' ? 'Enviar para análise' : 'Contratar'}
+              {contractLabel(simulation?.aprovacao, contrata, 'Contratar', 'Enviar para análise')}
             </Button>
           </>
         )

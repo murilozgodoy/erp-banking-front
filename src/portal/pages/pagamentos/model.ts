@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios'
 import { errorMessage } from '@/lib/errors'
 
 import { money } from '../../lib/format'
+import { mensagemDoErroDePermissao } from '../../team/forbidden'
 import type {
   ErpApiError,
   Payable,
@@ -247,6 +248,13 @@ export function payFailure(error: unknown, valorConta?: number): PayFailure {
         message:
           'Não encontramos esta conta a pagar; ela pode ter saído do ERP. Atualizamos a lista: confira e tente de novo.',
       }
+    case 'PAGAMENTO_PENDENTE':
+      return {
+        kind: 'conta',
+        code: body.error,
+        message:
+          'Esta conta já tem um pagamento aguardando aprovação. Atualizamos a lista; acompanhe no histórico de pagamentos.',
+      }
     case 'VALOR_DIVERGENTE':
       return {
         kind: 'conta',
@@ -255,7 +263,29 @@ export function payFailure(error: unknown, valorConta?: number): PayFailure {
           valorConta !== undefined ? ` (${money(valorConta)})` : ''
         }. Atualizamos a lista; abra a conta de novo para pagar o valor certo.`,
       }
+    case 'SEM_PERMISSAO':
+      return { kind: 'outro', message: mensagemDoErroDePermissao(error) ?? errorMessage(error) }
     default:
       return { kind: 'outro', message: body?.message ?? errorMessage(error) }
+  }
+}
+
+/** Falha ao aprovar ou rejeitar um pagamento da bandeja: problema + o que fazer. */
+export function decisionFailure(error: unknown): string {
+  const body = apiError(error) as (ErpApiError & { motivo?: string }) | undefined
+  // 403 SEM_PERMISSAO com `motivo: "AUTOR"`: quem fez não aprova nem rejeita o próprio pagamento.
+  if (body?.error === 'SEM_PERMISSAO' && body.motivo === 'AUTOR') {
+    return 'Você fez este pagamento, então outra pessoa com a permissão de aprovar precisa decidir.'
+  }
+  const permissao = mensagemDoErroDePermissao(error)
+  if (permissao) return permissao
+  switch (body?.error) {
+    case 'SALDO_INSUFICIENTE':
+      return `Saldo insuficiente: faltam ${money(body.faltam ?? 0)}. Nada foi debitado e o pagamento continua aguardando; aprove quando o saldo cobrir ou rejeite.`
+    case 'PAGAMENTO_NAO_PENDENTE':
+    case 'PAGAMENTO_NAO_ENCONTRADO':
+      return 'Este pagamento já foi decidido por outra pessoa. Atualizamos a lista.'
+    default:
+      return errorMessage(error)
   }
 }

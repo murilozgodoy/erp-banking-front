@@ -184,6 +184,10 @@ function onboardingHandlers(base: string): HttpHandler[] {
     }),
     http.put(`${base}/me/onboarding`, async ({ request }) => {
       await latencia()
+      // Só o DONO edita o cadastro (seção 11).
+      if (team.membroAtual().papel !== 'DONO') {
+        return HttpResponse.json({ error: 'SEM_PERMISSAO', permissao: 'dono' }, { status: 403 })
+      }
       const resultado = db.salvarOnboarding(await corpo<OnboardingPayload>(request))
       if (resultado.tipo === 'conflito') {
         return HttpResponse.json({ detail: resultado.detail }, { status: 409 })
@@ -281,11 +285,13 @@ function transactionsHandlers(base: string): HttpHandler[] {
     ...(['approve', 'reject'] as const).map((decisao) =>
       http.post(
         `${base}/me/payments/:id/${decisao}`,
-        protegido((_, params) => {
-          const resultado = db.decidirPagamento(Number(params.id), decisao)
-          return resultado.tipo === 'ok'
-            ? HttpResponse.json(resultado.pagamento)
-            : respostaErro(resultado)
+        protegido(async (request, params) => {
+          const motivo =
+            decisao === 'reject' ? (await corpo<{ motivo?: string }>(request)).motivo : undefined
+          const resultado = db.decidirPagamento(Number(params.id), decisao, motivo)
+          if (resultado.tipo !== 'ok') return respostaErro(resultado)
+          // Aprovar responde como o POST /me/payments (com comprovante); rejeitar, o pagamento.
+          return HttpResponse.json(resultado.resposta ?? resultado.pagamento)
         }, 'aprovar_pagamentos'),
       ),
     ),
@@ -327,6 +333,15 @@ function transactionsHandlers(base: string): HttpHandler[] {
           ? HttpResponse.json(resultado.request, { status: 201 })
           : respostaErro(resultado)
       }, null),
+    ),
+    http.post(
+      `${base}/me/credit/requests/:id/confirm`,
+      protegido((_, params) => {
+        const resultado = db.confirmarCredito(Number(params.id))
+        return resultado.tipo === 'ok'
+          ? HttpResponse.json(resultado.request)
+          : respostaErro(resultado)
+      }, 'contratar_credito'),
     ),
     http.get(
       `${base}/me/credit/requests`,

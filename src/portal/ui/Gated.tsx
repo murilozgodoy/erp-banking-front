@@ -14,7 +14,7 @@ import { buttonClass } from './buttonClass'
  * Explica por que a ação está bloqueada: aparece no hover e no foco do botão (que continua
  * focável, com `aria-disabled`), e é o `aria-describedby` dele.
  */
-function LockedAction({
+export function LockedAction({
   permissao,
   className,
   children,

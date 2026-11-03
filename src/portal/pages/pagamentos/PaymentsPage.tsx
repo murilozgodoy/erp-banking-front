@@ -8,12 +8,13 @@ import { errorMessage } from '@/lib/errors'
 import { useAnalysis, useOverview } from '../../layout/queries'
 import { daysFromToday, money } from '../../lib/format'
 import type { Payable } from '../../types'
-import { Button } from '../../ui/Button'
+import { GatedButton } from '../../ui/Gated'
 import { InsightBlock, type InsightOffer } from '../../ui/InsightBlock'
 import { Money } from '../../ui/Money'
 import { StatStrip, type Stat } from '../../ui/StatStrip'
 import { OnboardingPendingState } from '../../ui/OnboardingPending'
 import { ErrorState, PageHeader } from '../../ui/Surface'
+import { ApprovalTray } from './ApprovalTray'
 import { HistoryPanel } from './HistoryPanel'
 import { isOnboardingPendente, pagavel } from './model'
 import { PayablesPanel } from './PayablesPanel'
@@ -153,18 +154,21 @@ export function PaymentsPage() {
         title="Pagamentos"
         description="Saldo, contas a pagar, PIX, boletos e extrato da conta PJ."
         actions={
-          <Button
+          <GatedButton
+            permissao="pagar"
             icon={<Plus className="size-4" />}
             onClick={() => openSheet(null)}
             disabled={overview.isSuccess && !conta}
             title={overview.isSuccess && !conta ? 'A conta PJ ainda está sendo aberta' : undefined}
           >
             Novo pagamento
-          </Button>
+          </GatedButton>
         }
       />
 
       <div className="space-y-6">
+        <ApprovalTray />
+
         {overview.isError ? (
           <ErrorState
             title="Não conseguimos carregar o saldo"

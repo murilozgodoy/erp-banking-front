@@ -8,7 +8,7 @@ import { AskAssistant } from '../assistant/AskAssistant'
 import { money, pct } from '../lib/format'
 import type { Insight, InsightSeveridade, ProdutoCredito } from '../types'
 
-import { Button, ButtonLink } from './Button'
+import { GatedButton, GatedButtonLink } from './Gated'
 import { PRODUTO_LABEL, simulatorHref } from './credit'
 import { useTypewriter } from './useTypewriter'
 
@@ -215,20 +215,29 @@ export function InsightBlock({
             )}
           </div>
           {offer.onAction ? (
-            <Button variant="credit" size="sm" className="self-start" onClick={offer.onAction}>
-              {offer.cta ?? 'Simular'}
-              <ArrowRight aria-hidden className="size-4" />
-            </Button>
+            <div className="self-start">
+              <GatedButton
+                permissao="pedir_credito"
+                variant="credit"
+                size="sm"
+                onClick={offer.onAction}
+              >
+                {offer.cta ?? 'Simular'}
+                <ArrowRight aria-hidden className="size-4" />
+              </GatedButton>
+            </div>
           ) : (
-            <ButtonLink
-              to={simulatorHref(offer.produto, offer.valor)}
-              variant="credit"
-              size="sm"
-              className="self-start"
-            >
-              {offer.cta ?? 'Simular'}
-              <ArrowRight aria-hidden className="size-4" />
-            </ButtonLink>
+            <div className="self-start">
+              <GatedButtonLink
+                permissao="pedir_credito"
+                to={simulatorHref(offer.produto, offer.valor)}
+                variant="credit"
+                size="sm"
+              >
+                {offer.cta ?? 'Simular'}
+                <ArrowRight aria-hidden className="size-4" />
+              </GatedButtonLink>
+            </div>
           )}
         </div>
       )}

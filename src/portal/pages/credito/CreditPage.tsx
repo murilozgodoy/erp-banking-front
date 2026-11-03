@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, FileText, MessageSquareText, ShieldOff } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowRight, Clock, FileText, MessageSquareText, ShieldOff } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { Faisca, Marca } from '@/components/brand/Logo'
@@ -13,21 +13,25 @@ import { Button, ButtonLink } from '../../ui/Button'
 import { PRODUTO_LABEL } from '../../ui/credit'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { MoneyField } from '../../ui/Field'
+import { GatedButton } from '../../ui/Gated'
 import { InsightBlock } from '../../ui/InsightBlock'
 import { Money } from '../../ui/Money'
 import { OnboardingPendingState } from '../../ui/OnboardingPending'
 import { Segmented } from '../../ui/Segmented'
 import { EmptyState, ErrorState, Panel, PageHeader, Skeleton } from '../../ui/Surface'
 
+import { ConfirmRequestSheet } from './ConfirmRequestSheet'
 import { ContractSheet } from './ContractSheet'
 import { RequestStatusPill } from './ContractOutcome'
 import {
+  contractLabel,
   creditErrorMessage,
   isOnboardingPendente,
   isProduto,
   prazosValidos,
   SIMULATION_ROOT,
   taxaFracao,
+  useCreditAccess,
   useCreditRequests,
   useOffers,
   useSimulation,
@@ -232,8 +236,10 @@ function Simulator({
   const prazos = prazosValidos(offer.prazo_max_meses)
   const antecipacao = offer.produto === 'ANTECIPACAO_RECEBIVEIS'
   const valido = valor !== null && valor > 0
+  // Simular exige `pedir_credito` (seção 11): sem ela, nem chama a API.
+  const { pede, contrata } = useCreditAccess()
   const sim = useSimulation(
-    valido && !antecipacao ? { produto: offer.produto, valor, prazo_meses: prazo } : null,
+    valido && !antecipacao && pede ? { produto: offer.produto, valor, prazo_meses: prazo } : null,
   )
   const simulation = sim.data
   const minimo = Math.min(1000, offer.limite)
@@ -307,7 +313,17 @@ function Simulator({
             </div>
           </div>
           <div className="min-w-0">
-            {!valido ? (
+            {!pede ? (
+              <div className="flex flex-col items-start gap-3">
+                <p className="max-w-[48ch] text-sm text-ink-muted">
+                  Você vê os limites da empresa, mas simular e contratar crédito pede a permissão de
+                  pedir crédito.
+                </p>
+                <GatedButton permissao="pedir_credito" size="lg">
+                  Simular
+                </GatedButton>
+              </div>
+            ) : !valido ? (
               <p className="text-sm text-ink-muted">Informe um valor para ver as condições.</p>
             ) : sim.isError ? (
               <ErrorState
@@ -324,8 +340,14 @@ function Simulator({
                     disabled={sim.pending || simulation.aprovacao === 'NEGADO'}
                     onClick={() => onContract(simulation)}
                   >
-                    {simulation.aprovacao === 'ANALISE' ? 'Enviar proposta' : 'Contratar'}
+                    {contractLabel(simulation.aprovacao, contrata)}
                   </Button>
+                  {!contrata && simulation.aprovacao !== 'ANALISE' && (
+                    <p className="mt-2 max-w-[52ch] text-xs text-ink-muted">
+                      Quem tem a permissão de contratar crédito confirma a proposta; nada é
+                      creditado até lá.
+                    </p>
+                  )}
                 </div>
               </>
             ) : (
@@ -376,6 +398,13 @@ const requestColumns: Column<PortalCreditRequest>[] = [
   },
   { key: 'status', header: 'Status', cell: (r) => <RequestStatusPill status={r.status} /> },
   {
+    key: 'autor',
+    header: 'Feito por',
+    hideBelow: 'md',
+    className: 'text-ink-faint',
+    cell: (r) => (r.createdByNome ? `feito por ${r.createdByNome}` : '—'),
+  },
+  {
     key: 'motivo',
     header: 'Motivo',
     hideBelow: 'md',
@@ -386,46 +415,91 @@ const requestColumns: Column<PortalCreditRequest>[] = [
 
 function Requests() {
   const requests = useCreditRequests()
+  const { contrata } = useCreditAccess()
+  const [confirmando, setConfirmando] = useState<PortalCreditRequest | null>(null)
+  const closeConfirm = useCallback(() => setConfirmando(null), [])
+  const aguardando = requests.data?.filter((r) => r.status === 'AGUARDANDO_CONTRATACAO') ?? []
+  const columns: Column<PortalCreditRequest>[] =
+    aguardando.length === 0
+      ? requestColumns
+      : [
+          ...requestColumns,
+          {
+            key: 'acao',
+            header: 'Ação',
+            align: 'right',
+            cell: (r) =>
+              r.status === 'AGUARDANDO_CONTRATACAO' ? (
+                <GatedButton
+                  permissao="contratar_credito"
+                  size="sm"
+                  onClick={() => setConfirmando(r)}
+                  aria-label={`Contratar a proposta nº ${r.id}`}
+                >
+                  Contratar
+                </GatedButton>
+              ) : null,
+          },
+        ]
   return (
-    <Panel
-      id="propostas"
-      title="Propostas e contratos"
-      description="Tudo o que você contratou ou enviou para análise."
-      flush
-    >
-      {requests.isPending ? (
-        <div role="status" aria-label="Carregando propostas" className="space-y-3 px-5 pb-5">
-          <Skeleton className="h-3.5 w-full" />
-          <Skeleton className="h-3.5 w-full" />
-          <Skeleton className="h-3.5 w-2/3" />
-        </div>
-      ) : requests.isError ? (
-        <div className="px-5 pb-5">
-          <ErrorState
-            message={creditErrorMessage(requests.error)}
-            onRetry={() => void requests.refetch()}
-          />
-        </div>
-      ) : (
-        <div className="border-t border-line">
-          <DataTable
-            caption="Propostas e contratos de crédito"
-            columns={requestColumns}
-            rows={requests.data}
-            rowKey={(r) => r.id}
-            initialSort={{ key: 'data', direction: 'desc' }}
-            empty={
-              <EmptyState
-                icon={<FileText aria-hidden className="size-5" />}
-                title="Nenhuma proposta ainda"
+    <>
+      <Panel
+        id="propostas"
+        title="Propostas e contratos"
+        description="Tudo o que você contratou ou enviou para análise."
+        flush
+      >
+        {requests.isPending ? (
+          <div role="status" aria-label="Carregando propostas" className="space-y-3 px-5 pb-5">
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-2/3" />
+          </div>
+        ) : requests.isError ? (
+          <div className="px-5 pb-5">
+            <ErrorState
+              message={creditErrorMessage(requests.error)}
+              onRetry={() => void requests.refetch()}
+            />
+          </div>
+        ) : (
+          <div className="border-t border-line">
+            {aguardando.length > 0 && (
+              <p
+                role="note"
+                className="flex gap-2 border-b border-line bg-info-soft px-5 py-3 text-sm text-ink"
               >
-                Quando você contratar pelo simulador, a proposta e o status aparecem aqui.
-              </EmptyState>
-            }
-          />
-        </div>
-      )}
-    </Panel>
+                <Clock aria-hidden className="mt-0.5 size-4 shrink-0 text-info" />
+                <span>
+                  {aguardando.length === 1
+                    ? '1 proposta aguarda contratação.'
+                    : `${aguardando.length} propostas aguardam contratação.`}{' '}
+                  {contrata
+                    ? 'Revise e contrate na linha da proposta.'
+                    : 'Quem tem a permissão de contratar crédito confirma; nada foi creditado ainda.'}
+                </span>
+              </p>
+            )}
+            <DataTable
+              caption="Propostas e contratos de crédito"
+              columns={columns}
+              rows={requests.data}
+              rowKey={(r) => r.id}
+              initialSort={{ key: 'data', direction: 'desc' }}
+              empty={
+                <EmptyState
+                  icon={<FileText aria-hidden className="size-5" />}
+                  title="Nenhuma proposta ainda"
+                >
+                  Quando você contratar pelo simulador, a proposta e o status aparecem aqui.
+                </EmptyState>
+              }
+            />
+          </div>
+        )}
+      </Panel>
+      <ConfirmRequestSheet request={confirmando} onClose={closeConfirm} />
+    </>
   )
 }
 

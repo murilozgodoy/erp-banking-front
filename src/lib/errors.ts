@@ -110,6 +110,13 @@ function apiDetail(data: unknown): string | undefined {
 /** Códigos das APIs do portal sem frase no corpo. */
 const ERROR_CODES: Record<string, string> = {
   ONBOARDING_PENDENTE: 'O cadastro da empresa ainda não foi aprovado.',
+  PAGAMENTO_PENDENTE:
+    'Esta conta já tem um pagamento aguardando aprovação. Acompanhe na bandeja ou no histórico.',
+  PAGAMENTO_NAO_PENDENTE: 'Este pagamento já foi aprovado ou rejeitado por outra pessoa.',
+  PAGAMENTO_NAO_ENCONTRADO: 'Pagamento não encontrado. Atualize a página e confira o histórico.',
+  PEDIDO_NAO_ENCONTRADO: 'Proposta de crédito não encontrada. Atualize a lista de propostas.',
+  PEDIDO_NAO_AGUARDANDO_CONTRATACAO:
+    'Esta proposta não está mais aguardando contratação: outra pessoa já decidiu. Atualize a lista.',
   ONBOARDING_INDISPONIVEL: 'O serviço de cadastro está indisponível. Tente novamente em instantes.',
   ONBOARDING_NAO_INICIADO: 'O cadastro da empresa ainda não foi iniciado.',
   ANALISE_NAO_ENCONTRADA: 'A análise da empresa ainda não está disponível.',

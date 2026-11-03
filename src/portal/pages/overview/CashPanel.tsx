@@ -5,7 +5,7 @@ import { Faisca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
 import { TimeSeriesChart } from '../../charts/TimeSeriesChart'
 import { dayMonth, money, pct } from '../../lib/format'
-import { ButtonLink } from '../../ui/Button'
+import { GatedButtonLink } from '../../ui/Gated'
 import { PRODUTO_LABEL, simulatorHref } from '../../ui/credit'
 import { Money } from '../../ui/Money'
 import { Panel, Skeleton } from '../../ui/Surface'
@@ -231,7 +231,8 @@ function ValeBridge({
               {shortMoney(bridge.oportunidade.valor_maximo)}
             </p>
           </div>
-          <ButtonLink
+          <GatedButtonLink
+            permissao="pedir_credito"
             to={simulatorHref(bridge.oportunidade.tipo, bridge.valor)}
             variant="credit"
             size="sm"
@@ -241,7 +242,7 @@ function ValeBridge({
               ? `Simular antecipação de ${shortMoney(bridge.valor)}`
               : `Simular capital de giro de ${shortMoney(bridge.valor)}`}
             <ArrowRight aria-hidden className="size-4" />
-          </ButtonLink>
+          </GatedButtonLink>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { AlertTriangle, ArrowRight, Check, Copy, Printer } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, Clock, Copy, Info, Printer } from 'lucide-react'
 import {
   useEffect,
   useId,
@@ -14,11 +14,14 @@ import { Faisca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
 
 import { dayMonth, fullDate, isoDay, money } from '../../lib/format'
+import { useMembro } from '../../team/useMembro'
 import type { ContaOrigem, Payable, PaymentResponse, TipoPagamento } from '../../types'
-import { Button, ButtonLink } from '../../ui/Button'
+import { Button } from '../../ui/Button'
 import { simulatorHref } from '../../ui/credit'
 import { MoneyField, TextField } from '../../ui/Field'
+import { GatedButtonLink } from '../../ui/Gated'
 import { Money } from '../../ui/Money'
+import { Pill } from '../../ui/Pill'
 import { Segmented } from '../../ui/Segmented'
 import { Sheet } from '../../ui/Sheet'
 import {
@@ -43,6 +46,7 @@ type Step =
   | { name: 'confirm' }
   | { name: 'saldo'; faltam: number }
   | { name: 'receipt'; result: PaymentResponse }
+  | { name: 'pending'; result: PaymentResponse }
 
 interface PaymentSheetProps {
   open: boolean
@@ -66,7 +70,8 @@ const contaLabel = (conta: ContaOrigem | null) =>
 
 /**
  * Pagar em três passos: dados → confirmação (valor e saldo após) → comprovante. Saldo
- * insuficiente vira um passo próprio, com a diferença e o capital de giro para cobri-la.
+ * insuficiente vira um passo próprio, com a diferença e o capital de giro para cobri-la. Acima
+ * do limite do membro (seção 11), a confirmação avisa e o resultado é "Enviado para aprovação".
  */
 export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSheetProps) {
   const today = isoDay(new Date())
@@ -77,6 +82,7 @@ export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSh
   const [step, setStep] = useState<Step>({ name: 'form' })
   const [failure, setFailure] = useState<PayFailure | null>(null)
   const pay = usePay()
+  const { limitePagamento: limite } = useMembro()
   const formId = useId()
   const reduce = useReducedMotion()
   const heading = useRef<HTMLDivElement>(null)
@@ -102,7 +108,12 @@ export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSh
   const confirm = () => {
     setFailure(null)
     pay.mutate(toRequest(form, today, payable?.id), {
-      onSuccess: (result) => setStep({ name: 'receipt', result }),
+      onSuccess: (result) =>
+        setStep(
+          result.status === 'PENDENTE_APROVACAO'
+            ? { name: 'pending', result }
+            : { name: 'receipt', result },
+        ),
       onError: (error) => {
         const reason = payFailure(error, payable?.valor)
         if (reason.kind === 'saldo') return setStep({ name: 'saldo', faltam: reason.faltam })
@@ -124,6 +135,7 @@ export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSh
 
   const scheduled = scheduledFor(form, today)
   const blocked = failure?.kind === 'conta'
+  const overLimit = limite !== null && (form.valor ?? 0) > limite
 
   const footer: Record<Step['name'], ReactNode> = {
     form: (
@@ -146,7 +158,11 @@ export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSh
           Voltar e editar
         </Button>
         <Button onClick={confirm} loading={pay.isPending}>
-          {scheduled ? 'Confirmar agendamento' : 'Confirmar pagamento'}
+          {overLimit
+            ? 'Enviar para aprovação'
+            : scheduled
+              ? 'Confirmar agendamento'
+              : 'Confirmar pagamento'}
         </Button>
       </>
     ),
@@ -161,6 +177,7 @@ export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSh
       </>
     ),
     receipt: <Button onClick={onClose}>Concluir</Button>,
+    pending: <Button onClick={onClose}>Concluir</Button>,
   }
 
   const title = payable ? `Pagar ${payable.fornecedor}` : 'Novo pagamento'
@@ -194,6 +211,7 @@ export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSh
               today={today}
               fromPayable={Boolean(payable)}
               failure={failure}
+              limite={limite}
             />
           )}
           {step.name === 'confirm' && (
@@ -204,12 +222,16 @@ export function PaymentSheet({ open, onClose, payable, saldo, conta }: PaymentSh
               conta={conta}
               scheduled={scheduled}
               failure={failure}
+              limite={overLimit ? limite : null}
             />
           )}
           {step.name === 'saldo' && (
             <SaldoStep headingRef={heading} faltam={step.faltam} valor={form.valor ?? 0} />
           )}
           {step.name === 'receipt' && <ReceiptStep headingRef={heading} result={step.result} />}
+          {step.name === 'pending' && (
+            <PendingStep headingRef={heading} result={step.result} limite={limite} />
+          )}
         </motion.div>
       </AnimatePresence>
     </Sheet>
@@ -227,9 +249,21 @@ interface FormStepProps {
   today: string
   fromPayable: boolean
   failure: PayFailure | null
+  /** Limite por pagamento do membro (`null` = sem limite). */
+  limite: number | null
 }
 
-function FormStep({ id, form, errors, set, onSubmit, today, fromPayable, failure }: FormStepProps) {
+function FormStep({
+  id,
+  form,
+  errors,
+  set,
+  onSubmit,
+  today,
+  fromPayable,
+  failure,
+  limite,
+}: FormStepProps) {
   const nomeLabel = { PIX: 'Nome de quem recebe', BOLETO: 'Beneficiário', TED: 'Favorecido' }[
     form.tipo
   ]
@@ -330,9 +364,16 @@ function FormStep({ id, form, errors, set, onSubmit, today, fromPayable, failure
         readOnly={fromPayable}
         error={errors.valor}
         hint={
-          fromPayable
-            ? 'Valor da conta. Para pagar outro valor, use Novo pagamento.'
-            : 'Sai do saldo disponível da conta PJ.'
+          <>
+            {fromPayable
+              ? 'Valor da conta. Para pagar outro valor, use Novo pagamento.'
+              : 'Sai do saldo disponível da conta PJ.'}
+            {limite !== null && (
+              <span className="tabular mt-0.5 block">
+                Seu limite por pagamento é {money(limite)}; acima dele, vai para aprovação.
+              </span>
+            )}
+          </>
         }
         className={cn(fromPayable && '[&_input]:bg-sunken')}
       />
@@ -386,17 +427,33 @@ interface ConfirmStepProps {
   conta: ContaOrigem | null
   scheduled: string | undefined
   failure: PayFailure | null
+  /** Preenchido quando o valor passa do limite do membro: vai para aprovação. */
+  limite: number | null
 }
 
-function ConfirmStep({ headingRef, form, saldo, conta, scheduled, failure }: ConfirmStepProps) {
+function ConfirmStep({
+  headingRef,
+  form,
+  saldo,
+  conta,
+  scheduled,
+  failure,
+  limite,
+}: ConfirmStepProps) {
   const valor = form.valor ?? 0
   const after = saldo === undefined ? undefined : saldo - valor
   const short = !scheduled && after !== undefined && after < 0
+  // Acima do limite nada sai da conta agora: o saldo só muda quando alguém aprovar.
+  const semDebito = Boolean(scheduled) || limite !== null
   return (
     <div className="space-y-5">
       <div ref={headingRef} tabIndex={-1} className="outline-none">
         <p className="text-sm text-ink-muted">
-          {scheduled ? `Agendar para ${fullDate(scheduled)}` : 'Você vai pagar agora'}
+          {limite !== null
+            ? 'Você vai enviar para aprovação'
+            : scheduled
+              ? `Agendar para ${fullDate(scheduled)}`
+              : 'Você vai pagar agora'}
         </p>
         <Money value={valor} size="display" className="mt-1 block text-ink" />
         <p className="mt-1 text-sm text-ink-muted">
@@ -406,6 +463,13 @@ function ConfirmStep({ headingRef, form, saldo, conta, scheduled, failure }: Con
       </div>
 
       {failure && failure.kind !== 'saldo' && <Notice tone="negative">{failure.message}</Notice>}
+
+      {limite !== null && (
+        <Notice tone="info">
+          Acima do seu limite de <span className="tabular font-medium">{money(limite)}</span>: o
+          pagamento fica aguardando aprovação e nada é debitado agora.
+        </Notice>
+      )}
 
       <dl className="divide-y divide-line rounded-control border border-line text-sm">
         {form.tipo === 'BOLETO' && (
@@ -436,16 +500,22 @@ function ConfirmStep({ headingRef, form, saldo, conta, scheduled, failure }: Con
           </div>
           <div>
             <dt className="text-xs text-ink-muted">
-              {scheduled ? 'Saldo após (hoje)' : 'Saldo após'}
+              {semDebito ? 'Saldo após (hoje)' : 'Saldo após'}
             </dt>
             <dd className={cn('tabular font-semibold', short ? 'text-negative' : 'text-ink')}>
-              {money(scheduled ? saldo : (after as number))}
+              {money(semDebito ? saldo : (after as number))}
             </dd>
           </div>
-          {scheduled && (
+          {limite !== null ? (
             <p className="col-span-2 text-xs text-ink-muted">
-              O saldo não muda hoje: o valor sai da conta em {fullDate(scheduled)}.
+              O saldo não muda agora: o valor só sai da conta quando alguém aprovar.
             </p>
+          ) : (
+            scheduled && (
+              <p className="col-span-2 text-xs text-ink-muted">
+                O saldo não muda hoje: o valor sai da conta em {fullDate(scheduled)}.
+              </p>
+            )
           )}
         </dl>
       )}
@@ -498,15 +568,17 @@ function SaldoStep({
           Simule {money(Math.ceil(faltam))} de capital de giro, receba na conta e volte para pagar
           hoje.
         </p>
-        <ButtonLink
-          to={simulatorHref('CAPITAL_DE_GIRO', Math.ceil(faltam))}
-          variant="credit"
-          size="sm"
-          className="mt-3"
-        >
-          Pagar com capital de giro
-          <ArrowRight aria-hidden className="size-4" />
-        </ButtonLink>
+        <div className="mt-3">
+          <GatedButtonLink
+            permissao="pedir_credito"
+            to={simulatorHref('CAPITAL_DE_GIRO', Math.ceil(faltam))}
+            variant="credit"
+            size="sm"
+          >
+            Pagar com capital de giro
+            <ArrowRight aria-hidden className="size-4" />
+          </GatedButtonLink>
+        </div>
       </div>
     </div>
   )
@@ -514,7 +586,8 @@ function SaldoStep({
 
 // ---------- comprovante ----------
 
-function ReceiptStep({
+/** Comprovante (também usado ao aprovar um pagamento na bandeja). */
+export function ReceiptStep({
   headingRef,
   result,
 }: {
@@ -621,6 +694,76 @@ function ReceiptStep({
   )
 }
 
+// ---------- enviado para aprovação ----------
+
+function PendingStep({
+  headingRef,
+  result,
+  limite,
+}: {
+  headingRef: RefObject<HTMLDivElement | null>
+  result: PaymentResponse
+  limite: number | null
+}) {
+  const reduce = useReducedMotion()
+  const c = result.comprovante
+  return (
+    <div className="space-y-5">
+      <div ref={headingRef} tabIndex={-1} className="flex items-center gap-3 outline-none">
+        <motion.span
+          aria-hidden
+          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-warning-soft text-warning"
+        >
+          <Clock className="size-5" />
+        </motion.span>
+        <div>
+          <p className="text-base font-semibold text-ink">Enviado para aprovação</p>
+          <p className="text-sm text-ink-muted">
+            Nada foi debitado. O valor só sai da conta quando alguém com a permissão de aprovar
+            liberar.
+          </p>
+        </div>
+      </div>
+
+      <section
+        aria-labelledby="pendente-titulo"
+        className="rounded-panel border border-line bg-surface"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3">
+          <div>
+            <h3 id="pendente-titulo" className="text-sm font-semibold text-ink">
+              Pagamento aguardando aprovação
+            </h3>
+            <Money value={c.valor} size="xl" className="mt-1 block text-ink" />
+          </div>
+          <Pill tone="warning">Pendente de aprovação</Pill>
+        </div>
+        <dl className="divide-y divide-line text-sm">
+          <Row label="Forma">{TIPO_LABEL[c.tipo]}</Row>
+          <Row label="Destinatário">{c.destinatario}</Row>
+          {c.descricao && <Row label="Descrição">{c.descricao}</Row>}
+          {c.agendado_para && <Row label="Pagamento em">{fullDate(c.agendado_para)}</Row>}
+          <Row label="Enviado em">
+            <span className="tabular">{dateTime.format(new Date(c.data_hora))}</span>
+          </Row>
+          {limite !== null && (
+            <Row label="Seu limite">
+              <span className="tabular">{money(limite)} por pagamento</span>
+            </Row>
+          )}
+        </dl>
+      </section>
+
+      <p className="text-sm text-ink-muted">
+        Acompanhe no histórico de pagamentos. Se for rejeitado, nada muda na conta.
+      </p>
+    </div>
+  )
+}
+
 // ---------- peças ----------
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -632,22 +775,20 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function Notice({ tone, children }: { tone: 'negative' | 'warning'; children: ReactNode }) {
+const NOTICE = {
+  negative: { bg: 'bg-negative-soft', icon: 'text-negative' },
+  warning: { bg: 'bg-warning-soft', icon: 'text-warning' },
+  info: { bg: 'bg-info-soft', icon: 'text-info' },
+}
+
+function Notice({ tone, children }: { tone: keyof typeof NOTICE; children: ReactNode }) {
+  const Icon = tone === 'info' ? Info : AlertTriangle
   return (
     <p
-      role="alert"
-      className={cn(
-        'flex gap-2 rounded-control px-3 py-2.5 text-sm text-ink',
-        tone === 'negative' ? 'bg-negative-soft' : 'bg-warning-soft',
-      )}
+      role={tone === 'info' ? 'note' : 'alert'}
+      className={cn('flex gap-2 rounded-control px-3 py-2.5 text-sm text-ink', NOTICE[tone].bg)}
     >
-      <AlertTriangle
-        aria-hidden
-        className={cn(
-          'mt-0.5 size-4 shrink-0',
-          tone === 'negative' ? 'text-negative' : 'text-warning',
-        )}
-      />
+      <Icon aria-hidden className={cn('mt-0.5 size-4 shrink-0', NOTICE[tone].icon)} />
       <span>{children}</span>
     </p>
   )

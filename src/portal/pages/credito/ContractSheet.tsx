@@ -9,7 +9,13 @@ import { Money } from '../../ui/Money'
 import { Sheet } from '../../ui/Sheet'
 
 import { ContractOutcome } from './ContractOutcome'
-import { creditErrorMessage, errorCode, useContract } from './credit'
+import {
+  contractLabel,
+  creditErrorMessage,
+  errorCode,
+  useContract,
+  useCreditAccess,
+} from './credit'
 import { AprovacaoPill } from './SimulationResult'
 
 /** Erros que pedem uma simulação nova (não adianta tentar de novo a mesma). */
@@ -29,6 +35,7 @@ interface ContractSheetProps {
 /** Confirmação da contratação: revisa as condições, envia a proposta e mostra o resultado. */
 export function ContractSheet({ simulation, onClose, onResimulate }: ContractSheetProps) {
   const contract = useContract()
+  const { contrata } = useCreditAccess()
   // O Sheet refaz o foco quando `onClose` muda: a referência precisa ser estável.
   const latest = useRef(() => {})
   useLayoutEffect(() => {
@@ -46,7 +53,7 @@ export function ContractSheet({ simulation, onClose, onResimulate }: ContractShe
     <Sheet
       open={simulation !== null}
       onClose={close}
-      title={done ? 'Contratação' : 'Confirmar contratação'}
+      title={done ? 'Contratação' : contrata ? 'Confirmar contratação' : 'Enviar proposta'}
       description={simulation ? PRODUTO_LABEL[simulation.produto] : undefined}
       footer={
         done ? (
@@ -61,9 +68,12 @@ export function ContractSheet({ simulation, onClose, onResimulate }: ContractShe
               disabled={!simulation || simulation.aprovacao === 'NEGADO'}
               onClick={() => simulation && contract.mutate(simulation.id)}
             >
-              {simulation?.aprovacao === 'ANALISE'
-                ? 'Enviar para análise'
-                : 'Confirmar contratação'}
+              {contractLabel(
+                simulation?.aprovacao,
+                contrata,
+                'Confirmar contratação',
+                'Enviar para análise',
+              )}
             </Button>
           </>
         )
@@ -105,7 +115,9 @@ export function ContractSheet({ simulation, onClose, onResimulate }: ContractShe
             <p className="text-sm text-ink-muted">
               {simulation.aprovacao === 'ANALISE'
                 ? 'O valor passa do limite pré-aprovado: a proposta vai para o time de crédito e nada é creditado até a resposta.'
-                : 'Ao confirmar, o valor líquido cai no seu saldo e as parcelas entram nas contas a pagar.'}{' '}
+                : contrata
+                  ? 'Ao confirmar, o valor líquido cai no seu saldo e as parcelas entram nas contas a pagar.'
+                  : 'A proposta fica aguardando quem tem a permissão de contratar crédito; nada é creditado até lá.'}{' '}
               Condições válidas até {fullDate(simulation.validade)}.
             </p>
             {contract.error && (
