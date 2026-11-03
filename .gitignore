@@ -10,6 +10,9 @@ build/
 
 # Testes / cobertura
 coverage/
+playwright-report/
+test-results/
+blob-report/
 
 # Variáveis de ambiente (apenas o .env.example é versionado)
 .env

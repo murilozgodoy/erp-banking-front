@@ -70,6 +70,21 @@ docker run --rm -p 3000:8080 erp-banking-front   # http://localhost:3000
 | `npm run format` / `format:check` | Prettier                          |
 | `npm run typecheck`               | Apenas checagem de tipos          |
 
+## Testes E2E (Playwright)
+
+Suíte em `e2e/`, contra o front publicado (padrão `https://erp-banking-front.vercel.app`), sem servidor local.
+Cobre a `/login`, o redirecionamento das rotas protegidas, os headers de segurança, os `/api/*/health` via
+rewrite da Vercel, o 401 sem token e o Swagger do Transactions aberto pela Vercel.
+
+```bash
+npx playwright install --only-shell chromium   # uma vez
+npm run test:e2e                               # BASE_URL=http://localhost:5173 npm run test:e2e para outro alvo
+E2E_ACCESS_TOKEN=eyJ... npm run test:e2e       # inclui os testes autenticados (token copiado de /perfil)
+```
+
+Não faz parte do CI obrigatório: rode pelo workflow manual **E2E** (Actions → E2E → Run workflow). O secret
+opcional `E2E_ACCESS_TOKEN` habilita os testes autenticados.
+
 ## Deploy (Vercel)
 
 Projeto `gabrielrosa1s-projects/erp-banking-front`. O `vercel.json` reescreve `/api/onboarding`, `/api/score`,

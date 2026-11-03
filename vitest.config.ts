@@ -1,4 +1,4 @@
-import { defineConfig, mergeConfig } from 'vitest/config'
+import { configDefaults, defineConfig, mergeConfig } from 'vitest/config'
 
 import viteConfig from './vite.config.ts'
 
@@ -8,6 +8,8 @@ export default mergeConfig(
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
+      // e2e/ é do Playwright (npm run test:e2e), contra a produção.
+      exclude: [...configDefaults.exclude, 'e2e/**'],
       // Formulários longos com userEvent passam de 5 s em máquinas lentas.
       testTimeout: 20_000,
       // Valores fictícios: os testes nunca chamam as APIs nem o Auth0 de verdade.
