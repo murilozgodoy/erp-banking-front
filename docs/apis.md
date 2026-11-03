@@ -115,7 +115,7 @@ Expostas em `/metrics` (Python) e `/actuator/prometheus` (Java), coletadas pelo 
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Onboarding   | `http_requests_total`, `http_request_duration_seconds(_highr)`, `customers_created_total`, `events_published_total{routing_key,result}`                                                      |
 | Credit Score | `http_requests_total`, `http_request_duration_seconds(_highr)`, `score_evaluations_total{strategy,faixa_risco}`, `events_consumed_total{routing_key,result}`                                 |
-| Transactions | `http_server_requests_seconds` (histograma), `credit_decisions_total{status}`, `transactions_created_total{tipo}`, `events_published_total{routing_key}`; tag `application=transactions-api` |
+| Transactions | `http_server_requests_seconds` (histograma), `credit_decisions_total{status}`, `transactions_created_total{tipo}`, `events_published_total{routing_key,result}`, `events_consumed_total{routing_key,result}`; tag `application=transactions-api` |
 
 ## Regras de decisão de crédito
 
