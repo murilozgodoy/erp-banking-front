@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest'
 
 import { errorMessage } from './errors'
 
-function httpError(status: number, data: unknown = null): AxiosError {
+function httpError(
+  status: number,
+  data: unknown = null,
+  headers: Record<string, string> = {},
+): AxiosError {
   const config = { headers: new AxiosHeaders() }
-  const response = { status, data, statusText: '', headers: {}, config } as AxiosResponse
+  const response = { status, data, statusText: '', headers, config } as AxiosResponse
   return new AxiosError('fail', 'ERR_BAD_RESPONSE', config, null, response)
 }
 
@@ -56,8 +60,8 @@ describe('errorMessage', () => {
   })
 
   it('erro de rede, sessão do Auth0 e erros genéricos', () => {
-    expect(errorMessage(new AxiosError('Network Error', 'ERR_NETWORK'))).toBe(
-      'Não foi possível conectar ao serviço. Verifique se ele está no ar.',
+    expect(errorMessage(new AxiosError('Network Error', 'ERR_NETWORK'))).toMatch(
+      /^Não foi possível conectar ao serviço\. Ele pode estar fora do ar ou sobrecarregado/,
     )
     expect(
       errorMessage(Object.assign(new Error('Login required'), { error: 'login_required' })),
@@ -65,5 +69,25 @@ describe('errorMessage', () => {
     expect(errorMessage(new Error('boom'))).toBe('boom')
     expect(errorMessage({ error: 42 })).toBe('Erro inesperado.')
     expect(errorMessage(null)).toBe('Erro inesperado.')
+  })
+
+  it('rate limit (429), timeout e indisponibilidade do gateway', () => {
+    const gateway = (detail: string) => ({ detail, request_id: 'abc' })
+
+    expect(errorMessage(httpError(429, gateway('Too Many Requests'), { 'retry-after': '5' }))).toBe(
+      'Muitas requisições em sequência. Aguarde 5 s e tente novamente.',
+    )
+    expect(errorMessage(httpError(429, gateway('Too Many Requests')))).toBe(
+      'Muitas requisições em sequência. Aguarde alguns segundos e tente novamente.',
+    )
+    expect(errorMessage(httpError(503, gateway('Service Unavailable')))).toBe(
+      'Um serviço dependente está indisponível. Tente novamente em instantes.',
+    )
+    expect(errorMessage(httpError(504))).toBe(
+      'O serviço demorou demais para responder. Tente novamente em instantes.',
+    )
+    expect(errorMessage(new AxiosError('timeout of 10000ms exceeded', 'ECONNABORTED'))).toBe(
+      'O serviço demorou demais para responder. Tente novamente em instantes.',
+    )
   })
 })
