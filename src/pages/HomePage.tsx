@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
 import type { Permission } from '@/auth/permissions'
+import { HomeIndicators } from '@/components/dashboard/HomeIndicators'
 import { ServiceStatusCard } from '@/components/ServiceStatusCard'
 import { Alert } from '@/components/ui/Alert'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -71,10 +72,12 @@ export function HomePage() {
         </div>
       )}
 
+      <HomeIndicators />
+
       <div className="space-y-3">
         <h2 className="font-semibold text-slate-900">Status dos microsserviços</h2>
         {health.data ? (
-          <ul className="grid gap-3 sm:grid-cols-3">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {health.data.map((service) => (
               <ServiceStatusCard key={service.name} {...service} />
             ))}
