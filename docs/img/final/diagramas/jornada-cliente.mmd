@@ -1,0 +1,22 @@
+---
+config:
+  layout: elk
+---
+flowchart LR
+    B[Onboarding<br/>4 passos · ~3 min] -->|evento| C{{Regras + LLM<br/>análise assíncrona}}
+    B -->|mesmo evento| SD[Seeder<br/>conta PJ + ERP]
+    C -->|padrão| AP[APROVADO<br/>portal liberado]
+    C -->|específico| M[Fila manual<br/>analista]
+    M --> AP
+    M --> R[REPROVADO]
+
+    classDef step fill:#121714,stroke:#313B34,stroke-width:1.5px,color:#ECF0EA
+    classDef ai fill:#1F2A0B,stroke:#C6F24E,stroke-width:2px,color:#D7F78A
+    classDef ok fill:#0F3426,stroke:#3FC995,stroke-width:2px,color:#ECF0EA
+    classDef warn fill:#352310,stroke:#F2B25C,stroke-width:1.5px,color:#ECF0EA
+    classDef neg fill:#3A1612,stroke:#FF8B76,stroke-width:1.5px,color:#ECF0EA
+    class B,SD step
+    class C ai
+    class AP ok
+    class M warn
+    class R neg

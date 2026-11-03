@@ -1,0 +1,40 @@
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: BRANDES_KOEPF
+---
+flowchart LR
+    V -.->|login · JWT| A[Auth0<br/>RBAC · perfil cliente]
+    V[Vercel<br/>React · /api/*] -->|:8080| G[Gateway nginx<br/>rate limit · request-id]
+
+    subgraph EC2 [AWS EC2 · docker compose]
+        G --> O[Onboarding<br/>FastAPI]
+        G --> S[Credit Score<br/>FastAPI]
+        G --> T[Transactions<br/>Spring Boot]
+        O <--> MQ{{RabbitMQ<br/>erp.events}}
+        S <--> MQ
+        T <--> MQ
+        P[Prometheus<br/>+ Grafana :8081]
+    end
+
+    subgraph GER [Gerenciados]
+        PG[(Postgres Aiven<br/>PG 18 · SSL)]
+        C[Claude<br/>análise · assistente]
+    end
+
+    O --> PG
+    S --> PG
+    T --> PG
+    S ==>|tool use| C
+
+    classDef edge fill:#121714,stroke:#3FC995,stroke-width:2px,color:#ECF0EA
+    classDef svc fill:#121714,stroke:#313B34,stroke-width:1.5px,color:#ECF0EA
+    classDef ai fill:#1F2A0B,stroke:#C6F24E,stroke-width:2px,color:#D7F78A
+    classDef data fill:#0F3426,stroke:#3FC995,stroke-width:1.5px,color:#ECF0EA
+    classDef ext fill:#101511,stroke:#313B34,stroke-dasharray:4 3,color:#A2ABA4
+    class G edge
+    class O,S,T,P,V svc
+    class C ai
+    class PG,MQ data
+    class A ext

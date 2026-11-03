@@ -1,0 +1,16 @@
+sequenceDiagram
+    autonumber
+    participant F as Portal (Ctrl+K)
+    participant S as Score API · assistente
+    participant C as Claude
+    participant T as Transactions /me
+    F->>S: POST /me/assistant/messages (JWT, conversation_id)
+    S->>S: permissão usar_assistente · limite 10/min · histórico do banco
+    S->>C: pergunta como dado + ferramentas só de leitura
+    C->>S: tool_use: overview, recebíveis, ofertas
+    S->>T: GET /me/... (token relay, ver_financeiro)
+    T-->>S: números da empresa
+    S->>C: tool_result
+    C-->>S: resposta + fontes + ações
+    S->>S: grava conversa (sem tokens nem payload das tools)
+    S-->>F: resposta, fontes, "Simular antecipação"
