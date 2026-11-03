@@ -89,7 +89,7 @@ function Slider({ id, label, min, max, step, value, format, onChange }: SliderPr
       <label htmlFor={id} className="text-sm text-ink-muted">
         {label}
       </label>
-      <div className="relative mt-9">
+      <div className="relative mt-8">
         <output
           htmlFor={id}
           style={{ left: thumbCenter(ratio), transform: `translateX(-${ratio * 100}%)` }}
@@ -189,11 +189,11 @@ function ParcelBars({
   const linhas = tabelaPrice(valor, produto.taxaMensal, prazo)
   const parcela = linhas[0].juros + linhas[0].amortizacao
   return (
-    <figure className="mt-5 flex flex-1 flex-col">
+    <figure className="mt-5 sm:mt-0">
       <div
         aria-hidden
         data-testid="parcelas"
-        className="flex min-h-20 flex-1 items-stretch"
+        className="flex h-[76px] items-stretch"
         style={{ gap: prazo > 24 ? 2 : 3 }}
       >
         {linhas.map((linha) => (
@@ -226,7 +226,7 @@ function ParcelBars({
 function BrutoLiquido({ valor, liquido }: { valor: number; liquido: number }) {
   const ratio = liquido / valor
   return (
-    <figure className="mt-5 flex flex-1 flex-col justify-end">
+    <figure className="mt-5 sm:mt-0 sm:pb-1">
       <div aria-hidden data-testid="bruto-liquido">
         <div className="tabular flex justify-between gap-4 text-xs text-ink-muted">
           <span>Líquido sobre o bruto</span>
@@ -276,7 +276,7 @@ function ProductOption({
   return (
     <m.label
       variants={reveal}
-      className="group relative flex min-h-11 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-center has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent lg:justify-start lg:px-5 lg:py-3.5 lg:text-left"
+      className="group relative flex min-h-11 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-center has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent lg:justify-start lg:px-5 lg:py-[29px] lg:text-left"
     >
       {selected && (
         <m.span
@@ -338,16 +338,16 @@ export function CreditSimulator() {
 
   return (
     <LazyMotion features={loadMotionMax}>
-      <div className="grid gap-5 lg:grid-cols-12 lg:items-stretch lg:gap-8">
+      <div className="grid gap-5 lg:grid-cols-12 lg:items-start lg:gap-8">
         <m.fieldset
           variants={reveal}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
-          className="min-w-0 lg:col-span-5 lg:flex lg:flex-col"
+          className="min-w-0 lg:col-span-5"
         >
           <legend className="sr-only">Produto de crédito</legend>
-          <div className="grid grid-cols-2 gap-1 rounded-panel bg-sunken p-1 sm:grid-cols-4 lg:flex-1 lg:grid-cols-1 lg:grid-rows-4 lg:p-1.5">
+          <div className="grid grid-cols-2 gap-1 rounded-panel bg-sunken p-1 sm:grid-cols-4 lg:grid-cols-1 lg:p-1.5">
             {CREDIT_PRODUCTS.map((p) => (
               <ProductOption
                 key={p.id}
@@ -364,7 +364,7 @@ export function CreditSimulator() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
-          className="flex min-w-0 flex-col rounded-panel border border-line bg-surface p-5 shadow-raised sm:p-7 lg:col-span-7 lg:p-8"
+          className="flex min-w-0 flex-col rounded-panel border border-line bg-surface p-5 shadow-raised sm:p-6 lg:col-span-7 lg:p-5"
         >
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between sm:gap-4">
             <m.div key={productId} {...swap} className="min-w-0">
@@ -382,7 +382,7 @@ export function CreditSimulator() {
             </span>
           </div>
 
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 sm:gap-8">
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 sm:gap-8">
             <Slider
               id={`${ids}-valor`}
               label={desconto ? 'Valor dos recebíveis' : 'Valor'}
@@ -405,42 +405,42 @@ export function CreditSimulator() {
             />
           </div>
 
-          <div
-            className="mt-6 flex flex-1 flex-col rounded-panel bg-sunken p-5 sm:p-6"
-            aria-live="polite"
-          >
-            <m.div key={productId} {...swap} className="flex flex-1 flex-col">
-              <p className="text-sm text-ink-muted">
-                {desconto ? 'Você recebe hoje' : 'Parcela mensal estimada'}
-              </p>
-              <div className="mt-2">
-                <Contador
-                  value={
-                    resultado.modalidade === 'parcelas' ? resultado.parcela : resultado.liquido
-                  }
-                />
+          <div className="mt-4 rounded-panel bg-sunken p-5 lg:px-5 lg:py-4" aria-live="polite">
+            <m.div
+              key={productId}
+              {...swap}
+              className="sm:grid sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-8"
+            >
+              <div>
+                <p className="text-sm text-ink-muted">
+                  {desconto ? 'Você recebe hoje' : 'Parcela mensal estimada'}
+                </p>
+                <div className="mt-2">
+                  <Contador
+                    value={
+                      resultado.modalidade === 'parcelas' ? resultado.parcela : resultado.liquido
+                    }
+                  />
+                </div>
+                <dl className="tabular mt-3 grid grid-cols-[auto_auto] justify-start gap-x-2 gap-y-0.5 text-sm text-ink-faint">
+                  <div className="contents">
+                    <dt>{desconto ? 'Valor bruto' : 'Total'}</dt>
+                    <dd className="font-medium text-ink">
+                      {resultado.modalidade === 'parcelas'
+                        ? formatCurrency(resultado.total)
+                        : reais.format(valor)}
+                    </dd>
+                  </div>
+                  <div className="contents">
+                    <dt>{desconto ? 'Custo' : 'Juros'}</dt>
+                    <dd className="font-medium text-ink">
+                      {formatCurrency(
+                        resultado.modalidade === 'parcelas' ? resultado.juros : resultado.custo,
+                      )}
+                    </dd>
+                  </div>
+                </dl>
               </div>
-              <dl className="tabular mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm text-ink-faint sm:gap-x-2">
-                <div className="flex gap-1.5">
-                  <dt>{desconto ? 'Valor bruto' : 'Total'}</dt>
-                  <dd className="font-medium text-ink">
-                    {resultado.modalidade === 'parcelas'
-                      ? formatCurrency(resultado.total)
-                      : reais.format(valor)}
-                  </dd>
-                </div>
-                <span aria-hidden className="hidden sm:inline">
-                  ·
-                </span>
-                <div className="flex gap-1.5">
-                  <dt>{desconto ? 'custo' : 'juros'}</dt>
-                  <dd className="font-medium text-ink">
-                    {formatCurrency(
-                      resultado.modalidade === 'parcelas' ? resultado.juros : resultado.custo,
-                    )}
-                  </dd>
-                </div>
-              </dl>
               {resultado.modalidade === 'parcelas' ? (
                 <ParcelBars produto={produto} valor={valor} prazo={prazoAtual} />
               ) : (
@@ -449,11 +449,11 @@ export function CreditSimulator() {
             </m.div>
           </div>
 
-          <button type="button" onClick={signup} className={`${primaryButton} mt-5 w-full`}>
+          <button type="button" onClick={signup} className={`${primaryButton} mt-3 w-full`}>
             Simular com os meus números
             <ArrowRightIcon />
           </button>
-          <p className="mt-2.5 text-xs text-ink-faint">
+          <p className="mt-1.5 text-xs text-ink-faint">
             Taxa ilustrativa. Condições reais dependem da análise da sua empresa.
           </p>
         </m.div>
