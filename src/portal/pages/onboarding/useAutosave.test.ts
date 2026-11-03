@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { isConflict, useAutosave } from './useAutosave'
+import { isConflict, isUnprocessable, useAutosave } from './useAutosave'
 
 function httpError(status: number) {
   const headers = new AxiosHeaders()
@@ -87,6 +87,22 @@ describe('useAutosave', () => {
     expect(result.current.status).toBe('saved')
   })
 
+  it('422 no rascunho não é alarme: fica calmo e salva na próxima mudança', async () => {
+    const save = vi.fn().mockRejectedValueOnce(httpError(422)).mockResolvedValue(undefined)
+    const { result, onConflict } = setup(save)
+    act(() => result.current.schedule({ v: 1 }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(result.current.status).toBe('idle')
+    // Não tenta de novo sozinho com o mesmo estado.
+    await act(() => vi.advanceTimersByTimeAsync(5000))
+    expect(save).toHaveBeenCalledTimes(1)
+    act(() => result.current.schedule({ v: 2 }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(save).toHaveBeenLastCalledWith({ v: 2 })
+    expect(result.current.status).toBe('saved')
+    expect(onConflict).not.toHaveBeenCalled()
+  })
+
   it('409 (já enviado) para o autosave e avisa', async () => {
     const save = vi.fn().mockRejectedValue(httpError(409))
     const { result, onConflict } = setup(save)
@@ -139,5 +155,7 @@ describe('useAutosave', () => {
     expect(isConflict(httpError(409))).toBe(true)
     expect(isConflict(httpError(422))).toBe(false)
     expect(isConflict(new Error('x'))).toBe(false)
+    expect(isUnprocessable(httpError(422))).toBe(true)
+    expect(isUnprocessable(httpError(500))).toBe(false)
   })
 })

@@ -164,6 +164,9 @@ export function validateCampo(
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** Limites da API do Onboarding (valem também no rascunho). */
+export const MAX_NOME = 160
+const MAX_INT32 = 2 ** 31 - 1
 
 export function validateEmpresa(empresa: Empresa, today = new Date()): Errors {
   const errors: Errors = {}
@@ -183,6 +186,11 @@ export function validateEmpresa(empresa: Empresa, today = new Date()): Errors {
   if (!errors['empresa.estado'] && !UFS.includes(empresa.estado)) {
     errors['empresa.estado'] = 'Escolha a UF.'
   }
+  for (const campo of ['razao_social', 'nome_fantasia'] as const) {
+    if (!errors[`empresa.${campo}`] && (empresa[campo] ?? '').trim().length > MAX_NOME) {
+      errors[`empresa.${campo}`] = `Use até ${MAX_NOME} caracteres.`
+    }
+  }
   const ano = empresa.fundacao_ano
   const anoAtual = today.getFullYear()
   if (ano !== null && (ano < 1900 || ano > anoAtual)) {
@@ -190,6 +198,8 @@ export function validateEmpresa(empresa: Empresa, today = new Date()): Errors {
   }
   if (empresa.funcionarios !== null && empresa.funcionarios < 0) {
     errors['empresa.funcionarios'] = 'Informe zero ou mais.'
+  } else if (empresa.funcionarios !== null && empresa.funcionarios > MAX_INT32) {
+    errors['empresa.funcionarios'] = 'Confira o número de funcionários.'
   }
   return errors
 }
@@ -280,6 +290,40 @@ export function errorsFromServer(campos: CampoErro[] | undefined): Errors {
   return errors
 }
 
+/** Empresa do rascunho: cada campo vai como digitado ou `null` (ver `draftEmpresa`). */
+export type DraftEmpresa = { [K in keyof Empresa]: Empresa[K] | null }
+
+function texto(valor: string | null | undefined, max = Infinity): string | null {
+  const limpo = valor?.trim() ?? ''
+  return limpo && limpo.length <= max ? limpo : null
+}
+
+function inteiroEntre(valor: number | null, min: number, max: number): number | null {
+  return valor !== null && Number.isInteger(valor) && valor >= min && valor <= max ? valor : null
+}
+
+/**
+ * A API do Onboarding valida a empresa também no rascunho (`enviar=false`) e responde 422 se
+ * algum campo for inválido. No meio da digitação (CNPJ pela metade, e-mail incompleto) o campo
+ * vai como `null`: o valor digitado continua no estado local e entra no próximo salvamento
+ * quando ficar válido.
+ */
+export function draftEmpresa(empresa: Empresa): DraftEmpresa {
+  const email = texto(empresa.email)
+  const telefone = (empresa.telefone ?? '').replace(/\D/g, '')
+  return {
+    razao_social: texto(empresa.razao_social, MAX_NOME),
+    nome_fantasia: texto(empresa.nome_fantasia, MAX_NOME),
+    cnpj: isValidCnpj(empresa.cnpj) ? empresa.cnpj.replace(/\D/g, '') : null,
+    email: email && EMAIL.test(email) ? email : null,
+    telefone: telefone.length >= 8 && telefone.length <= 20 ? telefone : null,
+    cidade: texto(empresa.cidade),
+    estado: UFS.includes(empresa.estado) ? empresa.estado : null,
+    fundacao_ano: inteiroEntre(empresa.fundacao_ano, 1800, 2100),
+    funcionarios: inteiroEntre(empresa.funcionarios, 0, MAX_INT32),
+  }
+}
+
 /**
  * Corpo do `PUT /me/onboarding`. O rascunho leva o estado inteiro; o envio leva só as respostas
  * do template escolhido (e sem campos condicionais escondidos).
@@ -289,11 +333,14 @@ export function toPayload(
   enviar: boolean,
   template: OnboardingTemplate | null = null,
 ): OnboardingPayload {
-  const empresa: Empresa = {
-    ...state.empresa,
-    email: state.empresa.email?.trim() ? state.empresa.email.trim() : null,
-    telefone: state.empresa.telefone ? state.empresa.telefone : null,
-  }
+  const empresa: Empresa = enviar
+    ? {
+        ...state.empresa,
+        email: state.empresa.email?.trim() ? state.empresa.email.trim() : null,
+        telefone: state.empresa.telefone ? state.empresa.telefone : null,
+      }
+    : // O tipo do contrato não marca os campos do rascunho como anuláveis; a API aceita `null`.
+      (draftEmpresa(state.empresa) as Empresa)
   let respostas = state.respostas
   if (enviar && template) {
     respostas = Object.fromEntries(

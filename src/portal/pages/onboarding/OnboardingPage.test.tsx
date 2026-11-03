@@ -137,6 +137,49 @@ describe('OnboardingPage: cliente novo', () => {
     expect(telefone).toHaveValue('(11) 3234-5678')
   })
 
+  it('rascunho no meio da digitação: CNPJ e e-mail incompletos vão como null', async () => {
+    const puts = capturePuts(server)
+    const { user } = renderPage()
+    await heading('Dados da empresa')
+    await user.type(screen.getByRole('textbox', { name: /^Razão social/ }), 'Loja Boa Vista')
+    await user.type(screen.getByRole('textbox', { name: /^CNPJ/ }), '1122233')
+    await user.type(screen.getByRole('textbox', { name: /^E-mail/ }), 'fin@boavista')
+    expect(await screen.findByText('Salvo há instantes', {}, { timeout: 8000 })).toBeVisible()
+    expect(puts.at(-1)).toMatchObject({
+      enviar: false,
+      empresa: { razao_social: 'Loja Boa Vista', cnpj: null, email: null, telefone: null },
+    })
+    // O valor digitado continua na tela.
+    expect(screen.getByRole('textbox', { name: /^CNPJ/ })).toHaveValue('11.222.33')
+    expect(screen.getByRole('textbox', { name: /^E-mail/ })).toHaveValue('fin@boavista')
+  })
+
+  it('422 no rascunho (a API recusou um campo): sem alarme, salva na próxima mudança', async () => {
+    let recusas = 1
+    server.use(
+      http.put(`${API}/me/onboarding`, () => {
+        if (recusas-- <= 0) return undefined
+        return HttpResponse.json(
+          { detail: 'Dados inválidos.', campos: [{ campo: 'empresa.cidade', erro: 'x' }] },
+          { status: 422 },
+        )
+      }),
+    )
+    const puts = capturePuts(server)
+    const { user } = renderPage()
+    await heading('Dados da empresa')
+    const cidade = screen.getByRole('textbox', { name: /^Cidade/ })
+    await user.type(cidade, 'Campinas')
+    await waitFor(() => expect(puts).toHaveLength(1), { timeout: 8000 })
+    await waitFor(() => expect(screen.queryByText('Salvando…')).not.toBeInTheDocument())
+    expect(screen.queryByText(/Não foi possível salvar/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(cidade).not.toHaveAttribute('aria-invalid')
+    await user.type(cidade, ' SP')
+    expect(await screen.findByText('Salvo há instantes', {}, { timeout: 8000 })).toBeVisible()
+    expect(puts).toHaveLength(2)
+  })
+
   it('percorre os 4 passos, mostra o campo condicional e envia para análise', async () => {
     const puts = capturePuts(server)
     const { user, queryClient } = renderPage()

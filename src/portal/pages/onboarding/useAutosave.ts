@@ -29,6 +29,10 @@ export function isConflict(error: unknown): boolean {
   return isAxiosError(error) && error.response?.status === 409
 }
 
+export function isUnprocessable(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 422
+}
+
 /**
  * Rascunho com salvamento automático: um PUT por vez, sempre com o estado mais recente, e nada
  * depois do `suspend()` (para um rascunho atrasado nunca sobrescrever o envio).
@@ -62,6 +66,7 @@ export function useAutosave<T>({ save, onConflict, delay = 800 }: AutosaveOption
         pending.current = undefined
         rerun.current = false
         setStatus('saving')
+        let saved = true
         try {
           await saveRef.current(value)
         } catch (error) {
@@ -70,14 +75,19 @@ export function useAutosave<T>({ save, onConflict, delay = 800 }: AutosaveOption
             pending.current = undefined
             setStatus('idle')
             conflictRef.current?.()
-          } else {
+            return
+          }
+          if (!isUnprocessable(error)) {
             pending.current ??= { value }
             setStatus('error')
+            return
           }
-          return
+          // 422 no rascunho: algum dado ainda não passa na API. Não é alarme; o próximo
+          // salvamento sai na próxima mudança.
+          saved = false
         }
         if (suspended.current) return
-        setStatus(pending.current ? 'pending' : 'saved')
+        setStatus(pending.current ? 'pending' : saved ? 'saved' : 'idle')
         if (!rerun.current) return
       }
     }
