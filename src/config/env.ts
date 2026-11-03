@@ -47,6 +47,8 @@ export const env = {
   prometheusUrl: optionalUrl('VITE_PROMETHEUS_URL'),
   /** Portal contra os mocks MSW (contratos de PORTAL_CLIENTE.md) enquanto as rotas /me não sobem. */
   useMocks: import.meta.env.VITE_USE_MOCKS === 'true',
+  /** Só em `npm run dev` com mocks: login simulado (`?perfil=cliente|admin`). */
+  mockAuth: import.meta.env.VITE_USE_MOCKS === 'true' && import.meta.env.VITE_MOCK_AUTH === 'true',
   apiTimeoutMs: positiveNumber(import.meta.env.VITE_API_TIMEOUT_MS, 10_000),
   auth0: {
     domain: required('VITE_AUTH0_DOMAIN'),
