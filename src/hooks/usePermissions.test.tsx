@@ -4,7 +4,8 @@ import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { auth0State } from '@/test/auth0'
+import { BACKOFFICE_PERMISSIONS } from '@/auth/permissions'
+import { auth0State, fakeJwt } from '@/test/auth0'
 
 import { usePermissions } from './usePermissions'
 
@@ -35,6 +36,30 @@ describe('usePermissions', () => {
     expect(result.current.isLoading).toBe(false)
     expect(result.current.permissions).toEqual([])
     expect(state.getAccessTokenSilently).not.toHaveBeenCalled()
+  })
+
+  it('pede um token novo (sem cache) quando o primeiro vem sem permissões', async () => {
+    const state = auth0State({ permissions: [] })
+    vi.mocked(state.getAccessTokenSilently)
+      .mockResolvedValueOnce(fakeJwt({ permissions: [] }))
+      .mockResolvedValueOnce(fakeJwt({ permissions: ['read:self', 'write:self'] }))
+    vi.mocked(useAuth0).mockReturnValue(state)
+    const { result } = renderHook(() => usePermissions(), { wrapper })
+
+    await waitFor(() => expect(result.current.permissions).toEqual(['read:self', 'write:self']))
+    expect(state.getAccessTokenSilently).toHaveBeenLastCalledWith({ cacheMode: 'off' })
+    expect(result.current.isPortalUser).toBe(true)
+    expect(result.current.isStaff).toBe(false)
+  })
+
+  it('admin com read:self é equipe e também pode abrir o portal', async () => {
+    vi.mocked(useAuth0).mockReturnValue(
+      auth0State({ permissions: [...BACKOFFICE_PERMISSIONS, 'read:self'] }),
+    )
+    const { result } = renderHook(() => usePermissions(), { wrapper })
+    await waitFor(() => expect(result.current.isAdmin).toBe(true))
+    expect(result.current.isPortalUser).toBe(false)
+    expect(result.current.canUsePortal).toBe(true)
   })
 
   it('expõe o erro quando o token não pode ser obtido', async () => {

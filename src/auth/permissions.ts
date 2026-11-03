@@ -12,11 +12,29 @@ export const PERMISSIONS = {
   'write:accounts': 'Abrir contas e registrar transações',
   'read:credits': 'Consultar pedidos de crédito',
   'write:credits': 'Solicitar crédito',
+  'review:onboarding': 'Decidir a análise manual do onboarding',
+  'read:self': 'Portal: ver os dados da própria empresa',
+  'write:self': 'Portal: operar a própria empresa',
 } as const
 
 export type Permission = keyof typeof PERMISSIONS
 
 export const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[]
+
+/** As 8 permissões do backoffice original; ter todas = perfil admin. */
+export const BACKOFFICE_PERMISSIONS: Permission[] = [
+  'read:customers',
+  'write:customers',
+  'read:scores',
+  'write:scores',
+  'read:accounts',
+  'write:accounts',
+  'read:credits',
+  'write:credits',
+]
+
+/** Qualquer uma destas leva ao backoffice (PORTAL_CLIENTE.md, seção 2). */
+export const STAFF_PERMISSIONS: Permission[] = [...BACKOFFICE_PERMISSIONS, 'review:onboarding']
 
 /** Lê o payload de um JWT sem validá-lo (a validação da assinatura é feita pelas APIs). */
 export function decodeJwtPayload(token: string): Record<string, unknown> {

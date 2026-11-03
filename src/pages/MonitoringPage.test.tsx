@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import { ALL_PERMISSIONS } from '@/auth/permissions'
+import { BACKOFFICE_PERMISSIONS } from '@/auth/permissions'
 import { checkServicesHealth } from '@/services/health'
 import { auth0State } from '@/test/auth0'
 import { renderPage } from '@/test/render'
@@ -15,7 +15,7 @@ vi.mock('@/services/health', () => ({ checkServicesHealth: vi.fn() }))
 
 describe('MonitoringPage', () => {
   it('admin vê o status dos serviços e do gateway, com latência e links', async () => {
-    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ALL_PERMISSIONS }))
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: BACKOFFICE_PERMISSIONS }))
     vi.mocked(checkServicesHealth).mockResolvedValue([
       { name: 'Onboarding API', url: 'http://onboarding.test', online: true, latencyMs: 12 },
       { name: 'Credit Score API', url: 'http://score.test', online: false },
@@ -46,7 +46,7 @@ describe('MonitoringPage', () => {
   })
 
   it('mostra carregamento enquanto verifica', async () => {
-    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ALL_PERMISSIONS }))
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: BACKOFFICE_PERMISSIONS }))
     vi.mocked(checkServicesHealth).mockReturnValue(new Promise(() => {}))
     renderPage(<MonitoringPage />)
 

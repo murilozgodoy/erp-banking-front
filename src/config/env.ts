@@ -45,6 +45,8 @@ export const env = {
   gatewayUrl: optionalUrl('VITE_GATEWAY_URL'),
   grafanaUrl: optionalUrl('VITE_GRAFANA_URL'),
   prometheusUrl: optionalUrl('VITE_PROMETHEUS_URL'),
+  /** Portal contra os mocks MSW (contratos de PORTAL_CLIENTE.md) enquanto as rotas /me não sobem. */
+  useMocks: import.meta.env.VITE_USE_MOCKS === 'true',
   apiTimeoutMs: positiveNumber(import.meta.env.VITE_API_TIMEOUT_MS, 10_000),
   auth0: {
     domain: required('VITE_AUTH0_DOMAIN'),

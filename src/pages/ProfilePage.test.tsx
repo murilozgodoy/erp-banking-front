@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ALL_PERMISSIONS } from '@/auth/permissions'
+import { BACKOFFICE_PERMISSIONS } from '@/auth/permissions'
 
 import { auth0State } from '@/test/auth0'
 import { renderPage } from '@/test/render'
@@ -24,7 +24,7 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Maria Souza')).toBeInTheDocument()
     expect(screen.getByText('maria@erp.test')).toBeInTheDocument()
     expect(
-      await screen.findByText('2 de 8 permissões concedidas pelo seu perfil'),
+      await screen.findByText('2 de 11 permissões concedidas pelo seu perfil'),
     ).toBeInTheDocument()
 
     const granted = screen.getByText('read:customers').closest('li')!
@@ -49,7 +49,7 @@ describe('ProfilePage', () => {
 
   it('em produção mostra o botão do token só para admin', async () => {
     vi.stubEnv('DEV', false)
-    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: [...ALL_PERMISSIONS] }))
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: [...BACKOFFICE_PERMISSIONS] }))
     renderPage(<ProfilePage />)
 
     expect(await screen.findByRole('button', { name: 'Copiar access token' })).toBeInTheDocument()
@@ -62,7 +62,7 @@ describe('ProfilePage', () => {
     renderPage(<ProfilePage />)
 
     expect(
-      await screen.findByText('1 de 8 permissões concedidas pelo seu perfil'),
+      await screen.findByText('1 de 11 permissões concedidas pelo seu perfil'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Copiar access token' })).not.toBeInTheDocument()
   })
