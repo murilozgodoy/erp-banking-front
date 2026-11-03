@@ -22,7 +22,12 @@ export function CreditRequestForm({ customerId }: { customerId?: number }) {
 
   const request = useMutation({
     mutationFn: (input: CreditRequestInput) => api.credits.request(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['credits'] }),
+    onSuccess: (credit) =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['credits'] }),
+        // A decisão chega ao Score por evento (assíncrono); o card também faz polling.
+        queryClient.invalidateQueries({ queryKey: ['score-decisions', credit.customerId] }),
+      ]),
   })
 
   const submit = (event: React.FormEvent) => {

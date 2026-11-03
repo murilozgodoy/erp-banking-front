@@ -15,13 +15,13 @@ A infraestrutura fica no repositório
 
 ## Produção
 
-| O quê                 | URL                                                                                             |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| Front (Vercel)        | <https://erp-banking-front.vercel.app>                                                          |
-| API Gateway (EC2)     | `http://3.235.6.136:8080` (o front usa os rewrites `/api/*` da Vercel)                          |
-| Grafana (EC2)         | `http://3.235.6.136:8081`                                                                       |
-| Prometheus (EC2)      | `http://3.235.6.136:8082`                                                                       |
-| Swagger (via gateway) | `http://3.235.6.136:8080/onboarding/docs`, `/score/docs`, `/transactions/swagger-ui/index.html` |
+| O quê                 | URL                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Front (Vercel)        | <https://erp-banking-front.vercel.app>                                                                                  |
+| API Gateway (EC2)     | `http://3.235.6.136:8080` (o front usa os rewrites `/api/*` da Vercel)                                                  |
+| Grafana (EC2)         | `http://3.235.6.136:8081`                                                                                               |
+| Prometheus (EC2)      | `http://3.235.6.136:8082`                                                                                               |
+| Swagger (via gateway) | `http://3.235.6.136:8080/transactions/swagger-ui/index.html` (público); `/onboarding/docs` e `/score/docs` exigem token |
 
 ## Arquitetura final
 

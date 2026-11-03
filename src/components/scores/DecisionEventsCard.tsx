@@ -13,6 +13,8 @@ import { formatCurrency, formatDateTime, formatNumber, formatPercent } from '@/l
 
 import { RiskBadge } from './RiskBadge'
 
+const DECISIONS_REFRESH_MS = 5000
+
 /**
  * Decisões de crédito que chegaram ao Score pelo evento `credit.decided` (RabbitMQ):
  * a prova, na interface, de que a comunicação assíncrona Transactions → Score funcionou.
@@ -22,6 +24,8 @@ export function DecisionEventsCard({ customerId }: { customerId: number }) {
   const decisions = useQuery({
     queryKey: ['score-decisions', customerId],
     queryFn: () => api.scores.decisions(customerId),
+    // O evento credit.decided chega alguns instantes depois do pedido de crédito.
+    refetchInterval: DECISIONS_REFRESH_MS,
   })
 
   return (

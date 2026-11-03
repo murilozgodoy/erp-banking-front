@@ -10,7 +10,7 @@ describe('checkServicesHealth', () => {
     const createClient = (url: string) => {
       const { http } = fakeHttp((config) => {
         requested.push(`${url}${config.url}`)
-        return { status: url.includes('score') ? 503 : 200 }
+        return { status: url.includes('score') ? 503 : url.includes('onboarding') ? 429 : 200 }
       })
       return http
     }
@@ -18,12 +18,7 @@ describe('checkServicesHealth', () => {
     const result = await checkServicesHealth(createClient)
 
     expect(result).toEqual([
-      {
-        name: 'Onboarding API',
-        url: 'http://onboarding.test',
-        online: true,
-        latencyMs: expect.any(Number),
-      },
+      { name: 'Onboarding API', url: 'http://onboarding.test', online: false, limited: true },
       { name: 'Credit Score API', url: 'http://score.test', online: false },
       {
         name: 'Transactions API',

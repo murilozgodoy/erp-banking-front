@@ -20,6 +20,7 @@ describe('createQueryClient', () => {
     expect(retry(2, withStatus(503))).toBe(false)
     expect(retry(0, withStatus(403))).toBe(false)
     expect(retry(0, withStatus(404))).toBe(false)
+    expect(retry(0, { error: 'login_required' })).toBe(false)
   })
 
   it('escritas: só retenta uma vez o 429', () => {

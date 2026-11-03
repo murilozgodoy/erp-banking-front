@@ -17,4 +17,10 @@ describe('ServiceStatusCard', () => {
 
     expect(screen.getByText('Offline')).toBeInTheDocument()
   })
+
+  it('mostra o serviço limitado pelo rate limit', () => {
+    render(<ServiceStatusCard name="API Gateway" url="/api" online={false} limited />)
+
+    expect(screen.getByText('Limitado (429)')).toBeInTheDocument()
+  })
 })

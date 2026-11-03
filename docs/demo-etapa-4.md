@@ -6,15 +6,13 @@ API Gateway, comunicação assíncrona pelo RabbitMQ e observabilidade com Prome
 
 ## URLs
 
-| O quê                | URL                                                                   | Acesso                                                                    |
-| -------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Front (Vercel)       | <https://erp-banking-front.vercel.app>                                | login Auth0                                                               |
-| API Gateway (EC2)    | <http://3.235.6.136:8080/gateway/health>                              | público                                                                   |
-| Grafana (EC2)        | <http://3.235.6.136:8081>                                             | usuário `admin`; senha com o grupo (ver abaixo)                           |
-| Prometheus (EC2)     | <http://3.235.6.136:8082> (alvos em `/targets`, alertas em `/alerts`) | publicado pelo compose (sem login; restrinja no Security Group se quiser) |
-| Swagger Onboarding   | <http://3.235.6.136:8080/onboarding/docs>                             | público (endpoints exigem token)                                          |
-| Swagger Score        | <http://3.235.6.136:8080/score/docs>                                  | público (endpoints exigem token)                                          |
-| Swagger Transactions | <http://3.235.6.136:8080/transactions/swagger-ui/index.html>          | público (endpoints exigem token)                                          |
+| O quê                | URL                                                                   | Acesso                                                                                 |
+| -------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Front (Vercel)       | <https://erp-banking-front.vercel.app>                                | login Auth0                                                                            |
+| API Gateway (EC2)    | <http://3.235.6.136:8080/gateway/health>                              | público                                                                                |
+| Grafana (EC2)        | <http://3.235.6.136:8081>                                             | usuário `admin`; senha com o grupo (ver abaixo)                                        |
+| Prometheus (EC2)     | <http://3.235.6.136:8082> (alvos em `/targets`, alertas em `/alerts`) | publicado pelo compose (sem login; restrinja no Security Group se quiser)              |
+| Swagger Transactions | <http://3.235.6.136:8080/transactions/swagger-ui/index.html>          | público (os endpoints exigem token; Swagger das APIs Python exige token já para abrir) |
 
 A senha do Grafana é o `GRAFANA_ADMIN_PASSWORD` do `.env` do `erp-banking-infra` na EC2 (não é versionada). O
 RabbitMQ Management não é publicado (só rede interna do compose): mostre as filas pelo dashboard **RabbitMQ** do

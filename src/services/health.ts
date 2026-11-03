@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios'
+
 import { env } from '@/config/env'
 
 import { createHttpClient } from './http'
@@ -6,6 +8,8 @@ export interface ServiceHealth {
   name: string
   url: string
   online: boolean
+  /** O gateway respondeu 429 (rate limit): o serviço não está fora do ar. */
+  limited?: boolean
   /** Tempo de resposta do health check, em milissegundos. */
   latencyMs?: number
 }
@@ -39,7 +43,10 @@ export async function checkServicesHealth(
       try {
         await createClient(url).get(path)
         return { name, url, online: true, latencyMs: Math.round(performance.now() - start) }
-      } catch {
+      } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 429) {
+          return { name, url, online: false, limited: true }
+        }
         return { name, url, online: false }
       }
     }),

@@ -66,7 +66,7 @@ export function errorMessage(error: unknown): string {
   return 'Erro inesperado.'
 }
 
-function isAuth0SessionError(error: unknown): boolean {
+export function isAuth0SessionError(error: unknown): boolean {
   if (typeof error !== 'object' || error === null || !('error' in error)) return false
   const code = (error as { error: unknown }).error
   return typeof code === 'string' && AUTH0_SESSION_ERRORS.has(code)
