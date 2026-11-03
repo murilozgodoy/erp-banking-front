@@ -95,7 +95,7 @@ export function StepProgress({ current, reachable, completed, onGo }: StepProgre
               ) : (
                 <div
                   aria-current={isCurrent ? 'step' : undefined}
-                  className={cn('flex items-start gap-3', !isCurrent && 'opacity-70')}
+                  className="flex items-start gap-3"
                 >
                   {content}
                 </div>

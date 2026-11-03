@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn'
 
 interface MoneyProps {
   value: number
-  /** Tamanho tipográfico: os centavos ficam um degrau menores e mais claros. */
+  /** Tamanho tipográfico: os centavos ficam um degrau menores e mais leves. */
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'display'
   /** Colore pelo sinal (entrada/saída). */
   signed?: boolean
@@ -19,7 +19,8 @@ const sizes = {
 } as const
 
 /**
- * Valor em BRL com tabular-nums e centavos rebaixados: o olho lê os reais primeiro. O texto
+ * Valor em BRL com tabular-nums e centavos rebaixados (um degrau menores e em 500): o olho lê
+ * os reais primeiro. Sem opacidade: a 60% o centavo em negative/positive caía abaixo de AA. O texto
  * acessível é o valor completo, numa única leitura.
  */
 export function Money({ value, size = 'md', signed = false, className }: MoneyProps) {
@@ -33,7 +34,7 @@ export function Money({ value, size = 'md', signed = false, className }: MoneyPr
         {plus}
         {sign}
         {reais}
-        <span className={cn(cents, 'font-medium opacity-60')}>,{centavos}</span>
+        <span className={cn(cents, 'font-medium')}>,{centavos}</span>
       </span>
       <span className="sr-only">
         {plus}

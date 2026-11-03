@@ -55,6 +55,13 @@ describe('primitivas do portal', () => {
     expect(screen.getByText('+R$ 10,00').parentElement).toHaveClass('text-positive')
   })
 
+  it('Money não esmaece os centavos (AA também em negative/positive)', () => {
+    const { container } = render(<Money value={-37756.9} signed />)
+    const cents = screen.getByText(',90')
+    expect(cents).not.toHaveClass('opacity-60')
+    expect(container.querySelector('[class*="opacity-"]')).toBeNull()
+  })
+
   it('Delta usa seta e sinal, e inverte o significado quando subir é ruim', () => {
     const { container, rerender } = render(<Delta value={4} context="vs. mês anterior" />)
     expect(screen.getByText('+4,0%')).toHaveClass('text-positive')
@@ -202,6 +209,11 @@ describe('primitivas do portal', () => {
     expect(screen.getByLabelText(/Razão social/)).toHaveAccessibleDescription('Como no CNPJ')
     expect(screen.getByLabelText('Margem')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('UF')).toHaveAccessibleDescription('Escolha a UF')
+    // Com erro, a ajuda some da tela: aria-describedby não aponta para um id inexistente.
+    render(<TextField label="CNPJ" hint="Só números" error="CNPJ inválido" />)
+    const cnpj = screen.getByLabelText('CNPJ')
+    expect(cnpj.getAttribute('aria-describedby')?.split(' ')).toHaveLength(1)
+    expect(cnpj).toHaveAccessibleDescription('CNPJ inválido')
     const money = screen.getByLabelText('Faturamento')
     expect(money).toHaveValue('1.000,00')
     await userEvent.clear(money)
