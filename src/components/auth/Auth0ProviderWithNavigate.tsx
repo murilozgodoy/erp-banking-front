@@ -3,12 +3,23 @@ import { Outlet, useNavigate } from 'react-router'
 
 import { env } from '@/config/env'
 
+import { MockAuthProvider } from './MockAuthProvider'
+
 /** Fica dentro do roteador para devolver o usuário à rota de origem após o login. */
 export function Auth0ProviderWithNavigate() {
   const navigate = useNavigate()
 
   const onRedirectCallback = (appState?: AppState) => {
     navigate(appState?.returnTo ?? '/', { replace: true })
+  }
+
+  // Dev com mocks: login simulado para revisar telas sem o Auth0 (removido do build de produção).
+  if (import.meta.env.DEV && env.mockAuth) {
+    return (
+      <MockAuthProvider>
+        <Outlet />
+      </MockAuthProvider>
+    )
   }
 
   return (
