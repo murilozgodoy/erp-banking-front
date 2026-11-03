@@ -6,19 +6,19 @@
   "rewrites": [
     {
       "source": "/api/onboarding/:path*",
-      "destination": "http://EC2_HOST_AQUI:8080/onboarding/:path*"
+      "destination": "http://3.235.6.136:8080/onboarding/:path*"
     },
     {
       "source": "/api/score/:path*",
-      "destination": "http://EC2_HOST_AQUI:8080/score/:path*"
+      "destination": "http://3.235.6.136:8080/score/:path*"
     },
     {
       "source": "/api/transactions/:path*",
-      "destination": "http://EC2_HOST_AQUI:8080/transactions/:path*"
+      "destination": "http://3.235.6.136:8080/transactions/:path*"
     },
     {
       "source": "/api/gateway/:path*",
-      "destination": "http://EC2_HOST_AQUI:8080/gateway/:path*"
+      "destination": "http://3.235.6.136:8080/gateway/:path*"
     },
     { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
   ],
