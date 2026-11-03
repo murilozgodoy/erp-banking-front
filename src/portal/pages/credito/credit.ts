@@ -13,7 +13,9 @@ import { errorMessage } from '@/lib/errors'
 import { usePortalApi } from '../../api'
 import { pct } from '../../lib/format'
 import { portalKeys } from '../../layout/queries'
-import type { ErpApiError, ProdutoCredito, SimulationRequest } from '../../types'
+import { mensagemDoErroDePermissao } from '../../team/forbidden'
+import { useMembro } from '../../team/useMembro'
+import type { ErpApiError, ProdutoCredito, Simulation, SimulationRequest } from '../../types'
 
 export const SIMULATION_ROOT = ['portal', 'credit-simulation'] as const
 
@@ -104,7 +106,24 @@ export function useContract({ onError }: { onError?: (error: Error) => void } = 
   })
 }
 
+/** `POST /me/credit/requests/{id}/confirm`: contrata uma proposta AGUARDANDO_CONTRATACAO. */
+export function useConfirmCredit() {
+  const api = usePortalApi()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.erp.confirmCreditRequest(id),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: portalKeys.erp }),
+        queryClient.invalidateQueries({ queryKey: portalKeys.overview }),
+      ]),
+  })
+}
+
 const MENSAGENS: Record<string, string> = {
+  PEDIDO_NAO_AGUARDANDO_CONTRATACAO:
+    'Esta proposta já foi contratada ou mudou de status. Atualizamos a lista de propostas.',
+  PEDIDO_NAO_ENCONTRADO: 'Não encontramos esta proposta. Atualizamos a lista de propostas.',
   SIMULACAO_EXPIRADA: 'Esta simulação expirou. Simule de novo para ver as condições de hoje.',
   SIMULACAO_JA_UTILIZADA:
     'Esta simulação já virou uma proposta. Confira em Propostas e contratos ou simule de novo.',
@@ -130,6 +149,8 @@ export { isOnboardingPendente } from '../../lib/apiErrors'
 
 /** Mensagem das rotas de crédito: problema + o que fazer. */
 export function creditErrorMessage(error: unknown): string {
+  const semPermissao = mensagemDoErroDePermissao(error)
+  if (semPermissao) return semPermissao
   const body = corpoErro(error)
   if (body) {
     if (body.error && MENSAGENS[body.error]) return MENSAGENS[body.error]
@@ -138,6 +159,26 @@ export function creditErrorMessage(error: unknown): string {
     if (body.message) return body.message
   }
   return errorMessage(error)
+}
+
+/**
+ * O que o membro pode fazer no crédito (seção 11): `pede` simula e envia propostas; `contrata`
+ * confirma. Quem só pede manda a proposta para alguém contratar (`AGUARDANDO_CONTRATACAO`).
+ */
+export function useCreditAccess() {
+  const { pode } = useMembro()
+  return { pede: pode('pedir_credito'), contrata: pode('contratar_credito') }
+}
+
+/** Rótulo do botão que envia a simulação, conforme a aprovação e a permissão. */
+export function contractLabel(
+  aprovacao: Simulation['aprovacao'] | undefined,
+  contrata: boolean,
+  contratar = 'Contratar',
+  analise = 'Enviar proposta',
+): string {
+  if (aprovacao === 'ANALISE') return analise
+  return contrata ? contratar : 'Enviar proposta para contratação'
 }
 
 /** Prazos oferecidos no seletor, até o máximo do produto. */
