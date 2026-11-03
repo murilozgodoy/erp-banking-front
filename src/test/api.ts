@@ -6,7 +6,13 @@ import type { Api } from '@/services/api'
 export function fakeApi() {
   const api = {
     customers: { list: vi.fn(), get: vi.fn(), create: vi.fn(), saveAnamnesis: vi.fn() },
-    scores: { strategies: vi.fn(), evaluate: vi.fn(), latest: vi.fn(), history: vi.fn() },
+    scores: {
+      strategies: vi.fn(),
+      evaluate: vi.fn(),
+      latest: vi.fn(),
+      history: vi.fn(),
+      decisions: vi.fn(),
+    },
     accounts: {
       list: vi.fn(),
       get: vi.fn(),

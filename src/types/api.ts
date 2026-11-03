@@ -78,6 +78,26 @@ export interface ScoreEvaluation {
   decision: { decisao: Decisao; motivo: string } | null
 }
 
+/**
+ * Decisão de crédito recebida pelo Score via evento `credit.decided` (RabbitMQ), publicada
+ * pela Transactions API. Exposta em `GET /scores/decisions?customer_id=`.
+ */
+export interface CreditDecisionEvent {
+  id: number
+  event_id: string
+  credit_request_id: number
+  customer_id: number
+  status: Decisao
+  motivo: string | null
+  valor_solicitado: number
+  prazo_meses: number
+  score: number | null
+  faixa_risco: FaixaRisco | null
+  taxa_juros: number | null
+  occurred_at: string
+  received_at: string
+}
+
 export interface ScoreStrategy {
   name: string
   description: string

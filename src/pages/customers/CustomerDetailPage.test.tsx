@@ -25,6 +25,7 @@ beforeEach(() => {
   api.scores.latest.mockResolvedValue(null)
   api.scores.history.mockResolvedValue([])
   api.scores.strategies.mockResolvedValue(strategies)
+  api.scores.decisions.mockResolvedValue([])
 })
 
 function renderDetail(permissions: Permission[]) {
