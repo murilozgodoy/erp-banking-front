@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
+import { pollWhileEmpty } from '@/lib/polling'
 
 import { AccountsTable } from './AccountsTable'
 import { OpenAccountForm } from './OpenAccountForm'
@@ -17,6 +18,8 @@ export function CustomerAccounts({ customerId }: { customerId: number }) {
   const accounts = useQuery({
     queryKey: ['accounts', { customerId }],
     queryFn: () => api.accounts.list(customerId),
+    // Cliente recém-criado: a conta corrente é aberta pelo evento customer.created, logo depois.
+    refetchInterval: pollWhileEmpty,
   })
 
   return (

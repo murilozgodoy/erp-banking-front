@@ -17,6 +17,8 @@ import type { ScoreEvaluation } from '@/types/api'
 
 import { RiskBadge } from './RiskBadge'
 
+const STATUS_REFRESH_MS = 5000
+
 /** Score de crédito do cliente: vigente, cálculo (Strategy escolhida) e histórico. */
 export function ScorePanel({ customerId }: { customerId: number }) {
   const api = useApi()
@@ -33,6 +35,8 @@ export function ScorePanel({ customerId }: { customerId: number }) {
     queryKey: ['scores', customerId, 'status'],
     queryFn: () => api.scores.status(customerId),
     retry: false,
+    // "Desatualizado" chega pelo evento customer.anamnesis_updated, depois de salvar a anamnese.
+    refetchInterval: STATUS_REFRESH_MS,
   })
 
   return (
