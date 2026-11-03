@@ -9,4 +9,5 @@ Contexto do projeto para quem chega no repositório (integrantes do grupo e assi
 | [auth0.md](auth0.md)               | Autenticação e autorização: fluxo, permissões, perfis, token relay e painel do Auth0 |
 | [etapa-3.md](etapa-3.md)           | O que foi entregue na Etapa 3 (Auth0 + Frontend) e decisões tomadas                  |
 | [etapa-4.md](etapa-4.md)           | Etapa 4: arquitetura final, gateway, eventos, métricas, carga, deploy e checklist    |
+| [demo-etapa-4.md](demo-etapa-4.md) | Roteiro da apresentação da Etapa 4, passo a passo, com as URLs de produção           |
 | [ambiente-dev.md](ambiente-dev.md) | Como rodar (com ou sem gateway), smoke test, CI/CD, deploy e compatibilidade         |
