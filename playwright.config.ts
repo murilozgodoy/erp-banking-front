@@ -7,6 +7,8 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './e2e',
+  // e2e/portal roda contra o Vite local em modo mock: playwright.portal.config.ts.
+  testIgnore: 'portal/**',
   timeout: 30_000,
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
