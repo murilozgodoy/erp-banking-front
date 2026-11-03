@@ -22,6 +22,7 @@ import type { BusinessAnalysis, Overview } from '../../types'
 
 import { CashPanel } from './CashPanel'
 import { OpportunitiesPanel } from './OpportunitiesPanel'
+import { ReadingPanel } from './ReadingPanel'
 import { ScorePanel } from './ScorePanel'
 
 const todayFormat = new Intl.DateTimeFormat('pt-BR', {
@@ -54,7 +55,6 @@ export function OverviewPage() {
 
   const now = new Date()
   const nome = me.data?.empresa?.nome_fantasia
-  const resumo = analysis.data?.resumo
   const emAnalise = analysis.data?.status === 'EM_ANALISE'
 
   return (
@@ -62,19 +62,7 @@ export function OverviewPage() {
       <PageHeader
         title={nome ? `${greeting(now)}, ${nome}` : greeting(now)}
         description={
-          <>
-            <span className="block first-letter:uppercase">{todayFormat.format(now)}</span>
-            {analysis.isPending ? (
-              <Skeleton className="mt-2 h-3.5 w-[min(36rem,80vw)]" />
-            ) : (
-              resumo && (
-                <span className="mt-1.5 block text-ink">
-                  <Faisca className="-mt-0.5 mr-1.5 align-middle" label="Resumo da ErpIa" />
-                  {resumo}
-                </span>
-              )
-            )}
-          </>
+          <span className="block first-letter:uppercase">{todayFormat.format(now)}</span>
         }
         actions={overview.data && <PendenciasTeaser count={overview.data.pendencias_count} />}
       />
@@ -161,21 +149,32 @@ function Loaded({
 
   return (
     <>
-      <div className="grid gap-5 xl:grid-cols-12 xl:items-start">
+      {/* Ordem no DOM = ordem no mobile (Leitura, Caixa, Oportunidades); no xl o caixa ocupa
+          8 colunas e as duas linhas, e a coluna direita empilha Leitura e Oportunidades. */}
+      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+        <div className="xl:col-span-4 xl:col-start-9 xl:row-start-1">
+          {ready ? (
+            <ReadingPanel analysis={analysis} />
+          ) : (
+            analysisFallback('Carregando a leitura da ErpIa')
+          )}
+        </div>
         <CashPanel
-          className="xl:col-span-8"
+          className="xl:col-span-8 xl:col-start-1 xl:row-span-2 xl:row-start-1"
           saldo={overview.saldo}
           fluxo={overview.fluxo_caixa}
           oportunidades={oportunidades}
           analysisPending={analysisSlot === 'loading'}
         />
-        <div className="xl:col-span-4">
-          {ready ? (
-            <OpportunitiesPanel oportunidades={oportunidades} />
-          ) : (
-            analysisFallback('Carregando as oportunidades de crédito')
-          )}
-        </div>
+        {(ready || analysisSlot === 'loading') && (
+          <div className="xl:col-span-4 xl:col-start-9 xl:row-start-2">
+            {ready ? (
+              <OpportunitiesPanel oportunidades={oportunidades} />
+            ) : (
+              <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
+            )}
+          </div>
+        )}
       </div>
 
       <section aria-label="Indicadores dos últimos 30 dias">
@@ -298,11 +297,14 @@ function Analyzing({ onRefresh, refreshing }: { onRefresh: () => void; refreshin
 function OverviewSkeleton() {
   return (
     <>
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+        <div className="xl:col-span-4 xl:col-start-9 xl:row-start-1">
+          <PanelSkeleton rows={4} label="Carregando a leitura da ErpIa" />
+        </div>
         <div
           role="status"
           aria-label="Carregando o caixa projetado"
-          className="rounded-panel border border-line bg-surface p-5 shadow-raised xl:col-span-8"
+          className="rounded-panel border border-line bg-surface p-5 shadow-raised xl:col-span-8 xl:col-start-1 xl:row-span-2 xl:row-start-1"
         >
           <Skeleton className="h-4 w-48" />
           <Skeleton className="mt-2 h-3 w-72 max-w-full" />
@@ -310,8 +312,8 @@ function OverviewSkeleton() {
           <Skeleton className="mt-2 h-9 w-56" />
           <Skeleton className="mt-6 h-[280px] w-full" />
         </div>
-        <div className="xl:col-span-4">
-          <PanelSkeleton rows={8} label="Carregando as oportunidades de crédito" />
+        <div className="xl:col-span-4 xl:col-start-9 xl:row-start-2">
+          <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
         </div>
       </div>
       <StatStrip

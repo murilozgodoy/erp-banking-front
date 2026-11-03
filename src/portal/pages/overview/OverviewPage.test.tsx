@@ -135,13 +135,25 @@ describe('Visão geral', () => {
 
   const render = () => renderPortal(<OverviewPage />)
 
-  it('mostra saudação, resumo da IA, caixa com o vale e a ponte de crédito', async () => {
+  it('mostra saudação, leitura da ErpIa, caixa com o vale e a ponte de crédito', async () => {
     render()
     const nome = db.me().empresa!.nome_fantasia
     expect(
       await screen.findByRole('heading', { level: 1, name: new RegExp(nome) }),
     ).toBeInTheDocument()
-    expect(await screen.findByText(/Padaria com receita acima da média/)).toBeInTheDocument()
+    // Leitura da ErpIa: card próprio com o resumo, os sinais e a origem da análise.
+    const leitura = await screen.findByRole('region', { name: /Leitura da ErpIa/ })
+    expect(within(leitura).getByText(/Padaria com receita acima da média/)).toBeInTheDocument()
+    expect(within(leitura).getAllByText('Ponto forte:').length).toBeGreaterThan(0)
+    expect(within(leitura).getByText('Atenção:')).toBeInTheDocument()
+    expect(within(leitura).getAllByRole('listitem').length).toBeLessThanOrEqual(3)
+    expect(
+      within(leitura).getByText(/^Atualizada em \d{2}\/\d{2} às \d{2}:\d{2} · regras \+ IA$/),
+    ).toBeInTheDocument()
+    // O resumo saiu do cabeçalho.
+    expect(screen.getByRole('heading', { level: 1 }).parentElement).not.toHaveTextContent(
+      /Padaria com receita/,
+    )
 
     const caixa = await screen.findByRole('region', { name: 'Caixa projetado — 60 dias' })
     expect(within(caixa).getByText('Saldo hoje')).toBeInTheDocument()
