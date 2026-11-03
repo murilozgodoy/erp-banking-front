@@ -8,6 +8,7 @@ import { Navigate, useNavigate } from 'react-router'
 import { errorMessage } from '@/lib/errors'
 
 import { usePortalApi } from '../../api'
+import { fullDate } from '../../lib/format'
 import { portalKeys } from '../../layout/queries'
 import { Button } from '../../ui/Button'
 import { ErrorState, PageHeader, Skeleton } from '../../ui/Surface'
@@ -47,9 +48,6 @@ import { ErrorSummary, SaveIndicator, StepProgress } from './WizardChrome'
 const TITLE = 'Cadastro da empresa'
 const DESCRIPTION =
   'Quatro passos, cerca de cinco minutos. O rascunho é salvo enquanto você preenche.'
-
-/** O backend guarda o comentário do analista; o rascunho pode trazê-lo na reprovação. */
-type DraftWithReview = OnboardingDraft & { review_comment?: string | null }
 
 /** Wizard de onboarding (PORTAL_CLIENTE.md, seções 1 e 3): empresa, segmento, perguntas, revisão. */
 export function OnboardingPage() {
@@ -138,7 +136,13 @@ function WizardSkeleton() {
   )
 }
 
-function ReprovadoNote({ comment }: { comment?: string | null }) {
+function ReprovadoNote({
+  comment,
+  reviewedAt,
+}: {
+  comment?: string | null
+  reviewedAt?: string | null
+}) {
   return (
     <section
       aria-labelledby="reprovado-titulo"
@@ -151,7 +155,9 @@ function ReprovadoNote({ comment }: { comment?: string | null }) {
         </h2>
         {comment?.trim() ? (
           <>
-            <p className="text-sm text-ink-muted">Comentário do analista:</p>
+            <p className="text-sm text-ink-muted">
+              Comentário do analista{reviewedAt ? ` em ${fullDate(reviewedAt)}` : ''}:
+            </p>
             <blockquote className="text-sm text-ink">“{comment.trim()}”</blockquote>
             <p className="text-sm text-ink-muted">
               Ajuste o que for preciso e envie de novo. Seus dados anteriores já estão preenchidos.
@@ -180,7 +186,7 @@ const EASE = [0.16, 1, 0.3, 1] as const
 
 interface WizardProps {
   templates: OnboardingTemplate[]
-  draft: DraftWithReview
+  draft: OnboardingDraft
 }
 
 function initialState(templates: OnboardingTemplate[], draft: OnboardingDraft): WizardState {
@@ -389,7 +395,7 @@ function Wizard({ templates, draft }: WizardProps) {
     <>
       {/* A página de status reabre a reprovação como RASCUNHO: o comentário também conta. */}
       {(draft.onboarding_status === 'REPROVADO' || Boolean(draft.review_comment?.trim())) && (
-        <ReprovadoNote comment={draft.review_comment} />
+        <ReprovadoNote comment={draft.review_comment} reviewedAt={draft.reviewed_at} />
       )}
       <div className="grid gap-6 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-10">
         <aside className="lg:pt-2">

@@ -342,12 +342,14 @@ describe('OnboardingPage: reenvio depois da reprovação', () => {
           ...rascunho(),
           onboarding_status: 'RASCUNHO',
           review_comment: 'Faltou explicar a dívida.',
+          reviewed_at: '2026-11-02T13:00:00Z',
         }),
       ),
     )
     renderPage()
     await heading('Observações e revisão')
     expect(screen.getByText('“Faltou explicar a dívida.”')).toBeInTheDocument()
+    expect(screen.getByText('Comentário do analista em 02 de novembro de 2026:')).toBeVisible()
   })
 
   it('sem comentário: nota neutra', async () => {
