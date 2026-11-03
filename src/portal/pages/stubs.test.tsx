@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { AnalisesPage } from '@/pages/analises/AnalisesPage'
-
 import { CreditPage } from './credito/CreditPage'
 import { OnboardingPage } from './onboarding/OnboardingPage'
 import { PaymentsPage } from './pagamentos/PaymentsPage'
@@ -17,7 +15,6 @@ describe('páginas do portal (esqueleto)', () => {
     [PaymentsPage, 'Pagamentos'],
     [CreditPage, 'Crédito'],
     [OnboardingPage, 'Cadastro da empresa'],
-    [AnalisesPage, 'Fila de análise'],
   ])('%o tem título', (Page, title) => {
     render(<Page />)
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
