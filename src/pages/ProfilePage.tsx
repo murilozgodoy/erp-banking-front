@@ -45,7 +45,7 @@ export function ProfilePage() {
             </div>
             <div>
               <dt className="sr-only">Identificador</dt>
-              <dd className="font-mono text-xs text-slate-500">{user?.sub}</dd>
+              <dd className="font-mono text-xs text-ink-muted">{user?.sub}</dd>
             </div>
           </dl>
         </div>
@@ -63,7 +63,7 @@ export function ProfilePage() {
               <li key={permission} className="flex items-center justify-between gap-2 text-sm">
                 <span>
                   {PERMISSIONS[permission]}{' '}
-                  <code className="font-mono text-xs text-slate-500">{permission}</code>
+                  <code className="font-mono text-xs text-ink-muted">{permission}</code>
                 </span>
                 {can(permission) ? (
                   <Badge tone="success">concedida</Badge>

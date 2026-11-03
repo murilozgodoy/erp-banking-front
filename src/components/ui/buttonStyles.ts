@@ -1,9 +1,8 @@
 const variants = {
-  primary: 'bg-indigo-700 text-white hover:bg-indigo-800 disabled:bg-indigo-300',
-  secondary:
-    'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 disabled:text-slate-400',
-  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300',
-  ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+  primary: 'bg-accent text-on-accent hover:bg-accent-hover disabled:bg-accent/40',
+  secondary: 'border border-line-strong bg-surface text-ink hover:bg-paper disabled:text-ink-faint',
+  danger: 'bg-negative text-white dark:text-paper hover:bg-negative/90 disabled:bg-negative/40',
+  ghost: 'text-ink-muted hover:bg-sunken hover:text-ink',
 }
 
 export type ButtonVariant = keyof typeof variants

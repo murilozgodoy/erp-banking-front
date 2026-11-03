@@ -14,7 +14,7 @@ export function CreditsTable({ credits }: { credits: CreditRequest[] }) {
         <tr key={credit.id}>
           <td>
             <p className="font-medium">#{credit.id}</p>
-            <p className="text-xs text-slate-500">{formatDateTime(credit.criadoEm)}</p>
+            <p className="text-xs text-ink-muted">{formatDateTime(credit.criadoEm)}</p>
           </td>
           <td>
             <Link to={`/clientes/${credit.customerId}`} className="hover:underline">
@@ -26,7 +26,7 @@ export function CreditsTable({ credits }: { credits: CreditRequest[] }) {
           <td>{credit.scoreSnapshot === null ? '—' : formatNumber(credit.scoreSnapshot, 0)}</td>
           <td>
             <DecisionBadge decision={credit.status} />
-            {credit.motivo && <p className="mt-1 text-xs text-slate-500">{credit.motivo}</p>}
+            {credit.motivo && <p className="mt-1 text-xs text-ink-muted">{credit.motivo}</p>}
           </td>
           <td>{credit.taxaJuros > 0 ? `${formatPercent(credit.taxaJuros * 100)} a.m.` : '—'}</td>
           <td>{credit.valorAprovado > 0 ? formatCurrency(credit.valorAprovado) : '—'}</td>

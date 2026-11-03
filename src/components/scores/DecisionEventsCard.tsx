@@ -51,12 +51,12 @@ export function DecisionEventsCard({ customerId }: { customerId: number }) {
             <tr key={decision.event_id}>
               <td>
                 <p className="font-medium">#{decision.credit_request_id}</p>
-                <p className="text-xs text-slate-500">{decision.prazo_meses} meses</p>
+                <p className="text-xs text-ink-muted">{decision.prazo_meses} meses</p>
               </td>
               <td>
                 <DecisionBadge decision={decision.status} />
                 {decision.motivo && (
-                  <p className="mt-1 text-xs text-slate-500">{decision.motivo}</p>
+                  <p className="mt-1 text-xs text-ink-muted">{decision.motivo}</p>
                 )}
               </td>
               <td>{formatCurrency(decision.valor_solicitado)}</td>
@@ -73,10 +73,10 @@ export function DecisionEventsCard({ customerId }: { customerId: number }) {
               </td>
               <td>
                 <p>{formatDateTime(decision.occurred_at)}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-muted">
                   recebido {formatDateTime(decision.received_at)}
                 </p>
-                <p className="font-mono text-xs text-slate-400" title={decision.event_id}>
+                <p className="font-mono text-xs text-ink-faint" title={decision.event_id}>
                   {decision.event_id.slice(0, 8)}
                 </p>
               </td>

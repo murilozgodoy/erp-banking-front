@@ -9,12 +9,12 @@ interface CardProps {
 
 export function Card({ title, description, actions, children }: CardProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <section className="rounded-xl border border-line bg-surface shadow-sm">
       {(title || actions) && (
-        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            {title && <h2 className="font-semibold text-slate-900">{title}</h2>}
-            {description && <p className="text-sm text-slate-500">{description}</p>}
+            {title && <h2 className="font-semibold text-ink">{title}</h2>}
+            {description && <p className="text-sm text-ink-muted">{description}</p>}
           </div>
           {actions}
         </header>

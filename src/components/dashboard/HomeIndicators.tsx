@@ -12,9 +12,9 @@ import type { CreditStatus } from '@/types/api'
 export const CUSTOMERS_PAGE_LIMIT = 200
 
 const statusStyles: Record<CreditStatus, { label: string; bar: string }> = {
-  APROVADO: { label: 'Aprovados', bar: 'bg-emerald-500' },
-  REVISAO: { label: 'Em revisão', bar: 'bg-amber-400' },
-  NEGADO: { label: 'Negados', bar: 'bg-red-500' },
+  APROVADO: { label: 'Aprovados', bar: 'bg-positive' },
+  REVISAO: { label: 'Em revisão', bar: 'bg-warning' },
+  NEGADO: { label: 'Negados', bar: 'bg-negative' },
 }
 
 /** Indicadores da home, cada um exibido só para quem tem a permissão de leitura. */
@@ -24,7 +24,7 @@ export function HomeIndicators() {
 
   return (
     <div className="space-y-3">
-      <h2 className="font-semibold text-slate-900">Indicadores</h2>
+      <h2 className="font-semibold text-ink">Indicadores</h2>
       <div className="grid gap-4 md:grid-cols-3">
         {can('read:customers') && <CustomersIndicator />}
         {can('read:accounts') && <AccountsIndicator />}
@@ -42,15 +42,12 @@ interface IndicatorProps {
 
 function Indicator({ title, query, children }: IndicatorProps) {
   return (
-    <section
-      aria-label={title}
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-    >
-      <p className="text-sm text-slate-500">{title}</p>
+    <section aria-label={title} className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+      <p className="text-sm text-ink-muted">{title}</p>
       {query.isPending ? (
         <Spinner label="Carregando…" />
       ) : query.isError ? (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <p role="alert" className="mt-2 text-sm text-negative">
           {errorMessage(query.error)}
         </p>
       ) : (
@@ -73,11 +70,11 @@ function CustomersIndicator() {
         const withAnamnesis = customers.data?.filter((c) => c.anamnesis).length ?? 0
         return (
           <>
-            <p className="mt-1 text-3xl font-bold text-slate-900">
+            <p className="mt-1 text-3xl font-bold text-ink">
               {formatNumber(total)}
               {total >= CUSTOMERS_PAGE_LIMIT ? '+' : ''}
             </p>
-            <p className="text-xs text-slate-500">{formatNumber(withAnamnesis)} com anamnese</p>
+            <p className="text-xs text-ink-muted">{formatNumber(withAnamnesis)} com anamnese</p>
           </>
         )
       }}
@@ -96,8 +93,8 @@ function AccountsIndicator() {
         const balance = list.reduce((sum, account) => sum + account.saldo, 0)
         return (
           <>
-            <p className="mt-1 text-3xl font-bold text-slate-900">{formatNumber(list.length)}</p>
-            <p className="text-xs text-slate-500">
+            <p className="mt-1 text-3xl font-bold text-ink">{formatNumber(list.length)}</p>
+            <p className="text-xs text-ink-muted">
               {formatNumber(active)} ativas · saldo total {formatCurrency(balance)}
             </p>
           </>
@@ -121,11 +118,11 @@ function CreditsIndicator() {
         }))
         return (
           <>
-            <p className="mt-1 text-3xl font-bold text-slate-900">{formatNumber(list.length)}</p>
-            <p className="text-xs text-slate-500">{formatCurrency(approvedValue)} aprovados</p>
+            <p className="mt-1 text-3xl font-bold text-ink">{formatNumber(list.length)}</p>
+            <p className="text-xs text-ink-muted">{formatCurrency(approvedValue)} aprovados</p>
             {list.length > 0 && (
               <div
-                className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-100"
+                className="mt-3 flex h-2 overflow-hidden rounded-full bg-sunken"
                 aria-hidden="true"
               >
                 {counts.map(({ status, count }) => (
@@ -137,7 +134,7 @@ function CreditsIndicator() {
                 ))}
               </div>
             )}
-            <ul className="mt-2 space-y-0.5 text-xs text-slate-600">
+            <ul className="mt-2 space-y-0.5 text-xs text-ink-muted">
               {counts.map(({ status, count }) => (
                 <li key={status} className="flex items-center gap-2">
                   <span className={`size-2 rounded-full ${statusStyles[status].bar}`} />

@@ -72,14 +72,14 @@ function CustomersList() {
           {q ? `Nenhum cliente encontrado para "${q}".` : 'Nenhum cliente cadastrado ainda.'}
         </EmptyState>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-line bg-surface shadow-sm">
           <Table headers={['Cliente', 'CPF', 'E-mail', 'Renda mensal', 'Cadastro']}>
             {customers.data.map((customer) => (
               <tr key={customer.id}>
                 <td>
                   <Link
                     to={`/clientes/${customer.id}`}
-                    className="font-medium text-indigo-700 hover:underline"
+                    className="font-medium text-accent hover:underline"
                   >
                     {customer.nome}
                   </Link>

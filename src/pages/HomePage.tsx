@@ -46,7 +46,7 @@ export function HomePage() {
     <section className="space-y-8">
       <PageHeader
         title={firstName ? `Olá, ${firstName}` : 'Olá'}
-        description="Painel do ERP Banking e Crédito"
+        description="Backoffice da ErpIa"
       />
 
       {error && <Alert tone="error">{errorMessage(error)}</Alert>}
@@ -63,10 +63,10 @@ export function HomePage() {
             <Link
               key={to}
               to={to}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow"
+              className="rounded-xl border border-line bg-surface p-5 shadow-sm transition hover:border-accent/40 hover:shadow"
             >
-              <p className="font-semibold text-indigo-700">{title}</p>
-              <p className="mt-1 text-sm text-slate-600">{description}</p>
+              <p className="font-semibold text-accent">{title}</p>
+              <p className="mt-1 text-sm text-ink-muted">{description}</p>
             </Link>
           ))}
         </div>
@@ -75,7 +75,7 @@ export function HomePage() {
       <HomeIndicators />
 
       <div className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Status dos microsserviços</h2>
+        <h2 className="font-semibold text-ink">Status dos microsserviços</h2>
         {health.data ? (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {health.data.map((service) => (

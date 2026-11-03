@@ -73,7 +73,7 @@ function AccountsList() {
           {customerId ? `Nenhuma conta para o cliente #${customerId}.` : 'Nenhuma conta aberta.'}
         </EmptyState>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-line bg-surface shadow-sm">
           <AccountsTable accounts={accounts.data} />
         </div>
       )}

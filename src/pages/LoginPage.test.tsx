@@ -33,7 +33,7 @@ describe('LoginPage', () => {
       authorizationParams: undefined,
     })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Criar conta da empresa' }))
     expect(state.loginWithRedirect).toHaveBeenLastCalledWith({
       appState: { returnTo: '/clientes' },
       authorizationParams: { screen_hint: 'signup' },

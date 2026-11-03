@@ -56,7 +56,7 @@ function AccountDetail() {
         description={
           <>
             Titular:{' '}
-            <Link to={`/clientes/${a.customerId}`} className="text-indigo-700 hover:underline">
+            <Link to={`/clientes/${a.customerId}`} className="text-accent hover:underline">
               cliente #{a.customerId}
             </Link>
           </>
@@ -171,7 +171,7 @@ function Statement({ accountId }: { accountId: number }) {
                     {credit ? 'Crédito' : 'Débito'}
                   </Badge>
                 </td>
-                <td className={credit ? 'text-emerald-700' : 'text-red-700'}>
+                <td className={credit ? 'text-positive' : 'text-negative'}>
                   {credit ? '+' : '−'} {formatCurrency(transaction.valor)}
                 </td>
                 <td>{formatCurrency(transaction.saldoAtual)}</td>
