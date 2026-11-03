@@ -580,8 +580,27 @@ autenticacao, criado_em, created_by_nome}]`.
 | 404    | `{"error":"CONTA_A_PAGAR_NAO_ENCONTRADA","message":"..."}`         | `payable_id` inexistente ou de outra empresa |
 | 400    | `{"error":"validation_failed","message":"...","campos":{...}}`     | Corpo inválido ou `agendado_para` no passado |
 
-> **Pendente:** `PENDENTE_APROVACAO` (pagamento acima de `limite_pagamento`), `GET /me/payments/pending` e
-> `POST /me/payments/{id}/approve|reject` estão no PR #26 do Transactions, ainda não mergeado.
+#### Aprovação de pagamentos acima do limite
+
+Se o `valor` passa do `limite_pagamento` do membro, `POST /me/payments` responde 201 com `"status":
+"PENDENTE_APROVACAO"` e nada é debitado. A conta a pagar fica travada para outro pagamento enquanto houver um
+pendente (`422 PAGAMENTO_PENDENTE`).
+
+| Método e rota                    | Permissão            | Resposta                                                                       |
+| -------------------------------- | -------------------- | ------------------------------------------------------------------------------ |
+| `GET /me/payments/pending`       | `aprovar_pagamentos` | Pendentes da empresa, do mais recente ao mais antigo (mesmo item do histórico) |
+| `POST /me/payments/{id}/approve` | `aprovar_pagamentos` | Executa o pagamento (débito ou agendamento) e devolve o mesmo corpo do `POST`  |
+| `POST /me/payments/{id}/reject`  | `aprovar_pagamentos` | Corpo opcional `{"motivo": "..."}` (até 255); devolve o item com `REJEITADO`   |
+
+O item do histórico ganha `approved_by_nome`, `approved_at`, `rejected_by_nome`, `rejected_at` e
+`motivo_rejeicao`. Status possíveis: `EFETIVADO`, `AGENDADO`, `PENDENTE_APROVACAO` e `REJEITADO`.
+
+| Status | Corpo                                                                         | Quando                                         |
+| ------ | ----------------------------------------------------------------------------- | ---------------------------------------------- |
+| 403    | `{"error":"SEM_PERMISSAO","permissao":"aprovar_pagamentos","motivo":"AUTOR"}` | Quem pagou tenta aprovar ou rejeitar o próprio |
+| 404    | `{"error":"PAGAMENTO_NAO_ENCONTRADO","message":"..."}`                        | Id inexistente ou de outra empresa             |
+| 422    | `{"error":"PAGAMENTO_NAO_PENDENTE","message":"..."}`                          | Já aprovado, rejeitado ou não pendente         |
+| 422    | `{"error":"SALDO_INSUFICIENTE","faltam":250.0}`                               | Na aprovação, o saldo não cobre                |
 
 ### Crédito
 

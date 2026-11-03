@@ -151,8 +151,8 @@ próxima pergunta. Back: `POST /me/assistant/messages` no Score.
   apaga todas (soft delete: somem da API na hora). Um job no lifespan (no startup e a cada 6 h) remove de vez as
   conversas apagadas há mais de **30 dias** (`ASSISTANT_RETENTION_DAYS`).
 
-> **Atenção:** no `main` do front o painel ainda guarda as conversas no `sessionStorage`. As rotas de histórico do
-> Score já estão em produção, mas a lista "Conversas" que as consome ainda não foi ligada.
+- **Front:** o painel lista as conversas ("Conversas", com "mostrar mais"), guarda o `conversation_id` da conversa
+  ativa no `localStorage` (por `sub`) para retomá-la ao recarregar, e oferece apagar uma conversa ou todo o histórico.
 
 ```mermaid
 sequenceDiagram
@@ -206,10 +206,10 @@ no nosso banco (`onboarding.company_members`) e é aplicado pelos três back-end
   simular exige `pedir_credito`, contratar exige `contratar_credito` (quem só tem `pedir_credito` cria a proposta
   `AGUARDANDO_CONTRATACAO`, que alguém com `contratar_credito` confirma). Auditoria em `created_by_sub` e
   `created_by_nome`. Erro padronizado: 403 `{"error":"SEM_PERMISSAO","permissao":"pagar"}`.
-- **Limite de pagamento e aprovação:** `limite_pagamento` por membro (nulo = sem limite). O fluxo em que um
-  pagamento acima do limite fica `PENDENTE_APROVACAO` e é aprovado ou rejeitado por quem tem `aprovar_pagamentos`
-  (nunca o próprio autor) está no **PR #26 do Transactions, ainda aberto**; no `main`, o limite é lido mas ainda
-  não bloqueia o pagamento.
+- **Limite de pagamento e aprovação:** `limite_pagamento` por membro (nulo = sem limite). Um pagamento acima do
+  limite é criado como `PENDENTE_APROVACAO`, sem debitar. Quem tem `aprovar_pagamentos` (nunca o próprio autor) o
+  aprova, o que executa o débito, ou o rejeita (`REJEITADO`, motivo opcional). Auditoria em `approved_by_nome`,
+  `approved_at`, `rejected_by_nome` e `rejected_at`.
 - **Front:** gating em toda a UI pelo `membro.permissoes` (o botão aparece desabilitado com tooltip, em vez de
   sumir) e a página `/app/equipe`.
 - Uma permissão alterada ou um membro suspenso vale em até **60 s** (cache de `GET /me` no Score e no
@@ -293,13 +293,10 @@ persistentes. Todos os consumidores são **idempotentes por `event_id`** e as s�
 
 ## O que diverge do contrato
 
-| Tema                    | Contrato                                    | Código (`main`)                                                                                    |
-| ----------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Cache de `GET /me`      | 5 min por `sub`                             | 60 s (`ME_CACHE_TTL_SECONDS` no Score, fixo no Transactions), para permissões valerem logo         |
-| Aprovação de pagamentos | `PENDENTE_APROVACAO`, `/pending`, `approve` | No PR #26 do Transactions, aberto                                                                  |
-| Histórico no front      | Lista "Conversas" com `conversation_id`     | Back pronto; o front ainda usa `sessionStorage`                                                    |
-| Prazos máximos          | —                                           | Score sugere FINANCIAMENTO_ESTOQUE em 12 meses e CONSOLIDACAO em 48; o Transactions aceita 18 e 24 |
-| `CreditResponse`        | snake_case como o resto                     | camelCase (`customerId`, `valorSolicitado`, `createdByNome`), herdado da Etapa 4                   |
-| Extras                  | —                                           | `motivos_revisao`, `review_comment`/`reviewed_at`, `membro.nome`/`email`, `/confirm` do crédito    |
-| Edição do onboarding    | —                                           | Só o DONO; reenvio só a partir de `RASCUNHO` ou `REPROVADO`                                        |
-| `gerenciar_estoque`     | Rotas de estoque que escrevem               | Ainda não há rota de escrita de estoque                                                            |
+| Tema                 | Contrato                      | Código (`main`)                                                                                 |
+| -------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| Cache de `GET /me`   | 5 min por `sub`               | 60 s (`ME_CACHE_TTL_SECONDS` no Score, fixo no Transactions), para permissões valerem logo      |
+| `CreditResponse`     | snake_case como o resto       | camelCase (`customerId`, `valorSolicitado`, `createdByNome`), herdado da Etapa 4                |
+| Extras               | —                             | `motivos_revisao`, `review_comment`/`reviewed_at`, `membro.nome`/`email`, `/confirm` do crédito |
+| Edição do onboarding | —                             | Só o DONO; reenvio só a partir de `RASCUNHO` ou `REPROVADO`                                     |
+| `gerenciar_estoque`  | Rotas de estoque que escrevem | Ainda não há rota de escrita de estoque                                                         |
