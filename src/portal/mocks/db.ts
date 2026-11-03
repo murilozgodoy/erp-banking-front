@@ -141,7 +141,13 @@ interface OnboardingState {
   observacoes: string
   updatedAt: string | null
   submittedAt: string | null
+  /** Comentário do analista na decisão manual (o real guarda em `business_profiles.review_comment`). */
+  reviewComment?: string | null
 }
+
+/** Comentário de exemplo do cenário `?mock=reprovado`. */
+export const COMENTARIO_REPROVACAO =
+  'Não conseguimos confirmar o faturamento informado com o volume de vendas no cartão. Envie de novo com o faturamento dos últimos 3 meses.'
 
 function cenario(status: OnboardingStatus): OnboardingState {
   const agora = new Date().toISOString()
@@ -176,6 +182,7 @@ function cenario(status: OnboardingStatus): OnboardingState {
     observacoes: OBSERVACOES_AURORA,
     updatedAt: status === 'EM_ANALISE' ? agora : ontem,
     submittedAt: status === 'EM_ANALISE' ? agora : ontem,
+    reviewComment: status === 'REPROVADO' ? COMENTARIO_REPROVACAO : null,
   }
 }
 
@@ -271,7 +278,7 @@ export function me(): Me {
 
 export function rascunho(): OnboardingDraft {
   const estado = estadoOnboarding()
-  return {
+  const draft: OnboardingDraft = {
     empresa: estado.empresa,
     segmento: estado.segmento,
     respostas: estado.respostas,
@@ -279,6 +286,10 @@ export function rascunho(): OnboardingDraft {
     onboarding_status: estado.status,
     updated_at: estado.updatedAt,
   }
+  // Campo proposto ao Onboarding (ainda fora do contrato): o comentário da reprovação.
+  return estado.status === 'REPROVADO' && estado.reviewComment
+    ? Object.assign(draft, { review_comment: estado.reviewComment })
+    : draft
 }
 
 function vazio(valor: unknown): boolean {
@@ -471,7 +482,11 @@ export function decidir(customerId: number, decisao: ReviewDecision): DecidirRes
     const { status } = estadoOnboarding()
     if (status === 'NAO_INICIADO') return { tipo: 'nao_encontrado' }
     if (status !== 'ANALISE_MANUAL') return conflito(status)
-    onboarding = { ...onboarding, status: decisao.decisao }
+    onboarding = {
+      ...onboarding,
+      status: decisao.decisao,
+      reviewComment: decisao.comentario || null,
+    }
     salvar(onboarding)
     return { tipo: 'ok', resultado }
   }
