@@ -75,7 +75,7 @@ export function DataTable<T>({
   if (rows.length === 0 && empty) return <>{empty}</>
 
   return (
-    // `relative`: o texto sr-only (absoluto) das células fica contido na rolagem e não alarga a página.
+    // `relative`: sem ele, os `.sr-only` (absolutos) das células escapam da rolagem e alargam a página.
     <div className="relative overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{caption}</caption>

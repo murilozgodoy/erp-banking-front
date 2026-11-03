@@ -39,7 +39,7 @@ export default defineConfig([
   },
   {
     // Playwright roda em Node (process.env) e não usa React.
-    files: ['e2e/**', 'playwright.config.ts'],
+    files: ['e2e/**', 'playwright.config.ts', 'playwright.portal.config.ts'],
     languageOptions: { globals: globals.node },
   },
   // Deve ser o último: desliga regras de estilo que conflitam com o Prettier.

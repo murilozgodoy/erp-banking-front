@@ -8,7 +8,7 @@ export default mergeConfig(
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
-      // e2e/ é do Playwright (npm run test:e2e), contra a produção.
+      // e2e/ é do Playwright: produção (npm run test:e2e) e portal em mock (e2e/portal).
       exclude: [...configDefaults.exclude, 'e2e/**'],
       // Formulários longos com userEvent passam de 5 s em máquinas lentas.
       testTimeout: 20_000,
