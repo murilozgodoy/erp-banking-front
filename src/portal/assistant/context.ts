@@ -18,6 +18,8 @@ export interface AssistantContextValue {
   /** Texto do campo de pergunta (sobrevive ao fechar o painel). */
   draft: string
   setDraft: (draft: string) => void
+  /** Primeiro nome do usuário, para a saudação (ou `undefined`). */
+  firstName?: string
 }
 
 export const AssistantContext = createContext<AssistantContextValue | null>(null)

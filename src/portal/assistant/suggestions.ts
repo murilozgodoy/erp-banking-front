@@ -8,91 +8,117 @@ export type AssistantScreen =
   | '/app/estoque'
   | '/app/credito'
 
-interface ScreenContext {
-  /** Nome da tela, para "Sugestões para …". */
-  nome: string
-  /** 4 a 6 perguntas para o estado vazio. */
-  perguntas: string[]
-  /** Status calmos do "pensando", na ordem em que o assistente trabalha. */
-  status: string[]
+/** Ícone da sugestão (mapeado para lucide no painel). */
+export type SugestaoIcone =
+  | 'trend'
+  | 'alert'
+  | 'credit'
+  | 'list'
+  | 'calendar'
+  | 'package'
+  | 'store'
+  | 'wallet'
+  | 'receipt'
+  | 'chat'
+
+/** Sugestão do estado vazio: rótulo curto no chip, pergunta completa no envio. */
+export interface Sugestao {
+  label: string
+  pergunta: string
+  icone: SugestaoIcone
 }
+
+interface ScreenContext {
+  nome: string
+  /** 4 a 6 sugestões para o estado vazio. */
+  sugestoes: Sugestao[]
+}
+
+const s = (icone: SugestaoIcone, label: string, pergunta: string): Sugestao => ({
+  label,
+  pergunta,
+  icone,
+})
 
 const SCREENS: Record<AssistantScreen, ScreenContext> = {
   '/app': {
     nome: 'Visão geral',
-    perguntas: [
-      'Quando meu caixa fica negativo, e por quê?',
-      'Qual crédito resolve o vale do caixa?',
-      'Como está minha receita em relação ao mês passado?',
-      'O que devo resolver primeiro esta semana?',
-      'Quanto tenho a receber nos próximos 90 dias?',
+    sugestoes: [
+      s('alert', 'Vale de caixa', 'Quando meu caixa fica negativo, e por quê?'),
+      s('credit', 'Crédito para o vale', 'Qual crédito resolve o vale do caixa?'),
+      s('trend', 'Receita do mês', 'Como está minha receita em relação ao mês passado?'),
+      s('list', 'Prioridades da semana', 'O que devo resolver primeiro esta semana?'),
+      s('calendar', 'A receber em 90 dias', 'Quanto tenho a receber nos próximos 90 dias?'),
     ],
-    status: ['Lendo o fluxo de caixa…', 'Cruzando com recebíveis e contas…'],
   },
   '/app/vendas': {
     nome: 'Vendas',
-    perguntas: [
-      'Quanto vendi nos últimos 30 dias?',
-      'Quais produtos mais vendem?',
-      'Como o crédito parcelado afeta meu prazo de recebimento?',
-      'Qual canal tem o maior ticket médio?',
+    sugestoes: [
+      s('trend', 'Vendas em 30 dias', 'Quanto vendi nos últimos 30 dias?'),
+      s('package', 'Mais vendidos', 'Quais produtos mais vendem?'),
+      s(
+        'calendar',
+        'Efeito do parcelado',
+        'Como o crédito parcelado afeta meu prazo de recebimento?',
+      ),
+      s('store', 'Ticket por canal', 'Qual canal tem o maior ticket médio?'),
     ],
-    status: ['Lendo suas vendas…', 'Comparando canais e formas de pagamento…'],
   },
   '/app/recebiveis': {
     nome: 'Recebíveis',
-    perguntas: [
-      'Quanto consigo antecipar sem apertar dezembro?',
-      'Quanto tenho a receber nos próximos 90 dias?',
-      'Qual adquirente concentra mais recebíveis?',
-      'Vale a pena antecipar agora ou esperar?',
+    sugestoes: [
+      s('wallet', 'Quanto antecipar', 'Quanto consigo antecipar sem apertar dezembro?'),
+      s('calendar', 'Vencimentos da semana', 'Quais recebíveis vencem esta semana?'),
+      s('alert', 'Vale de caixa', 'Quando meu caixa fica negativo, e por quê?'),
+      s('store', 'Por adquirente', 'Qual adquirente concentra mais recebíveis?'),
+      s('credit', 'Antecipar ou esperar', 'Vale a pena antecipar agora ou esperar?'),
     ],
-    status: ['Lendo seus recebíveis…', 'Simulando a antecipação…'],
   },
   '/app/pagamentos': {
     nome: 'Pagamentos',
-    perguntas: [
-      'Quais boletos vencem esta semana?',
-      'Meu saldo cobre as contas dos próximos 7 dias?',
-      'Quanto estou pagando de juros em contas atrasadas?',
-      'Quais contas posso pagar com capital de giro?',
+    sugestoes: [
+      s('calendar', 'Boletos da semana', 'Quais boletos vencem esta semana?'),
+      s('wallet', 'O saldo cobre?', 'Meu saldo cobre as contas dos próximos 7 dias?'),
+      s('alert', 'Juros em atraso', 'Quanto estou pagando de juros em contas atrasadas?'),
+      s('credit', 'Pagar com giro', 'Quais contas posso pagar com capital de giro?'),
     ],
-    status: ['Lendo suas contas a pagar…', 'Conferindo o saldo…'],
   },
   '/app/pendencias': {
     nome: 'Pendências',
-    perguntas: [
-      'Quais pendências custam mais caro se eu esperar?',
-      'Como resolvo as contas atrasadas?',
-      'Quais itens de estoque estão abaixo do mínimo?',
-      'Tenho propostas de crédito para aceitar?',
+    sugestoes: [
+      s('alert', 'O que custa mais', 'Quais pendências custam mais caro se eu esperar?'),
+      s('receipt', 'Contas atrasadas', 'Como resolvo as contas atrasadas?'),
+      s('package', 'Estoque baixo', 'Quais itens de estoque estão abaixo do mínimo?'),
+      s('credit', 'Propostas de crédito', 'Tenho propostas de crédito para aceitar?'),
     ],
-    status: ['Lendo suas pendências…', 'Ordenando pelo custo de esperar…'],
   },
   '/app/estoque': {
     nome: 'Estoque',
-    perguntas: [
-      'Quais itens estão parados e quanto dinheiro eles prendem?',
-      'O que preciso repor primeiro?',
-      'Quanto consigo financiar com o meu estoque?',
-      'Qual é a cobertura média do estoque em dias?',
+    sugestoes: [
+      s('package', 'Itens parados', 'Quais itens estão parados e quanto dinheiro eles prendem?'),
+      s('alert', 'O que repor', 'O que preciso repor primeiro?'),
+      s('credit', 'Financiar estoque', 'Quanto consigo financiar com o meu estoque?'),
+      s('calendar', 'Cobertura em dias', 'Qual é a cobertura média do estoque em dias?'),
     ],
-    status: ['Lendo seu estoque…', 'Calculando o giro dos itens…'],
   },
   '/app/credito': {
     nome: 'Crédito',
-    perguntas: [
-      'Qual é o meu limite pré-aprovado hoje?',
-      'Qual crédito sai mais barato para mim?',
-      'Quanto pago no total em 12 parcelas de capital de giro?',
-      'Antecipação ou capital de giro: qual faz mais sentido agora?',
+    sugestoes: [
+      s('credit', 'Meu limite hoje', 'Qual é o meu limite pré-aprovado hoje?'),
+      s('trend', 'Crédito mais barato', 'Qual crédito sai mais barato para mim?'),
+      s(
+        'receipt',
+        '12 parcelas de giro',
+        'Quanto pago no total em 12 parcelas de capital de giro?',
+      ),
+      s(
+        'wallet',
+        'Antecipar ou giro',
+        'Antecipação ou capital de giro: qual faz mais sentido agora?',
+      ),
     ],
-    status: ['Lendo suas ofertas de crédito…', 'Simulando as condições…'],
   },
 }
-
-/** Último status, comum a todas as telas. */
-export const STATUS_FINAL = 'Escrevendo a resposta…'
 
 /** Tela do assistente para um pathname (`/app/recebiveis/` → `/app/recebiveis`). */
 export function screenFor(pathname: string): AssistantScreen {
@@ -107,14 +133,28 @@ export function screenContext(pathname: string): ScreenContext {
   return SCREENS[screenFor(pathname)]
 }
 
-/** Perguntas sugeridas para a tela atual. */
-export function suggestionsFor(pathname: string): string[] {
-  return screenContext(pathname).perguntas
+/** Sugestões do estado vazio para a tela atual. */
+export function suggestionsFor(pathname: string): Sugestao[] {
+  return screenContext(pathname).sugestoes
 }
 
-/** Sequência de status do "pensando" para a tela atual. */
-export function thinkingStatus(pathname: string): string[] {
-  return [...screenContext(pathname).status, STATUS_FINAL]
+const ICONE_POR_PALAVRA: [SugestaoIcone, RegExp][] = [
+  ['alert', /negativ|vale|atras|juros|risco|pendenc/],
+  ['wallet', /antecip|saldo|receb/],
+  ['calendar', /venc|semana|prazo|dia|mes/],
+  ['package', /estoque|ite(m|ns)|produto|repor/],
+  ['credit', /credito|limite|taxa|giro|parcela|emprest|custa/],
+  ['trend', /vend|receita|ticket|fluxo|caixa/],
+  ['store', /canal|adquirente|fornecedor/],
+]
+
+/** Ícone para uma pergunta solta (sugestões que vêm da resposta). */
+export function iconFor(pergunta: string): SugestaoIcone {
+  const texto = pergunta
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+  return ICONE_POR_PALAVRA.find(([, regex]) => regex.test(texto))?.[0] ?? 'chat'
 }
 
 /** Pergunta escrita a partir de um insight (vai para o campo, sem enviar). */

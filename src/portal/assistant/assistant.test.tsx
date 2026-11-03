@@ -14,7 +14,7 @@ import { InsightBlock } from '../ui/InsightBlock'
 import { AssistantLauncher } from './AssistantLauncher'
 import { AssistantProvider } from './AssistantProvider'
 import { Markdown } from './markdown'
-import { insightQuestion, screenFor, suggestionsFor, thinkingStatus } from './suggestions'
+import { iconFor, insightQuestion, screenFor, suggestionsFor } from './suggestions'
 import { classify, storageKey, toApiMessages, type ChatEntry } from './useAssistant'
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }))
@@ -100,10 +100,14 @@ describe('Assistente ErpIa', () => {
     renderAssistant()
     await user.click(launcher())
     const sheet = dialog()
-    expect(within(sheet).getByText('Sugestões para Recebíveis')).toBeInTheDocument()
-    for (const pergunta of suggestionsFor('/app/recebiveis')) {
-      expect(within(sheet).getByRole('button', { name: pergunta })).toBeInTheDocument()
+    expect(within(sheet).getByText('Olá, Maria.')).toBeInTheDocument()
+    expect(within(sheet).getByRole('list', { name: 'A partir desta tela' })).toBeInTheDocument()
+    for (const sugestao of suggestionsFor('/app/recebiveis')) {
+      const chip = within(sheet).getByRole('button', { name: sugestao.pergunta })
+      expect(chip).toHaveTextContent(sugestao.label)
     }
+    expect(within(sheet).getByTestId('assistant-mark')).toHaveAttribute('data-state', 'idle')
+    expect(within(sheet).getByText(/^dados de \d{2}\/\d{2} \d{2}:\d{2}$/)).toBeInTheDocument()
     expect(
       within(sheet).getByText(
         'Respostas geradas por IA com base nos dados da sua empresa. Confira antes de decidir.',
@@ -121,7 +125,9 @@ describe('Assistente ErpIa', () => {
     await user.click(screen.getByRole('textbox', { name: 'Busca' }))
     await user.keyboard('{Control>}k{/Control}')
     expect(dialog()).toBeInTheDocument()
-    expect(screen.getByText('Sugestões para Estoque')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: suggestionsFor('/app/estoque')[0].pergunta }),
+    ).toBeInTheDocument()
     await user.keyboard('{Meta>}k{/Meta}')
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     await user.keyboard('k')
@@ -141,9 +147,8 @@ describe('Assistente ErpIa', () => {
     await user.click(launcher())
     await user.type(composer(), 'Quanto tenho a receber?{Enter}')
 
-    expect(await screen.findByTestId('assistant-thinking')).toHaveTextContent(
-      thinkingStatus('/app/recebiveis')[0],
-    )
+    expect(await screen.findByTestId('assistant-thinking')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Lendo seus dados…')
     expect(
       screen.getByRole('heading', { name: /Você perguntou:\s*Quanto tenho a receber\?/ }),
     ).toBeInTheDocument()
@@ -161,7 +166,17 @@ describe('Assistente ErpIa', () => {
     expect(screen.queryByTestId('assistant-thinking')).not.toBeInTheDocument()
     expect(within(log).getByText('Baseado em:')).toBeInTheDocument()
     expect(within(log).getByText('Visão geral')).toBeInTheDocument()
-    expect(within(log).getByTestId('fontes-check')).toBeInTheDocument()
+    expect(within(log).getByRole('status')).toHaveTextContent('Leitura concluída')
+    // O card concluído vira um resumo expansível com as fontes.
+    const resumo = await within(log).findByRole(
+      'button',
+      { name: /Leitura concluída · 2 fontes/ },
+      { timeout: 3000 },
+    )
+    expect(resumo).toHaveAttribute('aria-expanded', 'false')
+    await user.click(resumo)
+    expect(resumo).toHaveAttribute('aria-expanded', 'true')
+    expect(within(log).getByText('Projetando o caixa dos próximos 60 dias')).toBeInTheDocument()
     expect(within(log).getByRole('button', { name: 'Simular antecipação' })).toBeInTheDocument()
     // Rotas fora do portal não viram botão (a resposta é tratada como dado).
     expect(within(log).queryByRole('button', { name: 'Site externo' })).not.toBeInTheDocument()
@@ -175,11 +190,13 @@ describe('Assistente ErpIa', () => {
     const user = userEvent.setup()
     renderAssistant()
     await user.click(launcher())
-    await user.click(screen.getByRole('button', { name: suggestionsFor('/app/recebiveis')[0] }))
+    await user.click(
+      screen.getByRole('button', { name: suggestionsFor('/app/recebiveis')[0].pergunta }),
+    )
     await user.click(await screen.findByRole('button', { name: 'Qual adquirente concentra mais?' }))
     await waitFor(() => expect(bodies).toHaveLength(2))
     expect(bodies[1].messages).toEqual([
-      { role: 'user', content: suggestionsFor('/app/recebiveis')[0] },
+      { role: 'user', content: suggestionsFor('/app/recebiveis')[0].pergunta },
       { role: 'assistant', content: RESPOSTA.resposta },
       { role: 'user', content: 'Qual adquirente concentra mais?' },
     ])
@@ -224,9 +241,9 @@ describe('Assistente ErpIa', () => {
     expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeDisabled()
     await user.type(composer(), 'Outra')
     expect(screen.getByRole('button', { name: 'Enviar pergunta' })).toBeDisabled()
-    // "Nova conversa" zera o bloqueio local (o servidor ainda decide).
+    // O limite é por usuário: vale também numa conversa nova.
     await user.click(screen.getByRole('button', { name: 'Nova conversa' }))
-    expect(screen.getByRole('button', { name: 'Enviar pergunta' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Enviar pergunta' })).toBeDisabled()
   })
 
   it('429 sem Retry-After pede para tentar em instantes', async () => {
@@ -290,25 +307,69 @@ describe('Assistente ErpIa', () => {
     expect(screen.getAllByRole('heading', { name: /Minha pergunta/ })).toHaveLength(1)
   })
 
-  it('guarda a conversa na sessão; "Nova conversa" limpa', async () => {
+  it('guarda as conversas na sessão: retomar, voltar, apagar uma e apagar tudo', async () => {
     answerWith()
     const user = userEvent.setup()
     const { unmount } = renderAssistant()
     await user.click(launcher())
     await user.type(composer(), 'Quanto tenho?{Enter}')
     await screen.findByText('R$ 120 mil')
-    const saved = JSON.parse(sessionStorage.getItem(KEY) ?? '[]') as ChatEntry[]
-    expect(saved.map((entry) => entry.role)).toEqual(['user', 'assistant'])
+    const saved = JSON.parse(sessionStorage.getItem(KEY) ?? '{}') as {
+      conversations: { titulo: string; entries: ChatEntry[] }[]
+    }
+    expect(saved.conversations[0].titulo).toBe('Quanto tenho?')
+    expect(saved.conversations[0].entries.map((entry) => entry.role)).toEqual(['user', 'assistant'])
     unmount()
 
     renderAssistant()
     await user.click(launcher())
+    // A conversa aberta volta com a sessão, já resumida.
     expect(screen.getByText('R$ 120 mil')).toBeInTheDocument()
-    // Restaurada do histórico: sem o check desenhado de novo, mas com as sugestões.
-    expect(screen.getByRole('button', { name: 'Qual adquirente concentra mais?' }))
-    await user.click(screen.getByRole('button', { name: 'Nova conversa' }))
-    expect(screen.getByText('Sugestões para Recebíveis')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Leitura concluída/ })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Voltar' }))
+    expect(screen.getByText('Olá, Maria.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Conversas' }))
+    const item = screen.getByRole('button', { name: /^Quanto tenho\?/ })
+    expect(item).toHaveTextContent('2 mensagens')
+    await user.click(item)
+    expect(screen.getByText('R$ 120 mil')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Conversas' }))
+    await user.click(screen.getByRole('button', { name: 'Apagar a conversa "Quanto tenho?"' }))
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await user.click(screen.getByRole('button', { name: 'Apagar a conversa "Quanto tenho?"' }))
+    await user.click(screen.getByRole('button', { name: 'Apagar' }))
+    expect(screen.getByText('Suas conversas desta sessão aparecem aqui.')).toBeInTheDocument()
     expect(sessionStorage.getItem(KEY)).toBeNull()
+
+    // Duas conversas e "Apagar todo o histórico", com confirmação na própria lista.
+    await user.click(screen.getByRole('button', { name: 'Conversas' }))
+    await user.type(composer(), 'Outra{Enter}')
+    await screen.findByText('R$ 120 mil')
+    await user.click(screen.getByRole('button', { name: 'Nova conversa' }))
+    await user.type(composer(), 'Mais uma{Enter}')
+    await waitFor(() => expect(screen.getAllByText('R$ 120 mil')).toHaveLength(1))
+    await user.click(screen.getByRole('button', { name: 'Conversas' }))
+    expect(screen.getAllByRole('button', { name: /^Apagar a conversa/ })).toHaveLength(2)
+    await user.click(screen.getByRole('button', { name: 'Apagar todo o histórico' }))
+    await user.click(screen.getByRole('button', { name: 'Apagar tudo' }))
+    expect(screen.getByText('Suas conversas desta sessão aparecem aqui.')).toBeInTheDocument()
+  })
+
+  it('o cabeçalho expande o painel e "Voltar" fecha na tela inicial', async () => {
+    const user = userEvent.setup()
+    renderAssistant()
+    await user.click(launcher())
+    await user.click(screen.getByRole('button', { name: 'Expandir painel' }))
+    expect(dialog().className).toContain('max-w-[720px]')
+    await user.click(screen.getByRole('button', { name: 'Reduzir painel' }))
+    expect(dialog().className).toContain('max-w-[420px]')
+    await user.click(screen.getByRole('button', { name: 'Conversas' }))
+    await user.click(screen.getByRole('button', { name: 'Voltar' }))
+    expect(screen.getByText('Olá, Maria.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Voltar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('manda no máximo 20 mensagens, começando por uma pergunta', async () => {
@@ -425,12 +486,16 @@ describe('regras do assistente', () => {
     expect(screenFor('/app/credito/123')).toBe('/app/credito')
     expect(screenFor('/app/desconhecida')).toBe('/app')
     expect(suggestionsFor('/app').length).toBeGreaterThanOrEqual(4)
+    expect(iconFor('Quando o caixa fica negativo?')).toBe('alert')
+    expect(iconFor('Olá')).toBe('chat')
     for (const tela of ['/app/vendas', '/app/pagamentos', '/app/pendencias', '/app/credito']) {
       const perguntas = suggestionsFor(tela)
       expect(perguntas.length).toBeGreaterThanOrEqual(4)
       expect(perguntas.length).toBeLessThanOrEqual(6)
     }
-    expect(thinkingStatus('/app').at(-1)).toBe('Escrevendo a resposta…')
+    for (const sugestao of suggestionsFor('/app/credito')) {
+      expect(sugestao.label.split(' ').length).toBeLessThanOrEqual(4)
+    }
   })
 
   it('corta o histórico em 20 mensagens sem começar por uma resposta', () => {

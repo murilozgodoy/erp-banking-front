@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { errorMessage, retryAfterSeconds } from '@/lib/errors'
 
@@ -11,6 +11,8 @@ import type { Acao, AssistantMessage, AssistantRequest, AssistantResponse, Fonte
 export const MAX_MESSAGES = 20
 export const MAX_CHARS = 2000
 export const MAX_ROTA = 300
+/** Até quantas conversas ficam guardadas na sessão. */
+export const MAX_CONVERSATIONS = 15
 
 export type ChatEntry =
   | { id: string; role: 'user'; content: string }
@@ -28,6 +30,27 @@ export type AssistantFailure =
   | { kind: 'limite'; retryAfter?: number }
   | { kind: 'onboarding' }
   | { kind: 'falha'; message: string }
+
+export interface Conversation {
+  id: string
+  /** Primeira pergunta (até 80 caracteres). */
+  titulo: string
+  updated_at: string
+  entries: ChatEntry[]
+}
+
+/** Item da lista "Conversas" (mesmo formato de `GET /me/assistant/conversations`). */
+export interface ConversationSummary {
+  id: string
+  titulo: string
+  updated_at: string
+  mensagens: number
+}
+
+interface Store {
+  conversations: Conversation[]
+  currentId: string | null
+}
 
 const STORAGE_PREFIX = 'erpia-assistente'
 
@@ -48,18 +71,58 @@ function isEntry(value: unknown): value is ChatEntry {
   )
 }
 
-function load(key: string): ChatEntry[] {
+function isConversation(value: unknown): value is Conversation {
+  if (typeof value !== 'object' || value === null) return false
+  const c = value as Partial<Conversation>
+  return (
+    typeof c.id === 'string' &&
+    typeof c.titulo === 'string' &&
+    typeof c.updated_at === 'string' &&
+    Array.isArray(c.entries)
+  )
+}
+
+export function titleOf(question: string) {
+  const line = question.replace(/\s+/g, ' ').trim()
+  return line.length > 80 ? `${line.slice(0, 79)}…` : line
+}
+
+const EMPTY_STORE: Store = { conversations: [], currentId: null }
+
+function load(key: string): Store {
   try {
-    const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? '[]')
-    return Array.isArray(parsed) ? parsed.filter(isEntry) : []
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? 'null')
+    // Formato antigo: uma conversa só, como lista de mensagens.
+    if (Array.isArray(parsed)) {
+      const entries = parsed.filter(isEntry)
+      if (!entries.length) return EMPTY_STORE
+      const conversation: Conversation = {
+        id: 'sessao',
+        titulo: titleOf(entries[0].content),
+        updated_at: new Date().toISOString(),
+        entries,
+      }
+      return { conversations: [conversation], currentId: conversation.id }
+    }
+    const store = parsed as Partial<Store> | null
+    const conversations = Array.isArray(store?.conversations)
+      ? store.conversations
+          .filter(isConversation)
+          .map((c) => ({ ...c, entries: c.entries.filter(isEntry) }))
+      : []
+    const currentId =
+      typeof store?.currentId === 'string' && conversations.some((c) => c.id === store.currentId)
+        ? store.currentId
+        : null
+    return { conversations, currentId }
   } catch {
-    return []
+    return EMPTY_STORE
   }
 }
 
-function save(key: string, entries: ChatEntry[]) {
+function save(key: string, store: Store) {
   try {
-    if (entries.length) sessionStorage.setItem(key, JSON.stringify(entries))
+    if (store.conversations.length) sessionStorage.setItem(key, JSON.stringify(store))
     else sessionStorage.removeItem(key)
   } catch {
     // sessionStorage indisponível (modo privado, cota): a conversa só não persiste.
@@ -94,8 +157,11 @@ function newId() {
 }
 
 export interface AssistantChat {
+  /** Conversa aberta (`null` = tela inicial). */
+  currentId: string | null
+  conversations: ConversationSummary[]
   entries: ChatEntry[]
-  /** Pergunta em andamento (ainda sem resposta) ou que falhou. */
+  /** Pergunta em andamento (ainda sem resposta) ou que falhou, na conversa aberta. */
   pendingQuestion: string | null
   pending: boolean
   failure: AssistantFailure | null
@@ -105,29 +171,44 @@ export interface AssistantChat {
   freshId: string | null
   send: (question: string) => void
   retry: () => void
-  reset: () => void
+  /** Volta à tela inicial; a conversa atual continua no histórico. */
+  newConversation: () => void
+  openConversation: (id: string) => void
+  deleteConversation: (id: string) => void
+  deleteAll: () => void
 }
 
+interface Pending {
+  conversationId: string
+  question: string
+}
+
+const EMPTY: ChatEntry[] = []
+
 /**
- * Conversa com o assistente: histórico na sessionStorage (por `sub`), envio pela Score API
- * (`POST /me/assistant/messages`) e estado de erro com nova tentativa. A pergunta só entra no
- * histórico junto com a resposta, para que um erro não deixe duas perguntas seguidas.
+ * Conversas com o assistente: histórico na sessionStorage (por `sub`, até 15 conversas), envio
+ * pela Score API (`POST /me/assistant/messages`) e erro com nova tentativa. A pergunta só entra
+ * na conversa junto com a resposta, para que um erro não deixe duas perguntas seguidas; a
+ * resposta vai para a conversa em que foi feita, mesmo se o cliente trocar de conversa.
  */
 export function useAssistant({ sub, rota }: { sub?: string; rota: string }): AssistantChat {
   const api = usePortalApi()
   const key = storageKey(sub)
-  const [state, setState] = useState(() => ({ key, entries: load(key) }))
-  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
+  const [state, setState] = useState(() => ({ key, ...load(key) }))
+  const [pending, setPending] = useState<Pending | null>(null)
   const [failure, setFailure] = useState<AssistantFailure | null>(null)
   const [freshId, setFreshId] = useState<string | null>(null)
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null)
   // Troca de usuário: recarrega o histórico da nova chave (ajuste durante o render).
-  if (state.key !== key) setState({ key, entries: load(key) })
-  const entries = state.entries
-  // Conversa descartada ("Nova conversa") enquanto a resposta ainda vinha: ignora o resultado.
-  const generation = useRef(0)
+  if (state.key !== key) setState({ key, ...load(key) })
+  const current = state.conversations.find((c) => c.id === state.currentId)
+  const entries = current?.entries ?? EMPTY
+  const draftId = useRef<string | null>(null)
 
-  useEffect(() => save(state.key, state.entries), [state])
+  useEffect(
+    () => save(state.key, { conversations: state.conversations, currentId: state.currentId }),
+    [state],
+  )
 
   const mutation = useMutation({
     mutationFn: (request: AssistantRequest) => api.score.assistant(request),
@@ -138,36 +219,43 @@ export function useAssistant({ sub, rota }: { sub?: string; rota: string }): Ass
       const question = raw.trim().slice(0, MAX_CHARS)
       if (!question || mutation.isPending) return
       if (blockedUntil !== null && Date.now() < blockedUntil) return
-      const run = generation.current
-      setPendingQuestion(question)
+      // Pergunta da tela inicial abre uma conversa (que só entra na lista com a resposta).
+      const conversationId = state.currentId ?? newId()
+      draftId.current = current ? null : conversationId
+      setPending({ conversationId, question })
       setFailure(null)
       setFreshId(null)
+      if (!state.currentId) setState((s) => ({ ...s, currentId: conversationId }))
       mutation.mutate(
         { messages: toApiMessages(entries, question), rota: rota.slice(0, MAX_ROTA) },
         {
           onSuccess: (response: AssistantResponse) => {
-            if (run !== generation.current) return
             const answerId = newId()
-            setState((current) => ({
-              ...current,
-              entries: [
-                ...current.entries,
-                { id: newId(), role: 'user', content: question },
-                {
-                  id: answerId,
-                  role: 'assistant',
-                  content: response.resposta,
-                  fontes: response.fontes ?? [],
-                  acoes: response.acoes ?? [],
-                  sugestoes: response.sugestoes ?? [],
-                },
-              ],
-            }))
-            setPendingQuestion(null)
+            const now = new Date().toISOString()
+            const novas: ChatEntry[] = [
+              { id: newId(), role: 'user', content: question },
+              {
+                id: answerId,
+                role: 'assistant',
+                content: response.resposta,
+                fontes: response.fontes ?? [],
+                acoes: response.acoes ?? [],
+                sugestoes: response.sugestoes ?? [],
+              },
+            ]
+            setState((s) => {
+              const existing = s.conversations.find((c) => c.id === conversationId)
+              const updated: Conversation = existing
+                ? { ...existing, updated_at: now, entries: [...existing.entries, ...novas] }
+                : { id: conversationId, titulo: titleOf(question), updated_at: now, entries: novas }
+              const others = s.conversations.filter((c) => c.id !== conversationId)
+              return { ...s, conversations: [updated, ...others].slice(0, MAX_CONVERSATIONS) }
+            })
+            draftId.current = null
+            setPending(null)
             setFreshId(answerId)
           },
           onError: (error) => {
-            if (run !== generation.current) return
             const failed = classify(error)
             setFailure(failed)
             if (failed.kind === 'limite' && failed.retryAfter) {
@@ -177,32 +265,69 @@ export function useAssistant({ sub, rota }: { sub?: string; rota: string }): Ass
         },
       )
     },
-    [blockedUntil, entries, mutation, rota],
+    [blockedUntil, current, entries, mutation, rota, state.currentId],
   )
 
-  const retry = useCallback(() => {
-    if (pendingQuestion) send(pendingQuestion)
-  }, [pendingQuestion, send])
+  const visible = pending && pending.conversationId === state.currentId ? pending : null
 
-  const reset = useCallback(() => {
-    generation.current += 1
-    mutation.reset()
-    setState((current) => ({ ...current, entries: [] }))
-    setPendingQuestion(null)
-    setFailure(null)
+  const retry = useCallback(() => {
+    if (visible) send(visible.question)
+  }, [send, visible])
+
+  const go = useCallback(
+    (currentId: string | null) => {
+      // A pergunta que falhou é descartada ao sair da conversa; a que está a caminho, não.
+      if (!mutation.isPending) {
+        setPending(null)
+        setFailure(null)
+      }
+      setFreshId(null)
+      setState((s) => ({ ...s, currentId }))
+    },
+    [mutation.isPending],
+  )
+
+  const newConversation = useCallback(() => go(null), [go])
+  const openConversation = useCallback((id: string) => go(id), [go])
+
+  const deleteConversation = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      conversations: s.conversations.filter((c) => c.id !== id),
+      currentId: s.currentId === id ? null : s.currentId,
+    }))
+  }, [])
+
+  const deleteAll = useCallback(() => {
+    setState((s) => ({ ...s, conversations: [], currentId: null }))
     setFreshId(null)
-    setBlockedUntil(null)
-  }, [mutation])
+  }, [])
+
+  const conversations = useMemo(
+    () =>
+      state.conversations.map(({ id, titulo, updated_at, entries: list }) => ({
+        id,
+        titulo,
+        updated_at,
+        mensagens: list.length,
+      })),
+    [state.conversations],
+  )
 
   return {
+    currentId: state.currentId,
+    conversations,
     entries,
-    pendingQuestion,
-    pending: mutation.isPending,
-    failure,
+    pendingQuestion: visible?.question ?? null,
+    pending: mutation.isPending && !!visible,
+    failure: visible ? failure : null,
     blockedUntil,
     freshId,
     send,
     retry,
-    reset,
+    newConversation,
+    openConversation,
+    deleteConversation,
+    deleteAll,
   }
 }
