@@ -234,7 +234,7 @@ function ItemsPanel({ report }: { report: InventoryReport }) {
           value={filtro}
           onChange={setFiltro}
           options={[
-            { value: 'todos', label: 'Todos' },
+            { value: 'todos', label: `Todos (${report.itens.length})` },
             { value: 'abaixo', label: `Abaixo do mínimo (${report.abaixo_minimo})` },
             { value: 'parados', label: `Parados (${parados})` },
           ]}

@@ -90,7 +90,7 @@ describe('InventoryPage', () => {
       .slice(1)
     for (const row of rows) expect(within(row).getByText('Parado')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('radio', { name: 'Todos' }))
+    await user.click(screen.getByRole('radio', { name: /Todos/ }))
     await user.click(screen.getByRole('button', { name: 'Cobertura' }))
     expect(screen.getByRole('columnheader', { name: 'Cobertura' })).toHaveAttribute(
       'aria-sort',
