@@ -1,0 +1,28 @@
+/*
+ * Impressão do comprovante: com um comprovante aberto, só ele vai para o papel,
+ * em preto sobre branco, sem o painel lateral nem o portal por trás.
+ */
+@media print {
+  body:has([data-receipt]) * {
+    visibility: hidden;
+  }
+
+  body:has([data-receipt]) [data-receipt],
+  body:has([data-receipt]) [data-receipt] * {
+    visibility: visible;
+    color: #111 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body:has([data-receipt]) [data-receipt] {
+    position: fixed;
+    inset: 0;
+    padding: 24mm 18mm;
+    background: #fff !important;
+  }
+
+  body:has([data-receipt]) [data-receipt] [data-print-hide] {
+    display: none;
+  }
+}
