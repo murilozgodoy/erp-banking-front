@@ -6,7 +6,7 @@ import { permissaoNegada } from '../team/forbidden'
 import { portalKeys } from './queries'
 
 /** Telas do portal que não leem os números da empresa (o resto exige `ver_financeiro`). */
-const SEM_FINANCEIRO = ['/app/equipe', '/app/status', '/app/onboarding']
+const SEM_FINANCEIRO = ['/app/equipe', '/app/perfil', '/app/status', '/app/onboarding']
 
 export function precisaFinanceiro(pathname: string): boolean {
   return pathname.startsWith('/app') && !SEM_FINANCEIRO.some((p) => pathname.startsWith(p))

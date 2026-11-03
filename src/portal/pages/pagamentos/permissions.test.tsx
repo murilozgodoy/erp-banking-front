@@ -129,7 +129,7 @@ describe('Pagamentos com permissões (seção 11)', () => {
     const user = userEvent.setup()
     pendenteDe('OPERADOR', 3000, 'Moinho Paulista')
     setMembroLogado('FINANCEIRO')
-    let resposta: { status: number; body: unknown } = {
+    let resposta: { status: number; body: Record<string, unknown> } = {
       status: 403,
       body: { error: 'SEM_PERMISSAO', permissao: 'aprovar_pagamentos', motivo: 'AUTOR' },
     }
