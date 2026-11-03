@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 
 import { AnalisesPage } from '@/pages/analises/AnalisesPage'
 
-import { CreditPage } from './credito/CreditPage'
 import { InventoryPage } from './estoque/InventoryPage'
 import { OnboardingPage } from './onboarding/OnboardingPage'
 import { OverviewPage } from './overview/OverviewPage'
@@ -22,7 +21,6 @@ describe('páginas do portal (esqueleto)', () => {
     [PaymentsPage, 'Pagamentos'],
     [PendenciasPage, 'Pendências'],
     [InventoryPage, 'Estoque'],
-    [CreditPage, 'Crédito'],
     [OnboardingPage, 'Cadastro da empresa'],
     [StatusPage, 'Análise do cadastro'],
     [AnalisesPage, 'Fila de análise'],
