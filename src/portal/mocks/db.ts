@@ -1151,6 +1151,8 @@ export function pagar(req: Partial<PaymentRequest>): PagarResultado {
   }
   if (req.agendado_para !== undefined && !dataValida(req.agendado_para)) {
     campos.agendado_para = 'Use a data no formato yyyy-MM-dd.'
+  } else if (req.agendado_para !== undefined && req.agendado_para < e.dia) {
+    campos.agendado_para = 'A data do agendamento não pode estar no passado.'
   }
   if (Object.keys(campos).length > 0) return validacao(campos)
   const conta = req.payable_id ? e.payables.find((c) => c.id === req.payable_id) : undefined
@@ -1158,6 +1160,12 @@ export function pagar(req: Partial<PaymentRequest>): PagarResultado {
     return erro(404, 'CONTA_A_PAGAR_NAO_ENCONTRADA', 'Conta a pagar não encontrada.')
   }
   if (conta?.status === 'PAGO') return erro(422, 'CONTA_JA_PAGA', 'Esta conta já foi paga.')
+  if (conta?.status === 'AGENDADO') {
+    return erro(422, 'CONTA_JA_AGENDADA', 'Esta conta já tem um pagamento agendado.')
+  }
+  if (conta && r2(req.valor as number) !== conta.valor) {
+    return erro(422, 'VALOR_DIVERGENTE', 'O valor informado difere do valor da conta.')
+  }
   const agendado = dataValida(req.agendado_para)
   const futuro = agendado !== null && agendado > e.dia
   const valor = r2(req.valor as number)
