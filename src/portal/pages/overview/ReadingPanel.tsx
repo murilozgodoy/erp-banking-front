@@ -1,4 +1,4 @@
-import { Faisca } from '@/components/brand/Logo'
+import { Faisca, Marca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
 
 import type { BusinessAnalysis } from '../../types'
@@ -67,7 +67,7 @@ export function ReadingPanel({
         id="leitura-erpia-title"
         className="flex items-center gap-1.5 text-base font-semibold text-ink"
       >
-        Leitura da ErpIa
+        Leitura da <Marca />
         <Faisca />
       </h2>
       {analysis.resumo && (

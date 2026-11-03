@@ -1,7 +1,7 @@
 import { m } from 'motion/react'
 import { useId, useState } from 'react'
 
-import { Faisca } from '@/components/brand/Logo'
+import { Faisca, Marca } from '@/components/brand/Logo'
 import { formatCurrency, formatPercent } from '@/lib/format'
 
 import {
@@ -179,9 +179,9 @@ export function CreditSection() {
           </h2>
           <div className="lg:col-span-5 lg:col-start-8 lg:pt-2">
             <p className={`${lead} max-w-[56ch]`}>
-              A ErpIa cruza vendas, recebíveis, estoque e contas a pagar e só sugere crédito quando
-              ele cobre uma necessidade que aparece nos seus números. Cada sugestão mostra valor
-              pré-aprovado, custo e o motivo.
+              A <Marca /> cruza vendas, recebíveis, estoque e contas a pagar e só sugere crédito
+              quando ele cobre uma necessidade que aparece nos seus números. Cada sugestão mostra
+              valor pré-aprovado, custo e o motivo.
             </p>
             <p className="mt-4 flex items-center gap-2 text-sm text-credit-ink">
               <Faisca label={null} />

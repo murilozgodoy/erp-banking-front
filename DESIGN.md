@@ -16,6 +16,12 @@ Instrument Sans Variable, uma família só. Escala fixa em rem, razão ~1,2 (`te
 Títulos 600, corpo 400, valores 500/600. Todo número em `.tabular` (tnum). Valores em BRL pelo componente `Money`
 (centavos um degrau menores).
 
+## Nome em texto corrido
+
+Use `<Marca />` (`src/components/brand/Logo.tsx`) sempre que "ErpIa" aparecer em texto visível: tem o I
+serifado do logo, porque na Instrument Sans o texto puro lê "Erpla". Em `title`, `meta`, `aria-label` e sr-only,
+o texto puro.
+
 ## Elemento-assinatura: Faísca
 
 A estrela lima de 4 pontas do símbolo (`<Faisca/>`, `src/components/brand/Logo.tsx`). Marca **só** o que a ErpIa
@@ -46,5 +52,5 @@ tabela acessível equivalente.
 
 ## Não fazer
 
-Eyebrow acima de título, gradiente, texto em lima sobre fundo claro, Faísca decorativa, glass/blur decorativo,
+Eyebrow acima de título, gradiente decorativo (única exceção: as "Linhas de fluxo" atrás do hero da landing, conforme o BRAND.md), texto em lima sobre fundo claro, Faísca decorativa, glass/blur decorativo,
 borda lateral colorida > 1 px, sombra dura, emoji como ícone, numeração 01/02/03.

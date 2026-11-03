@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { usePermissions } from '@/hooks/usePermissions'
 import { errorMessage } from '@/lib/errors'
 import { checkServicesHealth } from '@/services/health'
+import { Marca } from '@/components/brand/Logo'
 
 /** Atalhos do painel, exibidos conforme as permissões do usuário. */
 const modules: { to: string; title: string; description: string; permission: Permission }[] = [
@@ -46,7 +47,11 @@ export function HomePage() {
     <section className="space-y-8">
       <PageHeader
         title={firstName ? `Olá, ${firstName}` : 'Olá'}
-        description="Backoffice da ErpIa"
+        description={
+          <>
+            Backoffice da <Marca />
+          </>
+        }
       />
 
       {error && <Alert tone="error">{errorMessage(error)}</Alert>}

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { ErpIaLogo, ErpIaMark, Faisca } from './Logo'
+import { ErpIaLogo, ErpIaMark, Faisca, Marca } from './Logo'
 
 describe('marca ErpIa', () => {
   it('logo tem nome acessível e variante para fundo escuro', () => {
@@ -31,5 +31,16 @@ describe('marca ErpIa', () => {
     expect(screen.getByRole('img', { name: 'Sugerido pela ErpIa' })).toBeInTheDocument()
     rerender(<Faisca label={null} />)
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('Marca: nome em texto corrido com o I serifado, lido como "ErpIa"', () => {
+    const { container } = render(
+      <p>
+        A <Marca /> lê a operação.
+      </p>,
+    )
+    expect(container.querySelector('[data-glyph="serif-i"]')).toBeInTheDocument()
+    expect(container.querySelector('.sr-only')).toHaveTextContent('ErpIa')
+    expect(container.querySelector('[aria-hidden]')).toHaveTextContent('Erpa')
   })
 })

@@ -3,7 +3,7 @@ import { ArrowRight, Hourglass, RotateCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
-import { Faisca } from '@/components/brand/Logo'
+import { Faisca, Marca } from '@/components/brand/Logo'
 import { errorMessage } from '@/lib/errors'
 import { useAnalysis, useMe, useOverview } from '../../layout/queries'
 import { money } from '../../lib/format'
@@ -275,7 +275,7 @@ function Analyzing({ onRefresh, refreshing }: { onRefresh: () => void; refreshin
         <div>
           <p className="font-semibold text-ink">Analisando o seu negócio</p>
           <p className="mt-1 max-w-[52ch] text-sm text-ink-muted">
-            A ErpIa está lendo vendas, contas e recebíveis para calcular o score e as ofertas de
+            A <Marca /> está lendo vendas, contas e recebíveis para calcular o score e as ofertas de
             crédito pré-aprovadas. Leva poucos segundos.
           </p>
         </div>

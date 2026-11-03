@@ -27,6 +27,7 @@ import {
 } from './format'
 import { queueKeys, type QueueStatus } from './queue'
 import { ReviewSheet } from './ReviewSheet'
+import { Marca } from '@/components/brand/Logo'
 
 const FILTERS: { value: QueueStatus; label: string; empty: string; teach: string }[] = [
   {
@@ -235,7 +236,12 @@ function ReviewQueue() {
     <section className="space-y-6">
       <PageHeader
         title="Fila de análise"
-        description="Empresas que a ErpIa encaminhou para decisão humana, da mais antiga para a mais nova."
+        description={
+          <>
+            Empresas que a <Marca /> encaminhou para decisão humana, da mais antiga para a mais
+            nova.
+          </>
+        }
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

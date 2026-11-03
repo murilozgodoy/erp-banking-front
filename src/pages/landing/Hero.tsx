@@ -1,4 +1,4 @@
-import { ErpIaLogo } from '@/components/brand/Logo'
+import { ErpIaLogo, Marca } from '@/components/brand/Logo'
 
 import { DashboardPreview } from './DashboardPreview'
 import { HeroThinking } from './HeroThinking'
@@ -69,8 +69,8 @@ export function Hero() {
           </h1>
           <p className="mt-6 max-w-[54ch] text-lg leading-relaxed text-ink-muted">
             Vendas, recebíveis, estoque e contas a pagar no mesmo sistema, com conta PJ, PIX e
-            boletos embutidos. A ErpIa acompanha esses números todo dia e mostra, em cada tela, qual
-            crédito resolve o que vem pela frente e quanto ele custa.
+            boletos embutidos. A <Marca /> acompanha esses números todo dia e mostra, em cada tela,
+            qual crédito resolve o que vem pela frente e quanto ele custa.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={signup} className={primaryButton}>

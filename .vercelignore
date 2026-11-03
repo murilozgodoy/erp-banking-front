@@ -1,0 +1,12 @@
+# Deploy por CLI: nenhum .env de dev nem artefato local sobe para a Vercel.
+.env
+.env.local
+.env.*.local
+.env.development*
+node_modules
+dist
+coverage
+e2e/test-results
+playwright-report
+test-results
+.vitest
