@@ -103,11 +103,14 @@ function PortalShell() {
     logout({ logoutParams: { returnTo: window.location.origin } })
   }
 
-  const rail = (
-    <div className="flex h-full flex-col gap-6 px-3 py-5">
-      <Link to="/app" aria-label="ErpIa, visão geral" className="px-2">
-        <ErpIaLogo onDark />
-      </Link>
+  // Na gaveta o logo já está na barra do topo: repeti-lo logo abaixo dele soava como eco.
+  const rail = (inDrawer: boolean) => (
+    <div className={cn('flex min-h-full flex-col gap-6 px-3 py-5', inDrawer && 'pb-24')}>
+      {!inDrawer && (
+        <Link to="/app" aria-label="ErpIa, visão geral" className="px-2">
+          <ErpIaLogo onDark />
+        </Link>
+      )}
 
       <div className="rounded-control border border-rail-raised px-3 py-2.5">
         <p className="flex items-center gap-2 truncate text-sm font-medium text-rail-ink">
@@ -186,7 +189,7 @@ function PortalShell() {
   return (
     <div className="min-h-dvh bg-paper text-ink lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
       <SkipLink />
-      <aside className="sticky top-0 hidden h-dvh bg-rail lg:block">{rail}</aside>
+      <aside className="sticky top-0 hidden h-dvh bg-rail lg:block">{rail(false)}</aside>
 
       {/* Telas estreitas: barra no topo + gaveta com o mesmo rail. */}
       <div className="sticky top-0 z-30 flex h-14 items-center justify-between bg-rail px-4 lg:hidden">
@@ -204,7 +207,12 @@ function PortalShell() {
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
       </div>
-      {menuOpen && <div className="fixed inset-0 top-14 z-20 bg-rail lg:hidden">{rail}</div>}
+      {/* `pb-24`: o botão flutuante do assistente não cobre "Sair" no fim da gaveta. */}
+      {menuOpen && (
+        <div className="fixed inset-0 top-14 z-20 overflow-y-auto bg-rail lg:hidden">
+          {rail(true)}
+        </div>
+      )}
 
       <div className="min-w-0">
         <main

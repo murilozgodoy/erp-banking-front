@@ -845,7 +845,7 @@ function HistoryView({ onOpen }: { onOpen: (id: string) => void }) {
         <MessageSquare aria-hidden className="size-5 text-ink-faint" />
         <p className="mt-3 text-sm font-medium text-ink">Suas conversas aparecem aqui.</p>
         <p className="mt-1 max-w-[34ch] text-sm text-ink-muted">
-          Cada conversa com a ErpIa fica guardada para você retomar depois, de qualquer tela.
+          Cada conversa com a <Marca /> fica guardada para você retomar depois, de qualquer tela.
         </p>
       </div>
     )
@@ -1091,7 +1091,7 @@ function Composer({ inputRef }: { inputRef: RefObject<HTMLTextAreaElement | null
           aria-describedby={`${id}-hint${near ? ` ${id}-count` : ''}`}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Converse com a ErpIa…"
+          placeholder="Pergunte sobre os números da sua empresa…"
           className="block [field-sizing:content] max-h-48 min-h-12 w-full resize-none bg-transparent text-[0.9375rem] leading-6 text-ink outline-none placeholder:text-ink-faint focus-visible:outline-none"
         />
         <div className="mt-1.5 flex items-center justify-between gap-3">
