@@ -159,15 +159,39 @@ export const SEGMENTS: Segment[] = [
   },
 ]
 
+/** Intervalo da troca automática de segmento na landing, enquanto ninguém mexeu no seletor. */
+export const SEGMENT_CYCLE_MS = 6000
+
+export interface OnboardingStep {
+  etapa: string
+  /** Uma linha sobre o que se preenche na etapa. */
+  detalhe: string
+  /** Tempo típico, em segundos. */
+  segundos: number
+}
+
 /** Etapas do cadastro com o tempo típico de cada uma (somam cerca de 3 minutos). */
-export const ONBOARDING_STEPS = [
-  { etapa: 'Dados da empresa', detalhe: 'CNPJ, nome e contato', tempo: '30 s' },
-  { etapa: 'Segmento', detalhe: 'Escolha o template', tempo: '10 s' },
+export const ONBOARDING_STEPS: OnboardingStep[] = [
+  { etapa: 'Dados da empresa', detalhe: 'CNPJ, nome e contato', segundos: 30 },
+  { etapa: 'Segmento', detalhe: 'Escolha o template do seu negócio', segundos: 10 },
   {
     etapa: 'Perguntas do segmento',
-    detalhe: 'Só o que importa para o seu tipo de negócio',
-    tempo: '1 min',
+    detalhe: 'Só o que muda para o seu tipo de negócio',
+    segundos: 60,
   },
-  { etapa: 'Observações', detalhe: 'Conte o que os números não mostram', tempo: '1 min' },
-  { etapa: 'Revisão', detalhe: 'Confira e envie. O rascunho fica salvo', tempo: '20 s' },
+  { etapa: 'Observações', detalhe: 'Conte o que os números não mostram', segundos: 60 },
+  { etapa: 'Revisão', detalhe: 'Confira e envie, o rascunho fica salvo', segundos: 20 },
 ]
+
+/** "30 s", "1 min", "1 min 30 s". */
+export function formatDuration(segundos: number): string {
+  const min = Math.floor(segundos / 60)
+  const s = segundos % 60
+  if (min === 0) return `${s} s`
+  return s === 0 ? `${min} min` : `${min} min ${s} s`
+}
+
+/** Tempo total do cadastro, arredondado para o minuto (≈ 3 min). */
+export function totalMinutes(steps: OnboardingStep[] = ONBOARDING_STEPS): number {
+  return Math.max(1, Math.round(steps.reduce((sum, step) => sum + step.segundos, 0) / 60))
+}
