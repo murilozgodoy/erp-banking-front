@@ -6,23 +6,39 @@ export interface ServiceHealth {
   name: string
   url: string
   online: boolean
+  /** Tempo de resposta do health check, em milissegundos. */
+  latencyMs?: number
 }
 
-const services = [
-  { name: 'Onboarding API', url: env.onboardingApiUrl },
-  { name: 'Credit Score API', url: env.scoreApiUrl },
-  { name: 'Transactions API', url: env.transactionsApiUrl },
-]
+interface HealthTarget {
+  name: string
+  url: string
+  path: string
+}
 
-/** `/health` é público nos 3 serviços: usa clients sem token. */
+/** Os 3 serviços e, se `VITE_GATEWAY_URL` estiver definida, o próprio API Gateway. */
+function targets(): HealthTarget[] {
+  const list: HealthTarget[] = [
+    { name: 'Onboarding API', url: env.onboardingApiUrl, path: '/health' },
+    { name: 'Credit Score API', url: env.scoreApiUrl, path: '/health' },
+    { name: 'Transactions API', url: env.transactionsApiUrl, path: '/health' },
+  ]
+  if (env.gatewayUrl) {
+    list.push({ name: 'API Gateway', url: env.gatewayUrl, path: '/gateway/health' })
+  }
+  return list
+}
+
+/** `/health` é público nos 3 serviços e no gateway: usa clients sem token. */
 export async function checkServicesHealth(
   createClient = createHttpClient,
 ): Promise<ServiceHealth[]> {
   return Promise.all(
-    services.map(async ({ name, url }) => {
+    targets().map(async ({ name, url, path }) => {
+      const start = performance.now()
       try {
-        await createClient(url).get('/health')
-        return { name, url, online: true }
+        await createClient(url).get(path)
+        return { name, url, online: true, latencyMs: Math.round(performance.now() - start) }
       } catch {
         return { name, url, online: false }
       }

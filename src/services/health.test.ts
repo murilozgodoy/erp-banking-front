@@ -5,7 +5,7 @@ import { fakeHttp } from '@/test/http'
 import { checkServicesHealth } from './health'
 
 describe('checkServicesHealth', () => {
-  it('marca online quem responde /health e offline quem falha', async () => {
+  it('marca online quem responde /health (com latência) e offline quem falha', async () => {
     const requested: string[] = []
     const createClient = (url: string) => {
       const { http } = fakeHttp((config) => {
@@ -18,10 +18,27 @@ describe('checkServicesHealth', () => {
     const result = await checkServicesHealth(createClient)
 
     expect(result).toEqual([
-      { name: 'Onboarding API', url: 'http://onboarding.test', online: true },
+      {
+        name: 'Onboarding API',
+        url: 'http://onboarding.test',
+        online: true,
+        latencyMs: expect.any(Number),
+      },
       { name: 'Credit Score API', url: 'http://score.test', online: false },
-      { name: 'Transactions API', url: 'http://transactions.test', online: true },
+      {
+        name: 'Transactions API',
+        url: 'http://transactions.test',
+        online: true,
+        latencyMs: expect.any(Number),
+      },
+      {
+        name: 'API Gateway',
+        url: 'http://gateway.test',
+        online: true,
+        latencyMs: expect.any(Number),
+      },
     ])
     expect(requested).toContain('http://transactions.test/health')
+    expect(requested).toContain('http://gateway.test/gateway/health')
   })
 })
