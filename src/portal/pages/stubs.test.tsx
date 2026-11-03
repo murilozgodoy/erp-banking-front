@@ -7,7 +7,6 @@ import { CreditPage } from './credito/CreditPage'
 import { OnboardingPage } from './onboarding/OnboardingPage'
 import { OverviewPage } from './overview/OverviewPage'
 import { PaymentsPage } from './pagamentos/PaymentsPage'
-import { PendenciasPage } from './pendencias/PendenciasPage'
 import { ReceivablesPage } from './recebiveis/ReceivablesPage'
 import { SalesPage } from './vendas/SalesPage'
 
@@ -18,7 +17,6 @@ describe('páginas do portal (esqueleto)', () => {
     [SalesPage, 'Vendas'],
     [ReceivablesPage, 'Recebíveis'],
     [PaymentsPage, 'Pagamentos'],
-    [PendenciasPage, 'Pendências'],
     [CreditPage, 'Crédito'],
     [OnboardingPage, 'Cadastro da empresa'],
     [AnalisesPage, 'Fila de análise'],
