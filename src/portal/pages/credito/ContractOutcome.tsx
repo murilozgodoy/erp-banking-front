@@ -34,13 +34,26 @@ const REQUEST_STATUS: Record<
     titulo: 'Proposta não aprovada',
     proximo: 'Tente um valor menor ou um prazo maior; a simulação mostra na hora o que é possível.',
   },
+  AGUARDANDO_CONTRATACAO: {
+    label: 'Aguardando contratação',
+    tone: 'info',
+    titulo: 'Proposta enviada para contratação',
+    proximo:
+      'Quem tem a permissão de contratar crédito confirma em Propostas e contratos; nada foi creditado ainda.',
+  },
 }
 
-const ICON = { APROVADO: CheckCircle2, REVISAO: Clock, NEGADO: XCircle }
+const ICON = {
+  APROVADO: CheckCircle2,
+  REVISAO: Clock,
+  NEGADO: XCircle,
+  AGUARDANDO_CONTRATACAO: Clock,
+}
 const ICON_TONE = {
   APROVADO: 'bg-positive-soft text-positive',
   REVISAO: 'bg-warning-soft text-warning',
   NEGADO: 'bg-negative-soft text-negative',
+  AGUARDANDO_CONTRATACAO: 'bg-info-soft text-info',
 }
 
 export function RequestStatusPill({ status }: { status: PortalCreditRequest['status'] }) {

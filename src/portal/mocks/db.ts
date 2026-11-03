@@ -68,6 +68,7 @@ import {
   type VendaDia,
 } from './seed'
 import { camposDe } from './templates'
+import * as team from './team'
 
 // ---------- o cliente logado ----------
 
@@ -243,6 +244,7 @@ export function resetMockDb(status: OnboardingStatus = 'NAO_INICIADO') {
   salvar(onboarding)
   fila = null
   erpCache = null
+  team.resetTeam()
 }
 
 /** Troca o cenário do onboarding mantendo os dados do ERP (barra de dev). */
@@ -273,6 +275,7 @@ export function me(): Me {
     customer_id: semCustomer ? null : CUSTOMER_ID,
     onboarding_status: estado.status,
     empresa: estado.empresa,
+    membro: semCustomer ? null : team.membroResumo(),
   }
 }
 
@@ -1220,6 +1223,46 @@ export function pagar(req: Partial<PaymentRequest>): PagarResultado {
   const destinatario = req.destinatario as string
   const descricao = req.descricao?.trim() || `Pagamento ${tipo}`
   const codigoBarras = req.codigo_barras ?? conta?.codigo_barras ?? null
+
+  // Acima do limite do membro: fica pendente de aprovação, sem débito (seção 11).
+  const limite = team.membroAtual().limite_pagamento
+  if (limite !== null && valor > limite) {
+    const pendente: Payment = {
+      id: e.seq.payment++,
+      tipo,
+      destinatario,
+      valor,
+      descricao,
+      payable_id: conta?.id ?? null,
+      agendado_para: futuro ? agendado : null,
+      codigo_barras: codigoBarras,
+      status: 'PENDENTE_APROVACAO',
+      autenticacao: null,
+      criado_em: new Date().toISOString(),
+      created_by_nome: team.membroAtual().nome,
+    }
+    e.payments.push(pendente)
+    return {
+      tipo: 'ok',
+      resposta: {
+        id: pendente.id,
+        status: 'PENDENTE_APROVACAO',
+        autenticacao: '',
+        saldo_apos: e.saldo,
+        comprovante: {
+          tipo,
+          valor,
+          destinatario,
+          descricao,
+          data_hora: pendente.criado_em,
+          agendado_para: pendente.agendado_para,
+          autenticacao: '',
+          conta_origem: { ...CONTA },
+          codigo_barras: codigoBarras,
+        },
+      },
+    }
+  }
   const auth = autenticacao(e.rng)
   if (futuro) {
     if (conta) conta.status = 'AGENDADO'
@@ -1232,6 +1275,7 @@ export function pagar(req: Partial<PaymentRequest>): PagarResultado {
   }
   const agora = new Date().toISOString()
   const status: PaymentResponse['status'] = futuro ? 'AGENDADO' : 'EFETIVADO'
+  const autor = team.membroAtual()
   const pagamento: Payment = {
     id: e.seq.payment++,
     tipo,
@@ -1244,6 +1288,7 @@ export function pagar(req: Partial<PaymentRequest>): PagarResultado {
     status,
     autenticacao: auth,
     criado_em: agora,
+    created_by_nome: autor.nome,
   }
   e.payments.push(pagamento)
   return {
@@ -1392,6 +1437,7 @@ const MOTIVOS: Record<PortalCreditRequest['status'], string> = {
   APROVADO: 'Pré-aprovado: crédito liberado na conta.',
   REVISAO: 'Valor acima do limite pré-aprovado: em análise pelo time de crédito.',
   NEGADO: 'Valor acima da capacidade de pagamento estimada.',
+  AGUARDANDO_CONTRATACAO: 'Proposta pronta: aguardando quem pode contratar confirmar.',
 }
 
 export function solicitarCredito(input: Partial<SolicitacaoInput>): SolicitarResultado {
@@ -1417,12 +1463,17 @@ export function solicitarCredito(input: Partial<SolicitacaoInput>): SolicitarRes
   const atual = registro as RegistroSimulacao
   atual.usada = true
   const { simulation } = atual
-  const status: PortalCreditRequest['status'] =
+  const aprovacao: PortalCreditRequest['status'] =
     simulation.aprovacao === 'PRE_APROVADO'
       ? 'APROVADO'
       : simulation.aprovacao === 'ANALISE'
         ? 'REVISAO'
         : 'NEGADO'
+  // Quem só pode pedir crédito deixa a proposta para quem pode contratar (seção 11).
+  const status: PortalCreditRequest['status'] =
+    aprovacao === 'APROVADO' && !team.pode('contratar_credito')
+      ? 'AGUARDANDO_CONTRATACAO'
+      : aprovacao
   const request: PortalCreditRequest = {
     id: e.seq.credit++,
     customerId: CUSTOMER_ID,
@@ -1435,6 +1486,7 @@ export function solicitarCredito(input: Partial<SolicitacaoInput>): SolicitarRes
     // O DTO usa fração ao mês; a simulação, percentual.
     taxaJuros: status === 'NEGADO' ? null : Math.round(simulation.taxa_mensal * 100) / 10_000,
     criadoEm: new Date().toISOString(),
+    createdByNome: team.membroAtual().nome,
   }
   e.creditRequests.push(request)
   if (status === 'APROVADO') {
@@ -1453,4 +1505,49 @@ export function solicitarCredito(input: Partial<SolicitacaoInput>): SolicitarRes
 
 export function propostas(): PortalCreditRequest[] {
   return [...erp().creditRequests].reverse()
+}
+
+// ---------- aprovação de pagamentos (seção 11) ----------
+
+export function pagamentosPendentes(): Payment[] {
+  return pagamentos().filter((p) => p.status === 'PENDENTE_APROVACAO')
+}
+
+export function decidirPagamento(
+  id: number,
+  decisao: 'approve' | 'reject',
+): { tipo: 'ok'; pagamento: Payment } | ErroApi {
+  const e = erp()
+  const pagamento = e.payments.find((p) => p.id === id)
+  if (!pagamento || pagamento.status !== 'PENDENTE_APROVACAO') {
+    return erro(404, 'PAGAMENTO_NAO_ENCONTRADO', 'Não há pagamento pendente com este id.')
+  }
+  const aprovador = team.membroAtual()
+  if (pagamento.created_by_nome === aprovador.nome) {
+    return erro(403, 'PROPRIO_AUTOR', 'Quem fez o pagamento não pode aprová-lo.')
+  }
+  if (decisao === 'reject') {
+    pagamento.status = 'REJEITADO'
+    pagamento.approved_by = aprovador.nome
+    return { tipo: 'ok', pagamento }
+  }
+  if (!pagamento.agendado_para && pagamento.valor > e.saldo) {
+    return erro(422, 'SALDO_INSUFICIENTE', 'Saldo insuficiente.', {
+      faltam: r2(pagamento.valor - e.saldo),
+    })
+  }
+  if (pagamento.agendado_para) {
+    pagamento.status = 'AGENDADO'
+  } else {
+    lancar(e, `${pagamento.tipo} — ${pagamento.destinatario}`, 'DEBIT', pagamento.valor)
+    pagamento.status = 'EFETIVADO'
+  }
+  const conta = pagamento.payable_id ? e.payables.find((c) => c.id === pagamento.payable_id) : null
+  if (conta) {
+    conta.status = pagamento.agendado_para ? 'AGENDADO' : 'PAGO'
+    if (!pagamento.agendado_para) conta.pago_em = e.dia
+  }
+  pagamento.autenticacao = autenticacao(e.rng)
+  pagamento.approved_by = aprovador.nome
+  return { tipo: 'ok', pagamento }
 }

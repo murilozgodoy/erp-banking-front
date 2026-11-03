@@ -130,6 +130,21 @@ describe('portal: porta, shell e roteamento', () => {
       expect(await screen.findByRole('link', { name: 'Ir para o backoffice' })).toBeInTheDocument()
     })
 
+    it('membro suspenso vê a explicação em vez do portal', async () => {
+      server.use(
+        http.get('http://onboarding.test/me', () =>
+          HttpResponse.json({ error: 'MEMBRO_SUSPENSO' }, { status: 403 }),
+        ),
+      )
+      vi.mocked(useAuth0).mockReturnValue(cliente())
+      renderApp('/app')
+      expect(
+        await screen.findByRole('heading', {
+          name: 'Seu acesso foi suspenso pelo administrador da empresa',
+        }),
+      ).toBeInTheDocument()
+    })
+
     it('mostra erro com nova tentativa quando o /me falha', async () => {
       server.use(
         http.get('http://onboarding.test/me', () => HttpResponse.json({}, { status: 500 })),
