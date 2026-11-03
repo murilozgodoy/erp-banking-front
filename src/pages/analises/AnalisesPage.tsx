@@ -253,7 +253,7 @@ function ReviewQueue() {
             setNotice(null)
             setSearchParams(value === 'ANALISE_MANUAL' ? {} : { status: value })
           }}
-          className="max-w-full overflow-x-auto"
+          className="max-w-full overflow-x-auto [&>button]:shrink-0 [&>button]:whitespace-nowrap"
         />
         {queue.isSuccess && (
           <p className="tabular text-sm text-ink-muted" aria-live="polite">

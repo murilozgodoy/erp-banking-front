@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { Can } from '@/components/auth/Can'
-import { Alert } from '@/components/ui/Alert'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Spinner } from '@/components/ui/Spinner'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
+import { ErrorState, PanelSkeleton } from '@/portal/ui/Surface'
 
 import { CreditRequestForm } from './CreditRequestForm'
 import { CreditsTable } from './CreditsTable'
@@ -26,9 +25,13 @@ export function CustomerCredits({ customerId }: { customerId: number }) {
           <CreditRequestForm customerId={customerId} />
         </Can>
         {credits.isPending ? (
-          <Spinner label="Carregando pedidos…" />
+          <PanelSkeleton label="Carregando pedidos…" />
         ) : credits.isError ? (
-          <Alert tone="error">{errorMessage(credits.error)}</Alert>
+          <ErrorState
+            title="Não conseguimos carregar os pedidos de crédito"
+            message={errorMessage(credits.error)}
+            onRetry={() => void credits.refetch()}
+          />
         ) : credits.data.length === 0 ? (
           <EmptyState>Nenhum pedido de crédito para este cliente.</EmptyState>
         ) : (

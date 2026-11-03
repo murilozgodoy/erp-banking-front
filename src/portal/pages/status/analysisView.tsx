@@ -56,7 +56,7 @@ export function ReadingTitle({
 }) {
   return (
     <Heading id={id} className="flex items-center gap-1.5 text-sm font-semibold text-ink">
-      {children}
+      <span>{children}</span>
       {ai && <Faisca label="Escrito pela IA da ErpIa" />}
     </Heading>
   )

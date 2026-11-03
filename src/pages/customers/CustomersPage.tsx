@@ -4,16 +4,15 @@ import { Link, useSearchParams } from 'react-router'
 
 import { Can } from '@/components/auth/Can'
 import { RequirePermission } from '@/components/auth/RequirePermission'
-import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
 import { ButtonLink } from '@/components/ui/ButtonLink'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { InputField } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Spinner } from '@/components/ui/Spinner'
 import { Table } from '@/components/ui/Table'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
+import { ErrorState, PanelSkeleton } from '@/portal/ui/Surface'
 import { formatCpf, formatCurrency, formatDate } from '@/lib/format'
 
 export function CustomersPage() {
@@ -64,9 +63,13 @@ function CustomersList() {
       </form>
 
       {customers.isPending ? (
-        <Spinner label="Carregando clientes…" />
+        <PanelSkeleton label="Carregando clientes…" />
       ) : customers.isError ? (
-        <Alert tone="error">{errorMessage(customers.error)}</Alert>
+        <ErrorState
+          title="Não conseguimos carregar os clientes"
+          message={errorMessage(customers.error)}
+          onRetry={() => void customers.refetch()}
+        />
       ) : customers.data.length === 0 ? (
         <EmptyState>
           {q ? `Nenhum cliente encontrado para "${q}".` : 'Nenhum cliente cadastrado ainda.'}
