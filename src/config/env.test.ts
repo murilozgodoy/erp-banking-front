@@ -16,6 +16,17 @@ describe('env', () => {
     expect(env.apiTimeoutMs).toBe(1000)
   })
 
+  it('URLs opcionais: sem barra final, ou undefined quando vazias', async () => {
+    vi.stubEnv('VITE_GATEWAY_URL', '/api/')
+    vi.stubEnv('VITE_GRAFANA_URL', 'http://grafana.test')
+    vi.stubEnv('VITE_PROMETHEUS_URL', '  ')
+    const { env } = await import('./env')
+
+    expect(env.gatewayUrl).toBe('/api')
+    expect(env.grafanaUrl).toBe('http://grafana.test')
+    expect(env.prometheusUrl).toBeUndefined()
+  })
+
   it('falha cedo quando falta uma variável obrigatória', async () => {
     vi.stubEnv('VITE_AUTH0_AUDIENCE', '  ')
 

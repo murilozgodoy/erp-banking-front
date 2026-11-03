@@ -23,10 +23,22 @@ function baseUrl(name: EnvName): string {
   return required(name).replace(/\/+$/, '')
 }
 
+type OptionalEnvName = 'VITE_GATEWAY_URL' | 'VITE_GRAFANA_URL' | 'VITE_PROMETHEUS_URL'
+
+/** URL opcional (gateway, Grafana, Prometheus): `undefined` quando não configurada. */
+function optionalUrl(name: OptionalEnvName): string | undefined {
+  const value = import.meta.env[name]?.trim().replace(/\/+$/, '')
+  return value || undefined
+}
+
 export const env = {
   onboardingApiUrl: baseUrl('VITE_ONBOARDING_API_URL'),
   scoreApiUrl: baseUrl('VITE_SCORE_API_URL'),
   transactionsApiUrl: baseUrl('VITE_TRANSACTIONS_API_URL'),
+  /** Base do API Gateway (`http://localhost:8080` local, `/api` na Vercel). */
+  gatewayUrl: optionalUrl('VITE_GATEWAY_URL'),
+  grafanaUrl: optionalUrl('VITE_GRAFANA_URL'),
+  prometheusUrl: optionalUrl('VITE_PROMETHEUS_URL'),
   apiTimeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 10000),
   auth0: {
     domain: required('VITE_AUTH0_DOMAIN'),
