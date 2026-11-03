@@ -23,11 +23,11 @@ para `http://3.235.6.136:8080/<prefixo>/...`.
 
 Respostas geradas pelo próprio gateway (JSON, sempre com o header `X-Request-ID`):
 
-| Status | Quando                                          | Corpo                                                                  |
-| ------ | ----------------------------------------------- | ---------------------------------------------------------------------- |
-| 429    | mais de 50 req/s por IP (burst 100)             | `{"detail":"Too Many Requests","request_id":"..."}` + `Retry-After: 1` |
-| 503    | serviço de destino fora do ar ou sem resposta   | `{"detail":"Service Unavailable","request_id":"..."}`                  |
-| 404    | rota fora dos prefixos, `/metrics`, `/actuator` | `{"detail":"Not Found","request_id":"..."}`                            |
+| Status | Quando                                                                          | Corpo                                                                  |
+| ------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 429    | > 50 req/s por cliente (burst 100) ou > 200 req/s por IP de conexão (burst 400) | `{"detail":"Too Many Requests","request_id":"..."}` + `Retry-After: 1` |
+| 503    | serviço de destino fora do ar ou sem resposta                                   | `{"detail":"Service Unavailable","request_id":"..."}`                  |
+| 404    | rota fora dos prefixos, `/metrics`, `/actuator`                                 | `{"detail":"Not Found","request_id":"..."}`                            |
 
 Os demais erros (400, 401, 403, 404, 409, 422...) vêm dos serviços sem alteração. Detalhes em
 [etapa-4.md](etapa-4.md#api-gateway).
