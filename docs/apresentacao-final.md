@@ -26,8 +26,8 @@ Fala: Murilo (abertura, 20 s).
 produto que construímos em cima disso, a ErpIa, um ERP para pequenas empresas com conta PJ e crédito embutidos."
 
 Arquivo-fonte (Marp). Exportar a partir da raiz do repo do front:
-npx @marp-team/marp-cli@4.1.2 docs/apresentacao-final.md --theme docs/marp-erpia.css --html --allow-local-files --pdf
-npx @marp-team/marp-cli@4.1.2 docs/apresentacao-final.md --theme docs/marp-erpia.css --html --allow-local-files --pptx
+npx @marp-team/marp-cli@4.1.2 --no-stdin docs/apresentacao-final.md --theme docs/marp-erpia.css --html --allow-local-files --pdf
+npx @marp-team/marp-cli@4.1.2 --no-stdin docs/apresentacao-final.md --theme docs/marp-erpia.css --html --allow-local-files --pptx
 (CHROME_PATH apontando para o Chrome instalado.) Diagramas: docs/img/final/diagramas/*.mmd.
 Duração-alvo: ~18 min de slides + ~8 min de demo.
 -->
@@ -54,7 +54,7 @@ Arquitetura e Etapa 4
 
 **Gabriel**
 Jornada do cliente, demo
-<span class="faint">slides 8–9, 18</span>
+<span class="faint">slides 8–9, 19</span>
 
 **João Vivacqua**
 Portal e crédito integrado
@@ -68,8 +68,8 @@ Assistente, equipe
 <span class="faint">slides 12–14</span>
 
 **João Baungartner**
-Qualidade, segurança, padrões
-<span class="faint">slides 15–17</span>
+Qualidade, segurança, isolamento, padrões
+<span class="faint">slides 15–18</span>
 
 </div>
 </div>
@@ -544,6 +544,60 @@ Postgres com SSL na Aiven; HTTPS na Vercel; headers de segurança; convites guar
 
 <!--
 Fala: João Baungartner (1 min 30 s). Escolher dois para aprofundar se o tempo apertar: token relay e outbox.
+-->
+
+---
+
+<!-- _class: dense compact -->
+
+## Isolamento entre empresas
+
+<div class="kpis k3">
+<div class="kpi"><span class="v">28</span><span class="l">rotas e fluxos revisados nos 3 serviços + gateway</span></div>
+<div class="kpi"><span class="v">11</span><span class="l">correções mergeadas</span></div>
+<div class="kpi ok"><span class="v">0</span><span class="l">vazamentos entre empresas</span></div>
+</div>
+
+<div class="cols">
+<div>
+
+| Serviço      | Corrigido                                                  |
+| ------------ | ---------------------------------------------------------- |
+| Transactions | recebíveis de outra empresa na simulação → sempre 404      |
+| Transactions | `receivable_ids` enorme dava 500 → máx. 200, sem duplicata |
+| Transactions | agendamento sem limite de data → até hoje + 365 dias       |
+| Transactions | CPF/e-mail em log de exceção → só `event_id` (LogSafe)     |
+| Onboarding   | token do convite no access log → mascarado                 |
+| Onboarding   | limite NaN/Infinity dava 500 → 422                         |
+
+</div>
+<div>
+
+| Serviço    | Corrigido                                                     |
+| ---------- | ------------------------------------------------------------- |
+| Onboarding | documento duplicado no 409 → só os 4 últimos dígitos          |
+| Onboarding | consumers logavam os valores recebidos → removido             |
+| Score      | ex-membro lia conversas da empresa antiga → filtro pela atual |
+| Score      | CNPJ e respostas em log dos consumers → removido              |
+| Gateway    | token do convite no log do nginx → `/invites/***/accept`      |
+
+<p class="xsmall faint mt">Teste de 404 entre empresas: corpo idêntico ao de id inexistente, nenhum dado alheio, nada muda no banco.</p>
+
+</div>
+</div>
+
+<!--
+Fala: João Baungartner (1 min). A Sessão B revisou rota a rota o que um cliente consegue fazer com ids de outra
+empresa: aprovar ou rejeitar pagamento, pagar conta, usar simulação ou recebíveis, editar membro, aceitar convite,
+ler conversa do assistente. Tudo responde 404 igual a um id inexistente e nada muda no banco; aprovações
+concorrentes geram exatamente 1 débito. Um item segue em andamento: gestor não DONO acima do próprio limite ou
+papel (PR da Sessão C).
+
+Riscos aceitos, com motivo:
+- o cache do /me tem 60 s, de propósito;
+- o aprovador não tem o próprio limite checado, porque está fora do contrato;
+- POST inválido de membro suspenso responde 400 em vez de 403, sem vazar nada;
+- paths de staff não mapeados respondem 404/405.
 -->
 
 ---
