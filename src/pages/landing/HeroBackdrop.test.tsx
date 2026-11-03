@@ -52,9 +52,59 @@ describe('HeroBackdrop', () => {
     expect(container.firstElementChild).toHaveAttribute('data-still', 'true')
   })
 
-  it('deriva cada faixa em x e y, defasadas, e pausa com a aba em segundo plano', () => {
+  it('deriva, respira e faz o brilho correr em cada faixa, com amplitudes perceptíveis', () => {
+    render(<HeroBackdrop />)
+    // Quatro faixas x (deriva x, deriva y, respiração, brilho).
+    expect(animate).toHaveBeenCalledTimes(16)
+    const calls = vi.mocked(animate).mock.calls as unknown[][]
+    const byKey = (key: string) =>
+      calls.filter((c) => typeof c[1] === 'object' && c[1] !== null && key in c[1])
+    const pct = (v: string) => Math.abs(parseFloat(v))
+    const layerWidth = 1.2 // a camada sobra 10% de cada lado
+
+    for (const [, keyframes, options] of byKey('x')) {
+      const [from, to] = (keyframes as { x: string[] }).x
+      // Ida e volta de 8% a 14% do hero.
+      const travel = (pct(from) + pct(to)) * layerWidth
+      expect(travel).toBeGreaterThanOrEqual(8)
+      expect(travel).toBeLessThanOrEqual(14.01)
+      const { duration, repeatType, ease } = options as Record<string, unknown>
+      expect(duration).toBeGreaterThanOrEqual(14)
+      expect(duration).toBeLessThanOrEqual(26)
+      expect(repeatType).toBe('mirror')
+      expect(ease).toBe('easeInOut')
+    }
+    for (const [, keyframes, options] of byKey('y')) {
+      const [from, to] = (keyframes as { y: string[] }).y
+      const travel = pct(from) + pct(to)
+      expect(travel).toBeGreaterThanOrEqual(3)
+      expect(travel).toBeLessThanOrEqual(6)
+      const { duration } = options as { duration: number }
+      expect(duration).toBeGreaterThanOrEqual(14)
+      expect(duration).toBeLessThanOrEqual(26)
+    }
+    const breaths = byKey('scaleY')
+    expect(breaths).toHaveLength(4)
+    for (const [, keyframes] of breaths) {
+      const [lo, hi] = (keyframes as { scaleY: number[] }).scaleY
+      expect(lo).toBeGreaterThanOrEqual(0.92)
+      expect(hi).toBeLessThanOrEqual(1.08)
+      expect(lo).toBeLessThan(hi)
+    }
+
+    // O brilho anima um número e aplica no gradiente da faixa (e no do fio lima).
+    const flows = calls.filter((c) => typeof c[0] === 'number')
+    expect(flows).toHaveLength(4)
+    const { onUpdate } = flows[1][2] as { onUpdate: (v: number) => void }
+    onUpdate(42.123)
+    const threadBand = document.querySelectorAll('[aria-hidden] > div')[1]
+    const gradients = threadBand.querySelectorAll('linearGradient')
+    expect(gradients).toHaveLength(2)
+    for (const g of gradients) expect(g).toHaveAttribute('gradientTransform', 'translate(42.1 0)')
+  })
+
+  it('defasa as faixas e pausa com a aba em segundo plano', () => {
     const { unmount } = render(<HeroBackdrop />)
-    expect(animate).toHaveBeenCalledTimes(8)
     const all = created()
     expect(all.every((c) => c.play.mock.calls.length > 0)).toBe(true)
     expect(new Set(all.map((c) => c.time)).size).toBeGreaterThan(1)
