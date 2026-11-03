@@ -64,6 +64,58 @@ describe('CreditPage', () => {
     expect(within(simulador).getByText('Pré-aprovado')).toBeInTheDocument()
   })
 
+  it('limites: total pré-aprovado, uso do limite, como a ErpIa calcula e atalho para perguntar', async () => {
+    const brl = (v: number) =>
+      v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/\s/g, ' ')
+    const total = db.ofertas().reduce((s, o) => s + o.limite, 0)
+    const contratado = db
+      .propostas()
+      .filter((r) => r.status === 'APROVADO')
+      .reduce((s, r) => s + (r.valorAprovado ?? 0), 0)
+    expect(contratado).toBeGreaterThan(0)
+    renderCredit()
+    const limites = await screen.findByRole('region', { name: 'Seus limites' })
+    expect(within(limites).getByText('Limite total pré-aprovado')).toBeInTheDocument()
+    const meter = await within(limites).findByRole('meter', { name: 'Uso do limite pré-aprovado' })
+    expect(meter).toHaveAttribute('aria-valuemin', '0')
+    expect(meter).toHaveAttribute('aria-valuemax', String(total))
+    expect(meter).toHaveAttribute('aria-valuenow', String(contratado))
+    const norm = (t: string | null) => (t ?? '').replace(/\s/g, ' ')
+    expect(norm(meter.getAttribute('aria-valuetext'))).toBe(
+      `${brl(contratado)} contratados de ${brl(total)}; ${brl(total - contratado)} disponíveis`,
+    )
+    expect(within(limites).getByText('Já contratado')).toBeInTheDocument()
+    expect(within(limites).getByText('Disponível')).toBeInTheDocument()
+    expect(
+      within(limites).getByRole('heading', { name: 'Como a ErpIa calcula seus limites' }),
+    ).toBeInTheDocument()
+    expect(
+      within(limites).getByText(/receita, os recebíveis a entrar e o estoque/),
+    ).toHaveTextContent(/score/)
+    expect(
+      within(limites).getByRole('link', { name: 'Perguntar à ErpIa sobre meus limites' }),
+    ).toHaveAttribute('href', '/app')
+  })
+
+  it('limites: sem propostas, nada contratado e tudo disponível', async () => {
+    server.use(http.get(`${API}/me/credit/requests`, () => HttpResponse.json([])))
+    const total = db.ofertas().reduce((s, o) => s + o.limite, 0)
+    renderCredit()
+    const meter = await screen.findByRole('meter', { name: 'Uso do limite pré-aprovado' })
+    expect(meter).toHaveAttribute('aria-valuenow', '0')
+    expect(meter).toHaveAttribute('aria-valuemax', String(total))
+  })
+
+  it('limites: erro nas propostas não derruba o resumo', async () => {
+    server.use(http.get(`${API}/me/credit/requests`, () => HttpResponse.json({}, { status: 500 })))
+    renderCredit()
+    expect(
+      await screen.findByText(/Não conseguimos ver o que já foi contratado/),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('meter')).not.toBeInTheDocument()
+    expect(screen.getByText('Limite total pré-aprovado')).toBeInTheDocument()
+  })
+
   it('preenche o simulador pelos parâmetros da URL', async () => {
     const bodies = captureSimulations(server)
     renderCredit('/app/credito?produto=ALAVANCAGEM&valor=20000')
