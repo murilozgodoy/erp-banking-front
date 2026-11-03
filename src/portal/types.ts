@@ -104,8 +104,8 @@ export interface TeamMember extends MembroResumo {
   email: string
   created_at: string
   updated_at?: string | null
-  /** Só para convites pendentes. */
-  invite_expires_at?: string | null
+  /** Só para convites pendentes (CONVIDADO); `null` nos demais. */
+  convite_expira_em?: string | null
 }
 
 export interface InviteRequest {
@@ -127,6 +127,12 @@ export interface TeamMemberPatch {
   permissoes?: Permissao[]
   limite_pagamento?: number | null
   status?: MembroStatus
+}
+
+/** `POST /me/team/invites/{token}/accept`: a empresa em que a pessoa entrou e o vínculo dela. */
+export interface AcceptInviteResponse {
+  customer_id: number
+  membro: TeamMember
 }
 
 /** 403 padronizado quando falta permissão. */
