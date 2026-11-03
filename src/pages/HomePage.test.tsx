@@ -1,8 +1,10 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useApi } from '@/hooks/useApi'
 import { checkServicesHealth } from '@/services/health'
+import { fakeApi } from '@/test/api'
 import { auth0State } from '@/test/auth0'
 import { renderPage } from '@/test/render'
 
@@ -10,6 +12,13 @@ import { HomePage } from './HomePage'
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }))
 vi.mock('@/services/health', () => ({ checkServicesHealth: vi.fn() }))
+vi.mock('@/hooks/useApi', () => ({ useApi: vi.fn() }))
+
+beforeEach(() => {
+  const api = fakeApi()
+  api.customers.list.mockResolvedValue([])
+  vi.mocked(useApi).mockReturnValue(api)
+})
 
 describe('HomePage', () => {
   it('cumprimenta o usuário e mostra o status dos serviços', async () => {
@@ -24,6 +33,7 @@ describe('HomePage', () => {
     expect(await screen.findByText('Onboarding API')).toBeInTheDocument()
     expect(screen.getByText('Offline')).toBeInTheDocument()
     expect(screen.queryByText('Sua conta ainda não tem um perfil')).not.toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Clientes cadastrados' })).toBeInTheDocument()
   })
 
   it('avisa quando a conta não tem nenhuma permissão', async () => {
