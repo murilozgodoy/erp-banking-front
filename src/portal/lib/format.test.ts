@@ -37,6 +37,7 @@ describe('format (portal)', () => {
     const today = new Date(2026, 10, 3)
     expect(isoDay(today)).toBe('2026-11-03')
     expect(dayMonth('2026-11-18')).toBe('18 nov')
+    expect(dayMonth('2026-12-03')).toBe('03 dez')
     expect(fullDate('2026-11-18')).toBe('18 de novembro de 2026')
     expect(daysFromToday('2026-11-08', today)).toBe(5)
     expect(relativeDay('2026-11-03', today)).toBe('hoje')
