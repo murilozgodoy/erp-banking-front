@@ -1,4 +1,4 @@
-import { Ban, Crown, Pencil, RotateCcw, Trash2, UserX } from 'lucide-react'
+import { Ban, Crown, Lock, Pencil, RotateCcw, Trash2, UserX } from 'lucide-react'
 import { useId, useState } from 'react'
 
 import { cn } from '@/lib/cn'
@@ -9,7 +9,7 @@ import { DataTable, type Column } from '../../ui/DataTable'
 import { Money } from '../../ui/Money'
 import { Pill } from '../../ui/Pill'
 import type { AccessAction } from './MemberSheet'
-import { initials, statusView } from './model'
+import { ATOR_DONO, gerencia, initials, statusView, type Ator } from './model'
 import { PermissaoLabel } from './PermissaoLabel'
 import { RowMenu, type MenuAction } from './RowMenu'
 
@@ -19,11 +19,13 @@ interface MemberTableProps {
   members: TeamMember[]
   /** `id` de quem está logado: a própria linha não tem ações. */
   selfId: number | null
+  /** Quem está logado: só gerencia papéis abaixo do seu. */
+  ator?: Ator
   onEdit: (member: TeamMember, intent?: AccessAction) => void
 }
 
 /** A equipe em tabela densa: pessoa, papel, status, permissões, limite e ações. */
-export function MemberTable({ members, selfId, onEdit }: MemberTableProps) {
+export function MemberTable({ members, selfId, ator = ATOR_DONO, onEdit }: MemberTableProps) {
   const columns: Column<TeamMember>[] = [
     {
       key: 'pessoa',
@@ -76,7 +78,7 @@ export function MemberTable({ members, selfId, onEdit }: MemberTableProps) {
       key: 'acoes',
       header: 'Ações',
       align: 'right',
-      cell: (m) => <Actions member={m} self={m.id === selfId} onEdit={onEdit} />,
+      cell: (m) => <Actions member={m} self={m.id === selfId} ator={ator} onEdit={onEdit} />,
       className: 'w-12',
     },
   ]
@@ -189,16 +191,40 @@ function Limit({ member }: { member: TeamMember }) {
 function Actions({
   member,
   self,
+  ator,
   onEdit,
 }: {
   member: TeamMember
   self: boolean
+  ator: Ator
   onEdit: (member: TeamMember, intent?: AccessAction) => void
 }) {
   if (member.papel === 'DONO' || self) {
     return (
       <span className="sr-only">
         {self ? 'Sem ações: você não altera o próprio acesso' : 'Sem ações: o dono não é editável'}
+      </span>
+    )
+  }
+  if (!gerencia(ator, member.papel)) {
+    // Bloqueio de escalada: papel igual ou acima do seu (onboarding #20).
+    return (
+      <span className="group/gate relative inline-flex justify-end">
+        <span
+          tabIndex={0}
+          aria-label="Sem ações"
+          aria-describedby={`hierarquia-${member.id}`}
+          className="grid size-8 place-items-center rounded-control text-ink-faint"
+        >
+          <Lock aria-hidden className="size-4" />
+        </span>
+        <span
+          id={`hierarquia-${member.id}`}
+          role="tooltip"
+          className="pointer-events-none absolute right-0 bottom-full z-20 mb-2 w-max max-w-60 rounded-control bg-ink px-2.5 py-1.5 text-xs text-paper opacity-0 shadow-overlay transition-opacity duration-150 group-focus-within/gate:opacity-100 group-hover/gate:opacity-100"
+        >
+          Você só gerencia papéis abaixo do seu.
+        </span>
       </span>
     )
   }

@@ -30,7 +30,7 @@ export function LockedAction({
       <span
         id={id}
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-64 -translate-x-1/2 rounded-control bg-ink px-2.5 py-1.5 text-xs text-paper opacity-0 shadow-overlay transition-opacity duration-150 group-focus-within/gate:opacity-100 group-hover/gate:opacity-100"
+        className="pointer-events-none absolute right-0 bottom-full z-20 mb-2 w-max max-w-64 rounded-control bg-ink px-2.5 py-1.5 text-xs text-paper opacity-0 shadow-overlay transition-opacity duration-150 group-focus-within/gate:opacity-100 group-hover/gate:opacity-100"
       >
         {semPermissaoTexto(permissao)}
       </span>
