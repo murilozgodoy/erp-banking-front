@@ -1,5 +1,6 @@
 import type {
   Account,
+  CreditDecisionEvent,
   CreditRequest,
   Customer,
   ScoreEvaluation,
@@ -76,6 +77,25 @@ export function credit(overrides: Partial<CreditRequest> = {}): CreditRequest {
     valorAprovado: 10000,
     taxaJuros: 0.0299,
     criadoEm: '2026-10-21T14:00:00Z',
+    ...overrides,
+  }
+}
+
+export function decisionEvent(overrides: Partial<CreditDecisionEvent> = {}): CreditDecisionEvent {
+  return {
+    id: 1,
+    event_id: '7b1f0c2e-1d2a-4c55-9a51-3f7d2c9e0a11',
+    credit_request_id: 7,
+    customer_id: 1,
+    status: 'APROVADO',
+    motivo: 'Aprovação automática — risco baixo',
+    valor_solicitado: 10000,
+    prazo_meses: 24,
+    score: 812.5,
+    faixa_risco: 'BAIXO',
+    taxa_juros: 0.0299,
+    occurred_at: '2026-10-21T14:00:00Z',
+    received_at: '2026-10-21T14:00:01',
     ...overrides,
   }
 }

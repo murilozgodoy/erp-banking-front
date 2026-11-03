@@ -1,6 +1,6 @@
 import { isAxiosError, type AxiosInstance } from 'axios'
 
-import type { ScoreEvaluation, ScoreStrategy } from '@/types/api'
+import type { CreditDecisionEvent, ScoreEvaluation, ScoreStrategy } from '@/types/api'
 
 /** Credit Score API: avaliações de score (Strategy + Factory no backend). */
 export function scoresApi(http: AxiosInstance) {
@@ -25,6 +25,12 @@ export function scoresApi(http: AxiosInstance) {
     history: (customerId: number) =>
       http
         .get<ScoreEvaluation[]>('/scores/evaluations', { params: { customer_id: customerId } })
+        .then((r) => r.data),
+
+    /** Decisões de crédito registradas via evento `credit.decided` (mais recente primeiro). */
+    decisions: (customerId: number) =>
+      http
+        .get<CreditDecisionEvent[]>('/scores/decisions', { params: { customer_id: customerId } })
         .then((r) => r.data),
   }
 }

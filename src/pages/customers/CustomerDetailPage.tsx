@@ -6,6 +6,7 @@ import { Can } from '@/components/auth/Can'
 import { RequirePermission } from '@/components/auth/RequirePermission'
 import { CustomerCredits } from '@/components/credits/CustomerCredits'
 import { AnamnesisCard } from '@/components/customers/AnamnesisCard'
+import { DecisionEventsCard } from '@/components/scores/DecisionEventsCard'
 import { ScorePanel } from '@/components/scores/ScorePanel'
 import { Alert } from '@/components/ui/Alert'
 import { ButtonLink } from '@/components/ui/ButtonLink'
@@ -73,6 +74,10 @@ function CustomerDetail() {
 
       <Can permission="read:credits">
         <CustomerCredits customerId={c.id} />
+      </Can>
+
+      <Can permission="read:scores">
+        <DecisionEventsCard customerId={c.id} />
       </Can>
     </section>
   )

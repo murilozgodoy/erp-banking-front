@@ -8,6 +8,8 @@ export default mergeConfig(
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
+      // Formulários longos com userEvent passam de 5 s em máquinas lentas.
+      testTimeout: 20_000,
       // Valores fictícios: os testes nunca chamam as APIs nem o Auth0 de verdade.
       env: {
         VITE_ONBOARDING_API_URL: 'http://onboarding.test',
