@@ -259,11 +259,13 @@ describe('StatusPage: reprovado', () => {
     )
     expect(steps[2]).toHaveTextContent('Decisão: não aprovada')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Revisar e reenviar' }))
+    // O REPROVADO abre o wizard direto (routing.ts), sem regravar o envio como rascunho.
+    const link = screen.getByRole('link', { name: 'Revisar e reenviar' })
+    expect(link).toHaveAttribute('href', '/app/onboarding')
+    await userEvent.click(link)
 
     expect(await screen.findByTestId('location')).toHaveTextContent('/app/onboarding')
-    expect(db.me().onboarding_status).toBe('RASCUNHO')
-    expect(db.rascunho().empresa?.cnpj).toBe(db.EMPRESA_AURORA.cnpj)
+    expect(db.me().onboarding_status).toBe('REPROVADO')
   })
 
   it('sem comentário, não mostra o bloco do analista', async () => {
@@ -274,23 +276,14 @@ describe('StatusPage: reprovado', () => {
     expect(screen.queryByText('Comentário do analista')).not.toBeInTheDocument()
   })
 
-  it('se reabrir falhar, explica e mantém a página', async () => {
+  it('comentário só com espaços não aparece', async () => {
     server.use(
-      http.put(DRAFT, () => HttpResponse.json({ detail: 'Serviço indisponível' }, { status: 503 })),
+      http.get(DRAFT, () => HttpResponse.json({ ...db.rascunho(), review_comment: '   ' })),
     )
     renderStatus()
-    await userEvent.click(await screen.findByRole('button', { name: 'Revisar e reenviar' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Serviço indisponível')
-    expect(screen.queryByTestId('location')).not.toBeInTheDocument()
-  })
-
-  it('sem os dados anteriores, não tenta salvar', async () => {
-    server.use(http.get(DRAFT, () => HttpResponse.json({ ...db.rascunho(), empresa: null })))
-    renderStatus()
-    await userEvent.click(await screen.findByRole('button', { name: 'Revisar e reenviar' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Não encontramos os dados do cadastro anterior.',
-    )
+    await screen.findByRole('heading', { name: 'Seu cadastro não foi aprovado agora' })
+    await screen.findByText(/Enviado/)
+    expect(screen.queryByText('Comentário do analista')).not.toBeInTheDocument()
   })
 })
 

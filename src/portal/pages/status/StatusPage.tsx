@@ -1,12 +1,12 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { motion, useReducedMotion } from 'motion/react'
 import { ArrowRight, Check, CloudOff, FileText, PencilLine } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 
+import { Marca } from '@/components/brand/Logo'
 import { errorMessage } from '@/lib/errors'
 
-import { usePortalApi } from '../../api'
 import { portalKeys } from '../../layout/queries'
 import type { BusinessAnalysis, Me, OnboardingDraft, OnboardingStatus } from '../../types'
 import { Button, ButtonLink } from '../../ui/Button'
@@ -196,9 +196,14 @@ function Automatic({ submittedAt }: { submittedAt: string | null }) {
     <Panel>
       <StatusHeading
         text={
-          slow
-            ? 'Está levando mais que o normal. Seguimos acompanhando: você pode fechar esta página e voltar depois, o resultado fica salvo.'
-            : 'Regras de crédito e a IA da ErpIa estão lendo os dados e as observações do seu negócio. Costuma levar de alguns segundos a um minuto.'
+          slow ? (
+            'Está levando mais que o normal. Seguimos acompanhando: você pode fechar esta página e voltar depois, o resultado fica salvo.'
+          ) : (
+            <>
+              Regras de crédito e a IA da <Marca /> estão lendo os dados e as observações do seu
+              negócio. Costuma levar de alguns segundos a um minuto.
+            </>
+          )
         }
       >
         Estamos analisando sua empresa
@@ -361,7 +366,9 @@ function PartialAnalysis({
         <ScoreFigure analysis={analysis} />
         {analysis.resumo?.trim() && (
           <div className="space-y-1.5">
-            <ReadingTitle ai={ai}>Leitura da ErpIa</ReadingTitle>
+            <ReadingTitle ai={ai}>
+              Leitura da <Marca />
+            </ReadingTitle>
             <p className="max-w-[68ch] text-sm text-ink">{analysis.resumo}</p>
           </div>
         )}
@@ -382,33 +389,8 @@ function Rejected({
   submittedAt: string | null
   comment: string | null
 }) {
-  const api = usePortalApi()
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
-
-  // O portal só abre o onboarding em RASCUNHO: salvar o envio atual como rascunho reabre o
-  // formulário com tudo preenchido (a API aceita edição em REPROVADO).
-  const reopen = useMutation({
-    mutationFn: async () => {
-      const current = await api.onboarding.draft()
-      if (!current.empresa) {
-        throw new Error('Não encontramos os dados do cadastro anterior.')
-      }
-      return api.onboarding.saveDraft({
-        empresa: current.empresa,
-        segmento: current.segmento,
-        respostas: current.respostas ?? {},
-        observacoes: current.observacoes ?? '',
-        enviar: false,
-      })
-    },
-    onSuccess: async (saved) => {
-      queryClient.setQueryData(portalKeys.draft, saved)
-      await queryClient.invalidateQueries({ queryKey: portalKeys.me })
-      void navigate('/app/onboarding', { replace: true })
-    },
-  })
-
+  // REPROVADO pode abrir o onboarding (routing.ts): o wizard carrega o envio anterior preenchido
+  // e mostra o comentário do analista.
   return (
     <Panel>
       <StatusHeading text="Analisamos os dados e as observações que você enviou e, neste momento, não conseguimos liberar a conta. Você pode revisar as informações e enviar de novo: a nova análise começa do zero.">
@@ -434,20 +416,15 @@ function Rejected({
         </figure>
       )}
       <div className="mt-6 flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:items-center">
-        <Button
+        <ButtonLink
+          to="/app/onboarding"
+          variant="primary"
           icon={<PencilLine aria-hidden className="size-4" />}
-          loading={reopen.isPending}
-          onClick={() => reopen.mutate()}
         >
           Revisar e reenviar
-        </Button>
+        </ButtonLink>
         <p className="text-sm text-ink-muted">Seus dados continuam preenchidos.</p>
       </div>
-      {reopen.isError && (
-        <p role="alert" className="mt-3 text-sm text-negative">
-          {errorMessage(reopen.error)} Tente de novo em instantes.
-        </p>
-      )}
     </Panel>
   )
 }

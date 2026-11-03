@@ -1,4 +1,5 @@
 import { AlertTriangle, Check } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { Faisca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
@@ -48,7 +49,7 @@ export function ReadingTitle({
   as: Heading = 'h3',
   id,
 }: {
-  children: string
+  children: ReactNode
   ai: boolean
   as?: 'h2' | 'h3' | 'h4'
   id?: string

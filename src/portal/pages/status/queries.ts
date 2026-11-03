@@ -45,8 +45,8 @@ export function missingAnalysis(error: unknown): AnalysisMissing | null {
  * `GET /me/onboarding` quando a API o enviar.
  */
 export function reviewComment(draft: OnboardingDraft | undefined): string | null {
-  const value = (draft as { review_comment?: unknown } | undefined)?.review_comment
-  return typeof value === 'string' && value.trim() ? value.trim() : null
+  const value = draft?.review_comment
+  return value?.trim() ? value.trim() : null
 }
 
 /** Status do onboarding, análise e envio, com polling enquanto há algo para acontecer. */
