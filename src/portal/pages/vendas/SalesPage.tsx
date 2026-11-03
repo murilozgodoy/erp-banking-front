@@ -3,7 +3,6 @@ import { CalendarRange, Hourglass } from 'lucide-react'
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { errorMessage } from '@/lib/errors'
 import { useAnalysis } from '../../layout/queries'
 import { money, number } from '../../lib/format'
 import { Button, ButtonLink } from '../../ui/Button'
@@ -40,7 +39,7 @@ import {
 import { RevenueChart } from './RevenueChart'
 import { SalesMix } from './SalesMix'
 import { TopProducts } from './TopProducts'
-import { isOnboardingPending, useSalesReport } from './useSales'
+import { isOnboardingPending, salesErrorMessage, useSalesReport } from './useSales'
 
 /** Insight de vendas: o que fala de crédito/cartão primeiro, porque é o que tem ação. */
 function salesInsight(analysis: BusinessAnalysis | undefined) {
@@ -182,7 +181,9 @@ export function SalesPage() {
       </Panel>
     )
   } else if (current.isError && !report) {
-    body = <ErrorState message={errorMessage(current.error)} onRetry={() => current.refetch()} />
+    body = (
+      <ErrorState message={salesErrorMessage(current.error)} onRetry={() => current.refetch()} />
+    )
   } else if (!report) {
     body = <LoadingLayout />
   } else if (report.total <= 0) {
@@ -219,7 +220,7 @@ export function SalesPage() {
         {current.isError && (
           <ErrorState
             title="Não conseguimos atualizar o período"
-            message={`${errorMessage(current.error)} Os números abaixo são da seleção anterior.`}
+            message={`${salesErrorMessage(current.error)} Os números abaixo são da seleção anterior.`}
             onRetry={() => current.refetch()}
           />
         )}

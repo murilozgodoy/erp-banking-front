@@ -232,6 +232,19 @@ describe('SalesPage', () => {
     expect(await screen.findByText('Faturamento do período')).toBeInTheDocument()
   })
 
+  it('mostra a mensagem da API em parâmetro inválido (400)', async () => {
+    server.use(
+      http.get(SALES, () =>
+        HttpResponse.json(
+          { error: 'PARAMETRO_INVALIDO', mensagem: 'Período máximo de 400 dias' },
+          { status: 400 },
+        ),
+      ),
+    )
+    renderSales()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Período máximo de 400 dias')
+  })
+
   it('cadastro pendente (409) leva ao andamento da análise', async () => {
     server.use(
       http.get(SALES, () =>

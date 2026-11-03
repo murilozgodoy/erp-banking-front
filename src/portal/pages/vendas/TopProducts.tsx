@@ -10,6 +10,8 @@ interface ProductRow {
   quantidade: number
   valor: number
   share: number
+  /** Largura da barra relativa ao líder do ranking (0–100). */
+  bar: number
 }
 
 const columns: Column<ProductRow>[] = [
@@ -58,7 +60,7 @@ const columns: Column<ProductRow>[] = [
         >
           <span
             className="block h-full rounded-full bg-series-1"
-            style={{ width: `${Math.min(100, Math.max(row.share, 1))}%` }}
+            style={{ width: `${Math.max(row.bar, 2)}%` }}
           />
         </span>
         <span className="w-12">{pct(row.share)}</span>
@@ -71,6 +73,7 @@ const columns: Column<ProductRow>[] = [
 
 /** Ranking de produtos por faturamento, com a fatia de cada um no total do período. */
 export function TopProducts({ report }: { report: SalesReport }) {
+  const leader = Math.max(0, ...report.top_produtos.map((p) => p.valor))
   const rows: ProductRow[] = [...report.top_produtos]
     .sort((a, b) => b.valor - a.valor)
     .map((p, i) => ({
@@ -80,6 +83,7 @@ export function TopProducts({ report }: { report: SalesReport }) {
       quantidade: p.quantidade,
       valor: p.valor,
       share: report.total > 0 ? (p.valor / report.total) * 100 : 0,
+      bar: leader > 0 ? (p.valor / leader) * 100 : 0,
     }))
   return (
     <Panel

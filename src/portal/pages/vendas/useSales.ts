@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 
+import { errorMessage } from '@/lib/errors'
+
 import { usePortalApi } from '../../api'
 import { portalKeys } from '../../layout/queries'
 import type { GroupBy } from '../../types'
@@ -29,4 +31,14 @@ export function isOnboardingPending(error: unknown): boolean {
     error.response?.status === 409 &&
     (error.response.data as { error?: string } | undefined)?.error === 'ONBOARDING_PENDENTE'
   )
+}
+
+/** Mensagem da API (`mensagem`, ex.: 400 PARAMETRO_INVALIDO) ou o texto padrão do erro. */
+export function salesErrorMessage(error: unknown): string {
+  if (isAxiosError(error)) {
+    const data = error.response?.data as { mensagem?: unknown; message?: unknown } | undefined
+    const text = data?.mensagem ?? data?.message
+    if (typeof text === 'string' && text.trim()) return text
+  }
+  return errorMessage(error)
 }

@@ -60,7 +60,7 @@ export function RevenueChart({ report, group }: { report: SalesReport; group: Gr
             {
               key: 'faturamento',
               label: 'Faturamento',
-              color: 'var(--color-series-1)',
+              color: 'var(--erpia-series-1)',
               area: true,
               values: report.serie.map((p) => ({ date: p.periodo, value: p.valor })),
             },
@@ -77,7 +77,7 @@ export function RevenueChart({ report, group }: { report: SalesReport; group: Gr
         <BarChart
           title={title}
           height={240}
-          highlightColor="var(--color-series-2)"
+          highlightColor="var(--erpia-series-2)"
           data={report.serie.map((p) => ({
             key: p.periodo,
             label: periodLabel(p.periodo, group),
