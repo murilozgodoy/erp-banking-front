@@ -633,7 +633,8 @@ function gerarErp(): Erp {
       payable: 6001,
       payment: 7501,
       statement: 9901,
-      credit: 802,
+      // Depois das propostas semeadas (801 e 802): ids repetidos duplicam a chave na tabela.
+      credit: 803,
       simulation: 1,
     },
   }

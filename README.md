@@ -86,6 +86,20 @@ E2E_ACCESS_TOKEN=eyJ... npm run test:e2e       # inclui os testes autenticados (
 Não faz parte do CI obrigatório: rode pelo workflow manual **E2E** (Actions → E2E → Run workflow). O secret
 opcional `E2E_ACCESS_TOKEN` habilita os testes autenticados.
 
+### Portal do cliente em modo mock
+
+Suíte em `e2e/portal/` (`playwright.portal.config.ts`): sobe o Vite na porta 5190 com MSW e login simulado
+(`VITE_USE_MOCKS=true`, `VITE_MOCK_AUTH=true`, passados pelo `webServer.env`, sem `.env`) e navega como cliente
+com `?perfil=cliente&mock=<status>`. Cobre o wizard de onboarding, status →
+aprovação, simulação e contratação de capital de giro, pagamento PIX com comprovante, antecipação de recebíveis
+e um teste de fumaça de todas as abas (sem erro de console, tema claro e escuro, sem rolagem horizontal em 360 px).
+
+```bash
+npm run test:e2e:portal
+```
+
+Workflow manual **E2E portal** (Actions → E2E portal → Run workflow); o relatório sobe como artefato se falhar.
+
 ## Deploy (Vercel)
 
 Projeto `gabrielrosa1s-projects/erp-banking-front`. O `vercel.json` reescreve `/api/onboarding`, `/api/score`,

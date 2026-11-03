@@ -75,7 +75,8 @@ export function DataTable<T>({
   if (rows.length === 0 && empty) return <>{empty}</>
 
   return (
-    <div className="overflow-x-auto">
+    // `relative`: sem ele, os `.sr-only` (absolutos) das células escapam da rolagem e alargam a página.
+    <div className="relative overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>
