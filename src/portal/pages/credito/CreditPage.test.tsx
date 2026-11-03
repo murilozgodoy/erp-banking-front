@@ -282,8 +282,10 @@ describe('CreditPage', () => {
       }),
     )
     renderCredit()
-    const retries = await screen.findAllByRole('button', { name: 'Tentar de novo' })
-    expect(retries).toHaveLength(2)
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: 'Tentar de novo' })).toHaveLength(2),
+    )
+    const retries = screen.getAllByRole('button', { name: 'Tentar de novo' })
     for (const retry of retries) await user.click(retry)
     expect(await screen.findByRole('radiogroup', { name: 'Seus limites' })).toBeInTheDocument()
   })
