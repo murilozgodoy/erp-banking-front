@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { AlertTriangle, ArrowRight, Info } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 import { Faisca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
@@ -10,19 +10,110 @@ import type { Insight, InsightSeveridade, ProdutoCredito } from '../types'
 
 import { Button, ButtonLink } from './Button'
 import { PRODUTO_LABEL, simulatorHref } from './credit'
+import { useTypewriter } from './useTypewriter'
 
-const severity: Record<InsightSeveridade, { icon: ReactNode; label: string; tone: string }> = {
-  info: { icon: <Info className="size-4" />, label: 'Leitura', tone: 'text-info bg-info-soft' },
+const severity: Record<
+  InsightSeveridade,
+  { icon: ReactNode; label: string; tone: string; halo: string; spins: boolean }
+> = {
+  info: {
+    icon: <Info className="size-4" />,
+    label: 'Leitura',
+    tone: 'text-info bg-info-soft',
+    halo: 'bg-info-soft',
+    spins: false,
+  },
   atencao: {
     icon: <AlertTriangle className="size-4" />,
     label: 'Atenção',
     tone: 'text-warning bg-warning-soft',
+    halo: 'bg-warning-soft',
+    spins: false,
   },
   oportunidade: {
     icon: <Faisca label={null} className="size-4" />,
     label: 'Oportunidade',
     tone: 'bg-credit-soft',
+    halo: 'bg-credit-soft',
+    spins: true,
   },
+}
+
+/**
+ * Selo da IA à esquerda do insight: enquanto a mensagem é digitada, o halo pulsa de leve e a
+ * Faísca gira 90°; o ícone de alerta só pulsa. Para quando a digitação termina.
+ */
+function InsightBadge({
+  sev,
+  typing,
+}: {
+  sev: (typeof severity)[InsightSeveridade]
+  typing: boolean
+}) {
+  const reduce = useReducedMotion()
+  return (
+    <span aria-hidden className="relative grid size-9 shrink-0 place-items-center">
+      <motion.span
+        className={cn('absolute inset-0 rounded-full', sev.halo)}
+        animate={typing ? { scale: [1, 1.08, 1], opacity: [1, 0.7, 1] } : { scale: 1, opacity: 1 }}
+        transition={
+          typing ? { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }
+        }
+      />
+      <span className={cn('relative grid size-9 place-items-center rounded-full', sev.tone)}>
+        <motion.span
+          className="grid place-items-center"
+          initial={reduce || !sev.spins ? false : { rotate: 0 }}
+          animate={{ rotate: sev.spins ? 90 : 0 }}
+          transition={{ duration: 1.2, ease: 'linear' }}
+        >
+          {sev.icon}
+        </motion.span>
+      </span>
+    </span>
+  )
+}
+
+/**
+ * Mensagem com efeito de digitação. A altura final fica reservada (o resto do texto ocupa o
+ * espaço, invisível); leitores de tela recebem o texto inteiro de uma vez, não letra a letra.
+ */
+function TypedText({
+  text,
+  shown,
+  done,
+  className,
+}: {
+  text: string
+  shown: number
+  done: boolean
+  className?: string
+}) {
+  const [caret, setCaret] = useState(true)
+  useEffect(() => {
+    if (!done) return
+    // O cursor pisca 2 vezes e some.
+    const timer = window.setTimeout(() => setCaret(false), 1100)
+    return () => window.clearTimeout(timer)
+  }, [done])
+  if (done && !caret) return <p className={className}>{text}</p>
+  return (
+    <p className={className}>
+      <span className="sr-only" aria-live="polite">
+        {text}
+      </span>
+      {/* Parte digitada e resto (invisível, reserva a altura) via CSS `content`, para o texto
+          existir uma vez só no DOM (o sr-only acima). */}
+      <span aria-hidden>
+        <span data-text={text.slice(0, shown)} className="before:content-[attr(data-text)]" />
+        <span className="insight-caret" />
+        <span
+          data-text={text.slice(shown)}
+          className="invisible before:content-[attr(data-text)]"
+        />
+      </span>
+    </p>
+  )
 }
 
 export interface InsightOffer {
@@ -60,6 +151,7 @@ export function InsightBlock({
   askAssistant = true,
 }: InsightBlockProps) {
   const reduce = useReducedMotion()
+  const typing = useTypewriter(insight?.texto ?? '')
   if (!insight && !offer) return null
   const sev = insight ? severity[insight.severidade] : null
   return (
@@ -75,20 +167,23 @@ export function InsightBlock({
       )}
     >
       {insight && sev && (
-        <div className="flex gap-3 p-4 sm:p-5">
-          <span
-            aria-hidden
-            className={cn('grid size-8 shrink-0 place-items-center rounded-full', sev.tone)}
-          >
-            {sev.icon}
-          </span>
+        // Centralizado na altura do card (o lado da oferta costuma ser mais alto).
+        <div className="flex items-center gap-3.5 p-4 sm:p-5">
+          <InsightBadge sev={sev} typing={!typing.done} />
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+            <p className="text-sm font-semibold text-ink">
               <span className="sr-only">{sev.label}: </span>
               {insight.titulo}
-              <Faisca />
             </p>
-            <p className="mt-0.5 max-w-[70ch] text-sm text-ink-muted">{insight.texto}</p>
+            <TypedText
+              text={insight.texto}
+              shown={typing.shown}
+              done={typing.done}
+              className={cn(
+                'mt-1 max-w-[70ch]',
+                offer ? 'text-base leading-relaxed text-ink' : 'text-sm text-ink-muted',
+              )}
+            />
             {askAssistant && <AskAssistant titulo={insight.titulo} texto={insight.texto} />}
           </div>
         </div>
