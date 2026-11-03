@@ -75,7 +75,8 @@ export function DataTable<T>({
   if (rows.length === 0 && empty) return <>{empty}</>
 
   return (
-    <div className="overflow-x-auto">
+    // `relative`: o texto sr-only (absoluto) das células fica contido na rolagem e não alarga a página.
+    <div className="relative overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -116,7 +117,7 @@ export function DataTable<T>({
                       type="button"
                       onClick={() => toggleSort(column.key)}
                       className={cn(
-                        'inline-flex items-center gap-1 rounded hover:text-ink',
+                        'inline-flex items-center gap-1 rounded hover:text-ink pointer-coarse:min-h-11',
                         column.align === 'right' && 'flex-row-reverse',
                         active && 'text-ink',
                       )}

@@ -214,6 +214,25 @@ describe('primitivas do portal', () => {
   })
 })
 
+describe('layout em telas estreitas e de toque', () => {
+  it('Panel pode encolher num grid (min-w-0) e os alvos sobem para 44 px no toque', () => {
+    render(
+      <Panel title="Extrato" id="extrato">
+        <Button size="sm">Pagar</Button>
+        <Segmented
+          label="Período"
+          value="7"
+          options={[{ value: '7', label: '7 dias' }]}
+          onChange={() => {}}
+        />
+      </Panel>,
+    )
+    expect(screen.getByRole('region', { name: 'Extrato' })).toHaveClass('min-w-0')
+    expect(screen.getByRole('button', { name: 'Pagar' })).toHaveClass('pointer-coarse:h-11')
+    expect(screen.getByRole('radio', { name: '7 dias' })).toHaveClass('pointer-coarse:h-11')
+  })
+})
+
 describe('DataTable', () => {
   const rows = [
     { id: 1, nome: 'Farinha', valor: 30 },
@@ -237,6 +256,12 @@ describe('DataTable', () => {
     },
     { key: 'acao', header: 'Ação', cell: () => '—' },
   ]
+
+  it('rola dentro do próprio contêiner, que contém o texto sr-only das células', () => {
+    render(<DataTable caption="Itens" columns={columns} rows={rows} rowKey={(r) => r.id} />)
+    const scroller = screen.getByRole('table').parentElement!
+    expect(scroller).toHaveClass('relative', 'overflow-x-auto')
+  })
 
   it('ordena pelos cabeçalhos com aria-sort', async () => {
     render(<DataTable caption="Itens" columns={columns} rows={rows} rowKey={(r) => r.id} />)

@@ -25,7 +25,7 @@ export function FocusLayout() {
               type="button"
               onClick={toggle}
               aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
-              className="grid size-9 place-items-center rounded-control text-ink-muted hover:bg-sunken hover:text-ink"
+              className="grid size-9 place-items-center rounded-control text-ink-muted hover:bg-sunken hover:text-ink pointer-coarse:size-11"
             >
               {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </button>
@@ -35,7 +35,7 @@ export function FocusLayout() {
                 queryClient.clear()
                 logout({ logoutParams: { returnTo: window.location.origin } })
               }}
-              className="flex h-9 items-center gap-2 rounded-control px-3 text-sm text-ink-muted hover:bg-sunken hover:text-ink"
+              className="flex h-9 items-center gap-2 rounded-control px-3 text-sm text-ink-muted hover:bg-sunken hover:text-ink pointer-coarse:h-11"
             >
               <LogOut aria-hidden className="size-4" />
               Sair

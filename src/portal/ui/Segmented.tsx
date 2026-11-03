@@ -49,7 +49,7 @@ export function Segmented<T extends string>({
               )
             }}
             className={cn(
-              'relative h-7 rounded-[5px] px-3 text-xs font-medium transition-colors duration-150',
+              'relative h-7 rounded-[5px] px-3 text-xs font-medium transition-colors duration-150 pointer-coarse:h-11',
               active ? 'text-ink' : 'text-ink-muted hover:text-ink',
             )}
           >
