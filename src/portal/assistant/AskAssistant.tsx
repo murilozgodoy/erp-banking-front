@@ -7,11 +7,13 @@ import { insightQuestion } from './suggestions'
 
 /**
  * "Perguntar à ErpIa sobre isso": abre o assistente com a pergunta pré-preenchida. Fora do
- * `AssistantProvider` (testes de página, backoffice) não renderiza nada.
+ * `AssistantProvider` (testes de página, backoffice) ou sem a permissão de usar o assistente, não
+ * renderiza nada.
  */
 export function AskAssistant({ titulo, texto }: { titulo: string; texto?: string }) {
   const assistant = useContext(AssistantContext)
-  if (!assistant) return null
+  // Sem `usar_assistente`, o atalho some do insight (o rail explica o bloqueio).
+  if (!assistant?.permitido) return null
   return (
     <button
       type="button"

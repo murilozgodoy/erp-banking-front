@@ -8,6 +8,8 @@ export interface OpenAssistantOptions {
 }
 
 export interface AssistantContextValue {
+  /** O membro tem `usar_assistente` (seção 11); sem ela, nada abre o painel. */
+  permitido: boolean
   open: boolean
   openAssistant: (options?: OpenAssistantOptions) => void
   close: () => void

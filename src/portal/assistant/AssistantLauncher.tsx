@@ -1,4 +1,8 @@
+import { Lock } from 'lucide-react'
+
 import { Faisca, Marca } from '@/components/brand/Logo'
+
+import { LockedAction } from '../ui/Gated'
 
 import { isMac, useAssistantContext } from './context'
 
@@ -10,8 +14,10 @@ const LABEL = 'Perguntar à ErpIa'
  * com o painel aberto para não cobrir o campo de pergunta.
  */
 export function AssistantLauncher({ variant = 'rail' }: { variant?: 'rail' | 'fab' }) {
-  const { open, toggle } = useAssistantContext()
+  const { open, toggle, permitido } = useAssistantContext()
   const mac = isMac()
+  // Sem `usar_assistente`: o botão flutuante some; o item do rail fica, travado, explicando.
+  if (!permitido) return variant === 'fab' ? null : <LockedLauncher />
   const common = {
     type: 'button' as const,
     onClick: toggle,
@@ -46,5 +52,30 @@ export function AssistantLauncher({ variant = 'rail' }: { variant?: 'rail' | 'fa
         {mac ? '⌘K' : 'Ctrl K'}
       </kbd>
     </button>
+  )
+}
+
+/** Item do rail para quem não tem `usar_assistente`: focável, com o cadeado e o motivo. */
+function LockedLauncher() {
+  return (
+    <div className="mb-1 hidden lg:block">
+      <LockedAction permissao="usar_assistente" className="w-full">
+        {(describe) => (
+          <button
+            type="button"
+            aria-disabled="true"
+            {...describe}
+            className="flex h-9 w-full cursor-not-allowed items-center gap-3 rounded-control px-3 text-sm font-medium text-rail-muted opacity-70"
+          >
+            <Faisca label={null} className="size-[18px] opacity-60" />
+            <span aria-hidden className="flex-1 truncate text-left">
+              Perguntar à <Marca />
+            </span>
+            <span className="sr-only">{LABEL}</span>
+            <Lock aria-hidden className="size-3.5" />
+          </button>
+        )}
+      </LockedAction>
+    </div>
   )
 }

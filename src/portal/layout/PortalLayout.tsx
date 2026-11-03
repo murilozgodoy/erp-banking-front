@@ -15,6 +15,8 @@ import { SkipLink } from '../ui/SkipLink'
 
 import { useMembro } from '../team/useMembro'
 
+import { FinanceGate } from './FinanceGate'
+import { useRefreshMeOnForbidden } from './financeiro'
 import { PORTAL_NAV } from './nav'
 import { useMe, useOverview } from './queries'
 import { useTheme } from './useTheme'
@@ -69,7 +71,10 @@ function PortalShell() {
   const queryClient = useQueryClient()
   const { theme, toggle } = useTheme()
   const me = useMe()
-  const overview = useOverview()
+  const { pode } = useMembro()
+  // Sem `ver_financeiro` o saldo daria 403: nem pede.
+  const overview = useOverview(pode('ver_financeiro'))
+  useRefreshMeOnForbidden()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPath, setMenuPath] = useState(location.pathname)
@@ -193,7 +198,9 @@ function PortalShell() {
           tabIndex={-1}
           className="mx-auto w-full max-w-[84rem] px-4 py-6 outline-none sm:px-8 sm:py-8"
         >
-          <Outlet />
+          <FinanceGate>
+            <Outlet />
+          </FinanceGate>
         </main>
       </div>
     </div>

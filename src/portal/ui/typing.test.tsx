@@ -1,4 +1,6 @@
 import { render, renderHook, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useState, type ReactNode } from 'react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import type * as Motion from 'motion/react'
@@ -14,16 +16,28 @@ vi.mock('motion/react', async (importOriginal) => ({
 
 const texto = 'Seu caixa fica negativo em 18 dias; antecipar R$ 42 mil cobre o vale.'
 
+/** Roteador + React Query: as ações de crédito do InsightBlock leem as permissões do `/me`. */
+function Providers({ children }: { children: ReactNode }) {
+  const [client] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  )
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  )
+}
+
 describe('digitação dos insights', () => {
   it('digita a mensagem, anuncia o texto inteiro e termina sem cursor', async () => {
     reduced.value = false
     render(
-      <MemoryRouter>
+      <Providers>
         <InsightBlock
           insight={{ titulo: 'Semana apertada', texto, severidade: 'atencao' }}
           offer={{ produto: 'ANTECIPACAO_RECEBIVEIS', valor: 42000 }}
         />
-      </MemoryRouter>,
+      </Providers>,
     )
     // Leitores de tela recebem o texto completo de uma vez.
     expect(screen.getByText(texto)).toHaveAttribute('aria-live', 'polite')
