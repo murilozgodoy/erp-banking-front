@@ -1,0 +1,54 @@
+import { render, renderHook, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
+import { describe, expect, it, vi } from 'vitest'
+
+import { InsightBlock } from './InsightBlock'
+import { useTypewriter } from './useTypewriter'
+
+const reduced = vi.hoisted(() => ({ value: false }))
+vi.mock('motion/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('motion/react')>()),
+  useReducedMotion: () => reduced.value,
+}))
+
+const texto = 'Seu caixa fica negativo em 18 dias; antecipar R$ 42 mil cobre o vale.'
+
+describe('digitação dos insights', () => {
+  it('digita a mensagem, anuncia o texto inteiro e termina sem cursor', async () => {
+    reduced.value = false
+    render(
+      <MemoryRouter>
+        <InsightBlock
+          insight={{ titulo: 'Semana apertada', texto, severidade: 'atencao' }}
+          offer={{ produto: 'ANTECIPACAO_RECEBIVEIS', valor: 42000 }}
+        />
+      </MemoryRouter>,
+    )
+    // Leitores de tela recebem o texto completo de uma vez.
+    expect(screen.getByText(texto)).toHaveAttribute('aria-live', 'polite')
+    expect(document.querySelector('.insight-caret')).toBeInTheDocument()
+    // Sem Faísca repetida ao lado do título.
+    expect(screen.getByText('Semana apertada').querySelector('svg')).toBeNull()
+    await waitFor(() => expect(screen.getByText(texto)).not.toHaveAttribute('aria-live'), {
+      timeout: 4000,
+    })
+    expect(document.querySelector('.insight-caret')).not.toBeInTheDocument()
+  })
+
+  it('com movimento reduzido mostra o texto inteiro de imediato', () => {
+    reduced.value = true
+    const { result } = renderHook(() => useTypewriter(texto))
+    expect(result.current).toEqual({ shown: texto.length, done: true })
+  })
+
+  it('texto novo recomeça a digitação', async () => {
+    reduced.value = false
+    const { result, rerender } = renderHook(({ t }) => useTypewriter(t), {
+      initialProps: { t: 'abc' },
+    })
+    await waitFor(() => expect(result.current.done).toBe(true))
+    rerender({ t: 'outro texto' })
+    expect(result.current.shown).toBeLessThan('outro texto'.length)
+    await waitFor(() => expect(result.current.done).toBe(true))
+  })
+})
