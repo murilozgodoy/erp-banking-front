@@ -221,6 +221,19 @@ do Grafana (filtrado pelo `testid` impresso pelo runner) mostra a execução ao 
 **Análise:** _(a preencher com os resultados: gargalo observado, comportamento do rate limit, uso de CPU/memória
 da EC2 no Grafana e o que mudaria para escalar.)_
 
+## Qualidade (CI e cobertura)
+
+Situação da `main` em 03/11/2026 (~15:10 UTC). Em todos os repositórios o CI falha se a cobertura cair abaixo de
+80%; as imagens são publicadas no GHCR a cada push na `main`.
+
+| Repositório                    | Testes                                                    | Cobertura                                       | CI (último push na `main`)                        | Imagem                                                     |
+| ------------------------------ | --------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| `erp-banking-onboarding-api`   | 61 (pytest)                                               | 98,87% (pytest-cov)                             | ✅ testes + cobertura, build Docker, publish      | `ghcr.io/murilozgodoy/erp-banking-onboarding-api:latest`   |
+| `erp-banking-credit-score-api` | 92 (pytest)                                               | 99,56% (pytest-cov)                             | ✅ testes + cobertura, build Docker, publish      | `ghcr.io/murilozgodoy/erp-banking-credit-score-api:latest` |
+| `erp-banking-transactions-api` | 98 (JUnit 5)                                              | 99,5% das instruções (JaCoCo)                   | ✅ testes + JaCoCo, publish                       | `ghcr.io/murilozgodoy/erp-banking-transactions-api:latest` |
+| `erp-banking-front`            | 102 em 29 arquivos (Vitest)                               | 100% linhas/statements/funções, 95,62% branches | ✅ lint + testes + cobertura, build Docker, build | — (deploy na Vercel)                                       |
+| `erp-banking-infra`            | — (configuração: compose, nginx, Prometheus, Grafana, k6) | —                                               | —                                                 | usa as imagens acima                                       |
+
 ## Deploy
 
 ### Back-end na EC2
@@ -311,7 +324,7 @@ URLs**, **Allowed Logout URLs** e **Allowed Web Origins** (passo manual no paine
 - [ ] Relatório das execuções de carga em `erp-banking-infra/load-tests/results`
 - [x] Back rodando na EC2 via compose; front na Vercel falando com a EC2 pelo rewrite
 - [ ] Login Auth0 na URL da Vercel (adicionar a URL no painel do Auth0)
-- [ ] CI verde e cobertura ≥ 80% nos 5 repositórios
+- [x] CI verde e cobertura ≥ 80% nos 4 repositórios de código (ver [Qualidade](#qualidade-ci-e-cobertura))
 - [x] Documentação: este arquivo, [apis.md](apis.md), [ambiente-dev.md](ambiente-dev.md) e READMEs
 
 ## Como demonstrar
