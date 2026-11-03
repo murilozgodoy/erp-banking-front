@@ -1,0 +1,23 @@
+flowchart LR
+    U[Navegador] -->|HTTPS| V[Vercel<br/>React + rewrites /api/*]
+    U -->|login| A[Auth0]
+    V -->|HTTP :8080| G
+
+    subgraph EC2 [AWS EC2 — docker compose]
+        G[API Gateway<br/>nginx] --> O[Onboarding<br/>FastAPI]
+        G --> S[Credit Score<br/>FastAPI]
+        G --> T[Transactions<br/>Spring Boot]
+        T -->|token relay| S
+        S -->|token relay| O
+        O -->|customer.*| MQ{{RabbitMQ<br/>erp.events}}
+        T -->|credit.decided<br/>transaction.created| MQ
+        MQ -->|consome| S
+        MQ -->|customer.created| T
+        O --> PG[(PostgreSQL<br/>3 schemas)]
+        S --> PG
+        T --> PG
+        subgraph OBS [Observabilidade]
+            P[Prometheus] --> GR[Grafana :8081]
+        end
+    end
+    OBS -.scrape.-> G

@@ -35,7 +35,7 @@ compose a mensageria está ligada (`RABBITMQ_URL` definido), então os eventos f
 são publicadas: tudo passa pelo gateway, e `/metrics` e `/actuator/**` não são expostos por ele (404).
 
 Na EC2 (`3.235.6.136`) as portas publicadas são as mesmas: **8080** gateway, **8081** Grafana e **8082**
-Prometheus. Os serviços (`onboarding-api:8081`, `credit-score-api:8082`, `transactions-api:8080`) ficam só na rede
+Prometheus. A 8082 está bloqueada no Security Group: prometheus acessível pelo **Grafana (Explore)** ou por túnel SSH (`ssh -i ~/.ssh/erp-ec2.pem -L 9090:localhost:8082 ubuntu@3.235.6.136` → <http://localhost:9090>); a 8082 pública depende de liberação no Security Group. Os serviços (`onboarding-api:8081`, `credit-score-api:8082`, `transactions-api:8080`) ficam só na rede
 interna do compose.
 
 ## Rodando os serviços de backend sem gateway

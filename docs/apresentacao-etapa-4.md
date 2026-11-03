@@ -1,8 +1,47 @@
-# Apresentação — Etapa 4
+---
+marp: true
+theme: default
+paginate: true
+size: 16:9
+title: ERP Banking e Crédito — Etapa 4
+style: |
+  section { font-size: 24px; padding: 48px 64px; }
+  h1 { color: #3730a3; }
+  h2 { color: #3730a3; border-bottom: 2px solid #c7d2fe; padding-bottom: 6px; }
+  table { font-size: 18px; }
+  th { background: #eef2ff; }
+  code { font-size: 0.9em; }
+  section.small { font-size: 20px; }
+  section.small table { font-size: 15px; }
+  section.diagram img { display: block; margin: 0 auto; max-height: 470px; }
+  section.title { justify-content: center; }
+  footer { color: #64748b; }
+footer: ERP Banking e Crédito · Etapa 4 · Projeto de Software (Insper)
+---
 
-Slides em markdown (separados por `---`), para usar em Marp, reveal-md, Slidev ou colar no Google Slides.
-Cada slide tem **notas do apresentador** e **quem fala**. Duração-alvo: ~15 min de slides e ~10 min de demo
-([demo-etapa-4.md](demo-etapa-4.md)).
+<!-- _class: title -->
+<!-- _paginate: false -->
+
+# ERP Banking e Crédito
+
+## Etapa 4 — Gateway, eventos, observabilidade, carga e deploy
+
+Murilo · Lucas · Gabriel · João Vivacqua · Vinicius · João Baungartner
+
+<!--
+Arquivo-fonte dos slides (Marp). Exportar:
+npx @marp-team/marp-cli@3 docs/apresentacao-etapa-4.md --pdf --allow-local-files
+npx @marp-team/marp-cli@3 docs/apresentacao-etapa-4.md --pptx --allow-local-files
+As notas do apresentador ficam em comentários HTML (vão para as notas do PPTX).
+Diagramas: fontes em docs/img/*.mmd, SVG gerado com @mermaid-js/mermaid-cli.
+Duração-alvo: ~15 min de slides e ~10 min de demo (demo-etapa-4.md).
+-->
+
+---
+
+<!-- _class: small -->
+
+## Quem fala o quê
 
 | Integrante                         | Slides                                        | Demo                                  |
 | ---------------------------------- | --------------------------------------------- | ------------------------------------- |
@@ -14,7 +53,7 @@ Cada slide tem **notas do apresentador** e **quem fala**. Duração-alvo: ~15 mi
 | João Baungartner (joaobaungartner) | 8 – Deploy, 9 – Qualidade, 10 – Padrões       | 7. Qualidade e entrega                |
 | Todos                              | 11 – Lições e próximos passos, 12 – Perguntas | —                                     |
 
-> A divisão é uma sugestão; ajustem ao que cada um mais trabalhou.
+_A divisão é uma sugestão; ajustem ao que cada um mais trabalhou._
 
 ---
 
@@ -30,40 +69,31 @@ Cada slide tem **notas do apresentador** e **quem fala**. Duração-alvo: ~15 mi
 **Etapa 4:** levar isso para produção — API Gateway, comunicação assíncrona, observabilidade, testes de carga e
 deploy na nuvem.
 
-> **Notas (Murilo):** contextualizar as etapas anteriores em 20 s (1: microsserviços, 2: integração,
-> 3: Auth0 + front). O foco de hoje é "o que muda quando o sistema vai para produção".
+<!--
+Notas (Murilo): contextualizar as etapas anteriores em 20 s (1: microsserviços, 2: integração,
+3: Auth0 + front). O foco de hoje é "o que muda quando o sistema vai para produção".
+-->
 
 ---
+
+<!-- _class: diagram -->
 
 ## 2. Arquitetura final
 
-```mermaid
-flowchart LR
-    U[Navegador] -->|HTTPS| V[Vercel<br/>React + rewrites /api/*]
-    U -->|login| A[Auth0]
-    V -->|HTTP :8080| G[API Gateway<br/>nginx]
-    subgraph EC2 [AWS EC2 — docker compose]
-        G --> O[Onboarding<br/>FastAPI]
-        G --> S[Credit Score<br/>FastAPI]
-        G --> T[Transactions<br/>Spring Boot]
-        S -->|token relay| O
-        T -->|token relay| S
-        O & S & T --> PG[(PostgreSQL<br/>3 schemas)]
-        O & T -->|eventos| MQ{{RabbitMQ<br/>erp.events}}
-        MQ --> S & T
-        P[Prometheus] -.-> O & S & T & G & MQ
-        GR[Grafana] --> P
-    end
-```
+![Arquitetura final w:1050](img/arquitetura-etapa-4.svg)
 
 - 3 microsserviços, **2 linguagens**, 1 banco com **schema por serviço**.
-- Uma única porta pública para as APIs (8080); Grafana 8081 e Prometheus 8082.
+- Uma única porta pública para as APIs (8080); Grafana 8081; Prometheus pelo Grafana (Explore) ou túnel SSH.
 
-> **Notas (Murilo):** percorrer o caminho de uma requisição: navegador → Vercel (mesma origem, sem CORS nem mixed
-> content) → gateway → serviço. Síncrono por HTTP com token relay; o que não precisa de resposta imediata vai por
-> evento.
+<!--
+Notas (Murilo): percorrer o caminho de uma requisição: navegador → Vercel (mesma origem, sem CORS nem mixed
+content) → gateway → serviço. Síncrono por HTTP com token relay; o que não precisa de resposta imediata vai por
+evento.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 3. API Gateway (nginx)
 
@@ -81,10 +111,14 @@ flowchart LR
 - `/metrics` e `/actuator` **não** são expostos (só o Prometheus, pela rede interna).
 - O front trata 429/503/timeout com mensagem amigável e retentativa (respeita `Retry-After`).
 
-> **Notas (Lucas):** o gateway é o único ponto de entrada: segurança (superfície menor), controle de abuso e
-> observabilidade num lugar só. Mencionar que a Vercel reescreve `/api/*` para o gateway.
+<!--
+Notas (Lucas): o gateway é o único ponto de entrada: segurança (superfície menor), controle de abuso e
+observabilidade num lugar só. Mencionar que a Vercel reescreve `/api/*` para o gateway.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 4. Comunicação assíncrona — RabbitMQ
 
@@ -100,35 +134,27 @@ Exchange **`erp.events`** (topic, durável), mensagens JSON persistentes com `ev
 - Publicar **nunca** derruba a requisição HTTP (loga + métrica de erro).
 - Consumidores **idempotentes** por `event_id`; sem `RABBITMQ_URL` a mensageria vira no-op (dev e testes).
 
-> **Notas (Gabriel):** por que eventos? Desacoplamento temporal: o Score não precisa estar no ar para o crédito ser
-> decidido, e novos consumidores entram sem mexer no produtor.
+<!--
+Notas (Gabriel): por que eventos? Desacoplamento temporal: o Score não precisa estar no ar para o crédito ser
+decidido, e novos consumidores entram sem mexer no produtor.
+-->
 
 ---
+
+<!-- _class: diagram -->
 
 ## 5. Fluxo `credit.decided` ponta a ponta
 
-```mermaid
-sequenceDiagram
-    participant F as Front
-    participant T as Transactions
-    participant S as Credit Score
-    participant MQ as RabbitMQ
-    F->>T: POST /credits
-    T->>S: GET score vigente (token relay, timeout + circuit breaker)
-    S-->>T: score 812 (BAIXO)
-    T->>T: decide APROVADO, grava, commit
-    T-)MQ: credit.decided (após o commit)
-    T-->>F: 201 APROVADO
-    MQ-)S: credit.decided
-    S->>S: grava em credit_decision_events (idempotente)
-    F->>S: GET /scores/decisions?customer_id=
-    S-->>F: decisão aparece na ficha 360°
-```
+![Fluxo credit.decided h:440](img/fluxo-credit-decided.svg)
 
-> **Notas (Gabriel):** a resposta ao usuário não espera o evento. A ficha 360° faz polling e mostra a decisão
-> "recebida via evento" segundos depois — é isso que vamos ver na demo.
+<!--
+Notas (Gabriel): a resposta ao usuário não espera o evento. A ficha 360° faz polling e mostra a decisão
+"recebida via evento" segundos depois — é isso que vamos ver na demo.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 6. Observabilidade — Prometheus + Grafana
 
@@ -140,10 +166,14 @@ sequenceDiagram
   erro ao publicar evento, pico de tráfego no gateway.
 - No front, a página **/monitoramento** (admin) mostra a saúde dos serviços e do gateway com latência.
 
-> **Notas (João Vivacqua):** "não dá para operar o que não se mede". Destacar que os dashboards são versionados
-> (provisionamento), então qualquer um sobe o stack e já tem tudo.
+<!--
+Notas (João Vivacqua): "não dá para operar o que não se mede". Destacar que os dashboards são versionados
+(provisionamento), então qualquer um sobe o stack e já tem tudo.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 7. Testes de carga — k6
 
@@ -160,11 +190,15 @@ Na EC2 (2 vCPU / 1,9 GB), pela rede do compose, fluxo de health (gateway + 3 ser
 **Leitura:** todo o tráfego sai de **um IP** → acima de ~50 req/s o gateway devolve 429 **por desenho**. Zero 5xx,
 p95 < 12 ms em tudo, nenhum serviço caiu; no spike o p99 foi a 141 ms e se recuperou.
 
-> **Notas (Vinicius):** antecipar a pergunta "os thresholds falharam?": falharam só porque o k6 conta 429 como
-> falha. Isso prova o rate limit; com `ALLOW_429=true` ou vários IPs mede-se a capacidade bruta. O fluxo de negócio
-> autenticado está pronto e depende de um token real do Auth0.
+<!--
+Notas (Vinicius): antecipar a pergunta "os thresholds falharam?": falharam só porque o k6 conta 429 como
+falha. Isso prova o rate limit; com `ALLOW_429=true` ou vários IPs mede-se a capacidade bruta. O fluxo de negócio
+autenticado está pronto e depende de um token real do Auth0.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 8. Deploy
 
@@ -176,10 +210,14 @@ p95 < 12 ms em tudo, nenhum serviço caiu; no spike o p99 foi a 141 ms e se recu
   HTTP e CORS) e headers de segurança.
 - **Auth0** como provedor de identidade (RBAC com 8 permissões e 3 perfis).
 
-> **Notas (João Baungartner):** destacar que o compose aceita tanto `image:` (GHCR) quanto `build:` — o mesmo
-> arquivo serve para dev local e produção.
+<!--
+Notas (João Baungartner): destacar que o compose aceita tanto `image:` (GHCR) quanto `build:` — o mesmo
+arquivo serve para dev local e produção.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 9. Qualidade
 
@@ -192,10 +230,14 @@ p95 < 12 ms em tudo, nenhum serviço caiu; no spike o p99 foi a 141 ms e se recu
 
 - CI falha abaixo de **80%**; PRs curtos, merge só com CI verde; Conventional Commits.
 
-> **Notas (João Baungartner):** testes de integração com mocks de broker/Auth0 rodam sem infraestrutura;
-> mensageria desligada por padrão nos testes.
+<!--
+Notas (João Baungartner): testes de integração com mocks de broker/Auth0 rodam sem infraestrutura;
+mensageria desligada por padrão nos testes.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 10. Padrões de projeto
 
@@ -210,9 +252,13 @@ p95 < 12 ms em tudo, nenhum serviço caiu; no spike o p99 foi a 141 ms e se recu
 | **Singleton / Repository**  | `RestTemplate` como bean; SQLAlchemy e Spring Data JPA                          |
 | **Database per service**    | um schema por serviço; dados alheios só via API ou evento                       |
 
-> **Notas (João Baungartner):** escolher dois para detalhar (Strategy e Circuit Breaker) se o tempo apertar.
+<!--
+Notas (João Baungartner): escolher dois para detalhar (Strategy e Circuit Breaker) se o tempo apertar.
+-->
 
 ---
+
+<!-- _class: small -->
 
 ## 11. Lições e próximos passos
 
@@ -230,15 +276,19 @@ p95 < 12 ms em tudo, nenhum serviço caiu; no spike o p99 foi a 141 ms e se recu
 - **Escala horizontal:** réplicas atrás do gateway, Postgres/RabbitMQ gerenciados (RDS, Amazon MQ).
 - Rate limit por usuário/token; tracing distribuído (OpenTelemetry) usando o `X-Request-ID`.
 
-> **Notas (todos):** cada um cita uma lição do seu pedaço em uma frase.
+<!--
+Notas (todos): cada um cita uma lição do seu pedaço em uma frase.
+-->
 
 ---
 
 ## 12. Perguntas?
 
 - Front: <https://erp-banking-front.vercel.app>
-- Grafana: <http://3.235.6.136:8081> · Prometheus: <http://3.235.6.136:8082>
+- Grafana: <http://3.235.6.136:8081> (Prometheus em **Explore**)
 - Código: `github.com/murilozgodoy/erp-banking-*` e `github.com/GabrielRosa1/erp-banking-infra`
 - Documentação: `erp-banking-front/docs/` ([etapa-4.md](etapa-4.md), [demo-etapa-4.md](demo-etapa-4.md))
 
-> **Notas:** em seguida, a demo ao vivo seguindo o [roteiro](demo-etapa-4.md).
+<!--
+Notas: em seguida, a demo ao vivo seguindo o [roteiro](demo-etapa-4.md).
+-->

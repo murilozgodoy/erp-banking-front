@@ -7,13 +7,15 @@ que também traz a divisão de quem fala o quê.
 
 ## URLs
 
-| O quê                | URL                                                                   | Acesso                                                                                 |
-| -------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Front (Vercel)       | <https://erp-banking-front.vercel.app>                                | login Auth0                                                                            |
-| API Gateway (EC2)    | <http://3.235.6.136:8080/gateway/health>                              | público                                                                                |
-| Grafana (EC2)        | <http://3.235.6.136:8081>                                             | usuário `admin`; senha com o grupo (ver abaixo)                                        |
-| Prometheus (EC2)     | <http://3.235.6.136:8082> (alvos em `/targets`, alertas em `/alerts`) | publicado pelo compose (sem login; restrinja no Security Group se quiser)              |
-| Swagger Transactions | <http://3.235.6.136:8080/transactions/swagger-ui/index.html>          | público (os endpoints exigem token; Swagger das APIs Python exige token já para abrir) |
+| O quê                | URL                                                                             | Acesso                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Front (Vercel)       | <https://erp-banking-front.vercel.app>                                          | login Auth0                                                                            |
+| API Gateway (EC2)    | <http://3.235.6.136:8080/gateway/health>                                        | público                                                                                |
+| Grafana (EC2)        | <http://3.235.6.136:8081>                                                       | usuário `admin`; senha com o grupo (ver abaixo)                                        |
+| Prometheus (EC2)     | Grafana → **Explore** (<http://3.235.6.136:8081/explore>) ou túnel SSH (abaixo) | 8082 bloqueada no Security Group                                                       |
+| Swagger Transactions | <http://3.235.6.136:8080/transactions/swagger-ui/index.html>                    | público (os endpoints exigem token; Swagger das APIs Python exige token já para abrir) |
+
+Prometheus acessível pelo **Grafana (Explore)** ou por túnel SSH (`ssh -i ~/.ssh/erp-ec2.pem -L 9090:localhost:8082 ubuntu@3.235.6.136` → <http://localhost:9090>); a 8082 pública depende de liberação no Security Group.
 
 A senha do Grafana é o `GRAFANA_ADMIN_PASSWORD` do `.env` do `erp-banking-infra` na EC2 (não é versionada). O
 RabbitMQ Management não é publicado (só rede interna do compose): mostre as filas pelo dashboard **RabbitMQ** do
@@ -22,11 +24,11 @@ Grafana ou, na EC2, com `docker compose exec rabbitmq rabbitmqctl list_queues na
 ## Antes de começar (checklist, 10 min antes)
 
 - [ ] <http://3.235.6.136:8080/gateway/health> responde `{"status":"UP"}`.
-- [ ] Prometheus → **Status → Targets**: os 7 jobs `UP` (`onboarding-api`, `credit-score-api`, `transactions-api`,
+- [ ] Túnel SSH do Prometheus aberto e <http://localhost:9090/targets> com os 7 jobs `UP` (`onboarding-api`, `credit-score-api`, `transactions-api`,
       `gateway`, `rabbitmq`, `rabbitmq-detailed`, `prometheus`).
 - [ ] Usuários de teste no Auth0, um por perfil: **admin**, **analista** e **atendente** (senhas com o grupo).
 - [ ] A URL da Vercel cadastrada no Auth0 (Allowed Callback / Logout / Web Origins) — sem isso o login falha.
-- [ ] Abas abertas: front, Grafana (dashboard **Visão geral**), Prometheus (`/alerts`) e um terminal no
+- [ ] Abas abertas: front, Grafana (dashboard **Visão geral**), Prometheus pelo túnel (`http://localhost:9090/alerts`) e um terminal no
       `erp-banking-infra/load-tests`.
 - [ ] Docker ligado na máquina que vai rodar o k6.
 
@@ -72,7 +74,7 @@ Grafana, Prometheus e Swagger. Na home, os **indicadores** (clientes, contas, cr
 2. **Visão geral**: UP/DOWN, req/s, p95 e 5xx por serviço, além do gateway (nginx) e dos eventos;
    **Serviços Python (onboarding / score)**: por handler; **Transactions API (JVM)**: memória, threads, GC e pool
    do banco; **RabbitMQ**: filas, consumidores e mensagens.
-3. Prometheus → `/alerts`: regras `ServiceDown`, `GatewayNginxDown`, `HighErrorRatePython/Java`,
+3. Prometheus (túnel, `http://localhost:9090/alerts`; ou Grafana → Explore para consultas): regras `ServiceDown`, `GatewayNginxDown`, `HighErrorRatePython/Java`,
    `HighLatencyP95Python/Java`, `RabbitMQQueueBacklog`, `RabbitMQBacklogTotal`, `EventPublishErrors` e
    `GatewayTrafficSpike`. Uma consulta rápida, ex.: `sum by (status) (credit_decisions_total)`.
 
