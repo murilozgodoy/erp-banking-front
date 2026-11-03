@@ -40,7 +40,11 @@ function Valor({ entry }: { entry: StatementEntry }) {
         credit ? 'text-positive' : 'text-ink',
       )}
     >
-      <Icon aria-hidden className={cn('size-3.5', credit ? 'text-positive' : 'text-negative')} />
+      {/* No celular o sinal e a cor bastam: a seta sai para o valor caber sem rolar. */}
+      <Icon
+        aria-hidden
+        className={cn('hidden size-3.5 sm:block', credit ? 'text-positive' : 'text-negative')}
+      />
       <span className="sr-only">{credit ? 'Entrada de' : 'Saída de'} </span>
       {credit ? '+' : '−'}
       {money(entry.valor)}
