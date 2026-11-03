@@ -18,7 +18,9 @@ Auth0 configurado (ver [docs/auth0.md](docs/auth0.md)).
 
 ## Produção
 
-Front na Vercel: <https://erp-banking-front.vercel.app>, falando com o API Gateway na AWS EC2. Arquitetura,
+Front na Vercel: <https://erp-banking-front.vercel.app>, falando com o API Gateway na AWS EC2 (`3.235.6.136`,
+compose do [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra)). Na EC2 só ficam públicos o
+gateway (**8080**), o Grafana (**8081**) e o Prometheus (**8082**); as APIs ficam na rede interna. Arquitetura,
 deploy e checklist da Etapa 4 em [docs/etapa-4.md](docs/etapa-4.md).
 
 ## Variáveis de ambiente
@@ -38,7 +40,7 @@ deploy e checklist da Etapa 4 em [docs/etapa-4.md](docs/etapa-4.md).
 
 Sem gateway (cada API na sua porta), use `http://localhost:8081`, `:8082` e `:8080` e deixe `VITE_GATEWAY_URL`
 vazia; o `.env.example` traz os três modos. As opcionais vazias escondem o item correspondente na página
-**Monitoramento**.
+**Monitoramento** (só `admin`: health dos 3 serviços e do gateway, links para Grafana, Prometheus e Swagger).
 
 As variáveis são lidas apenas em `src/config/env.ts`, que falha cedo se faltar alguma. Nunca
 coloque segredos em `VITE_*`: elas vão para o bundle.

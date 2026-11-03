@@ -21,16 +21,22 @@ docker compose ps       # todos healthy
 ./scripts/smoke.sh      # health de gateway e serviços (ACCESS_TOKEN=... para o fluxo completo)
 ```
 
-| URL local                                              | O quê                                                                     |
-| ------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `http://localhost:8080`                                | API Gateway (`/onboarding`, `/score`, `/transactions`, `/gateway/health`) |
-| `http://localhost:8081`                                | Grafana (usuário `admin`, senha `GRAFANA_ADMIN_PASSWORD`)                 |
-| `http://localhost:8082`                                | Prometheus                                                                |
-| `http://localhost:8080/onboarding/docs`, `/score/docs` | Swagger das APIs Python pelo gateway                                      |
+| URL local                                                  | O quê                                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `http://localhost:8080`                                    | API Gateway (`/onboarding`, `/score`, `/transactions`, `/gateway/health`) |
+| `http://localhost:8081`                                    | Grafana (usuário `admin`, senha `GRAFANA_ADMIN_PASSWORD`)                 |
+| `http://localhost:8082`                                    | Prometheus                                                                |
+| `http://localhost:8080/onboarding/docs`, `/score/docs`     | Swagger das APIs Python pelo gateway (os endpoints exigem token)          |
+| `http://localhost:8080/transactions/swagger-ui/index.html` | Swagger do Transactions pelo gateway                                      |
 
 Postgres e RabbitMQ não são publicados; para acessá-los use o override
 `docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d` (publica só em `127.0.0.1`). Pelo
-compose a mensageria está ligada (`RABBITMQ_URL` definido), então os eventos fluem entre os serviços.
+compose a mensageria está ligada (`RABBITMQ_URL` definido), então os eventos fluem entre os serviços. As APIs não
+são publicadas: tudo passa pelo gateway, e `/metrics` e `/actuator/**` não são expostos por ele (404).
+
+Na EC2 (`3.235.6.136`) as portas publicadas são as mesmas: **8080** gateway, **8081** Grafana e **8082**
+Prometheus. Os serviços (`onboarding-api:8081`, `credit-score-api:8082`, `transactions-api:8080`) ficam só na rede
+interna do compose.
 
 ## Rodando os serviços de backend sem gateway
 
@@ -38,6 +44,17 @@ Cada serviço lê as variáveis do próprio `.env` (fora do git; copie o `.env.e
 precisam de `AUTH0_DOMAIN` e `AUTH0_AUDIENCE=https://erp-banking-api`. Sem `RABBITMQ_URL` a mensageria fica
 desligada (no-op): as APIs funcionam, mas os eventos não são publicados nem consumidos (o card de decisões via
 evento e o aviso de score desatualizado ficam vazios).
+
+| Serviço             | Variáveis principais                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Onboarding (Python) | `DATABASE_URL`, `RABBITMQ_URL`, `ROOT_PATH` (`/onboarding` atrás do gateway), `PORT`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`, `CORS_ORIGINS` (lista JSON)                      |
+| Score (Python)      | as mesmas (`ROOT_PATH=/score`) e `ONBOARDING_API_URL`                                                                                                                    |
+| Transactions (Java) | `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DRIVER`, `SERVER_PORT`, `CREDIT_SCORE_API_URL`, `RABBITMQ_URL`, `MESSAGING_ENABLED`, `AUTO_OPEN_ACCOUNT` |
+
+Com PostgreSQL, a `DATABASE_URL` aponta para o schema do serviço:
+`postgresql+psycopg://erp:erp@postgres:5432/erp?options=-csearch_path%3Donboarding` (Python; `credit_score` no
+Score) e `jdbc:postgresql://postgres:5432/erp?currentSchema=transactions` (Java). Inclua `http://localhost:5173` no
+`CORS_ORIGINS` de cada API.
 
 ```bash
 # Onboarding (8081)
@@ -59,6 +76,9 @@ cd erp-banking-transactions-api
 mvn spring-boot:run
 mvn verify      # testes + JaCoCo
 ```
+
+Sem gateway, cada serviço responde direto na sua porta, inclusive as métricas (`:8081/metrics`, `:8082/metrics`,
+`:8080/actuator/prometheus`) e o Swagger (`:8081/docs`, `:8082/docs`, `:8080/swagger-ui/index.html`).
 
 ## Rodando o front
 

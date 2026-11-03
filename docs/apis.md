@@ -1,12 +1,15 @@
 # APIs, regras de negócio e modelos de dados
 
-Todas as rotas, exceto `/health` e as de métricas, exigem `Authorization: Bearer <access token>` e a
-permissão indicada (ver [auth0.md](auth0.md)). Sem token: 401; sem a permissão: 403.
+Todas as rotas, exceto `/health`, as de métricas e a documentação OpenAPI do Transactions, exigem
+`Authorization: Bearer <access token>` e a permissão indicada (ver [auth0.md](auth0.md)). Sem token: 401; sem a
+permissão: 403.
 
 ## Acesso pelo API Gateway
 
 Desde a Etapa 4 as APIs são acessadas pelo API Gateway (nginx, porta **8080**), que remove o prefixo antes de
-repassar. As rotas das tabelas abaixo são as do serviço; pelo gateway, acrescente o prefixo:
+repassar. As portas dos títulos abaixo (`:8081`, `:8082`, `:8080`) são as internas de cada serviço: na EC2 (e no
+compose local) elas não são publicadas, só o gateway. As rotas das tabelas são as do serviço; pelo gateway,
+acrescente o prefixo:
 
 | Prefixo no gateway | Serviço          | Exemplo                                                    |
 | ------------------ | ---------------- | ---------------------------------------------------------- |
@@ -41,6 +44,7 @@ Os demais erros (400, 401, 403, 404, 409, 422...) vêm dos serviços sem altera�
 | PUT    | `/customers/{id}/anamnesis`    | `write:customers` | Grava a anamnese (publica `customer.anamnesis_updated`)                       |
 | GET    | `/health`                      | pública           | Health check                                                                  |
 | GET    | `/metrics`                     | pública\*         | Métricas Prometheus                                                           |
+| GET    | `/docs`                        | —                 | Swagger UI (pelo gateway: `/onboarding/docs`; os endpoints exigem token)      |
 
 ### Credit Score API (`:8082`)
 
@@ -54,9 +58,10 @@ Os demais erros (400, 401, 403, 404, 409, 422...) vêm dos serviços sem altera�
 | GET    | `/scores/decisions?customer_id=`   | `read:scores`  | Decisões de crédito recebidas pelo evento `credit.decided`, da mais recente para a mais antiga  |
 | GET    | `/health`                          | pública        | Health check                                                                                    |
 | GET    | `/metrics`                         | pública\*      | Métricas Prometheus                                                                             |
+| GET    | `/docs`                            | —              | Swagger UI (pelo gateway: `/score/docs`; os endpoints exigem token)                             |
 
 - `GET /scores/customers/{id}/status` devolve
-  `{customer_id, desatualizado, motivo, dividas_ativas, comprometimento_renda}`; `desatualizado` vira `true` ao
+  `{customer_id, desatualizado, motivo, dividas_ativas, comprometimento_renda, updated_at}`; `desatualizado` vira `true` ao
   receber `customer.anamnesis_updated` e volta a `false` na próxima avaliação.
 - `GET /scores/decisions` devolve
   `[{id, event_id, credit_request_id, customer_id, status, motivo, valor_solicitado, prazo_meses, score, faixa_risco, taxa_juros, occurred_at, received_at}]`
@@ -77,9 +82,12 @@ Os demais erros (400, 401, 403, 404, 409, 422...) vêm dos serviços sem altera�
 | GET    | `/health`                     | pública          | Health check                                                |
 | GET    | `/actuator/health`            | pública\*        | Health do Spring Actuator                                   |
 | GET    | `/actuator/prometheus`        | pública\*        | Métricas Prometheus (Micrometer)                            |
+| GET    | `/swagger-ui/index.html`      | pública          | Swagger UI (pelo gateway: `/transactions/swagger-ui/...`)   |
+| GET    | `/v3/api-docs`                | pública          | Especificação OpenAPI (JSON)                                |
 
 `POST /transactions` publica `transaction.created` e `POST /credits` publica `credit.decided` (ver
-[Eventos](#eventos-rabbitmq)).
+[Eventos](#eventos-rabbitmq)). Se o Credit Score estiver fora do ar, `POST /credits` responde **503** depois das
+retentativas (retry + circuit breaker).
 
 \* Sem token, mas **não** exposta pelo gateway (404): só o Prometheus acessa, pela rede interna do compose.
 Rodando o serviço sozinho em dev, responde direto na porta do serviço.
@@ -89,14 +97,25 @@ Rodando o serviço sozinho em dev, responde direto na porta do serviço.
 
 ## Eventos (RabbitMQ)
 
-Exchange `erp.events` (topic). Todo evento tem `event_id`, `event_type` e `occurred_at`, em `snake_case`.
+Exchange `erp.events` (topic, durável), mensagens JSON. Todo evento tem `event_id`, `event_type` e `occurred_at`,
+em `snake_case`. Sem `RABBITMQ_URL` (ou com `MESSAGING_ENABLED=false` no Transactions) a mensageria fica desligada.
 
 | Routing key                  | Produtor     | Consumidor                                                                                                    | Campos extras                                                                                                   |
 | ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `credit.decided`             | Transactions | Score (fila `credit-score.credit-decided`)                                                                    | `credit_request_id, customer_id, valor_solicitado, prazo_meses, score, faixa_risco, status, motivo, taxa_juros` |
 | `transaction.created`        | Transactions | —                                                                                                             | `transaction_id, account_id, customer_id, tipo, valor, saldo_apos`                                              |
 | `customer.created`           | Onboarding   | Transactions (`transactions.customer-created`): abre conta corrente com saldo zero (`AUTO_OPEN_ACCOUNT=true`) | `customer_id, nome, cpf, email`                                                                                 |
-| `customer.anamnesis_updated` | Onboarding   | Score (fila `credit-score.anamnesis-updated`)                                                                 | `customer_id, dividas_ativas, comprometimento_renda`                                                            |
+| `customer.anamnesis_updated` | Onboarding   | Score (fila `credit-score.anamnesis-updated`): marca o score como desatualizado                               | `customer_id, dividas_ativas, comprometimento_renda`                                                            |
+
+## Métricas
+
+Expostas em `/metrics` (Python) e `/actuator/prometheus` (Java), coletadas pelo Prometheus pela rede interna.
+
+| Serviço      | Métricas                                                                                                                                                                                     |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Onboarding   | `http_requests_total`, `http_request_duration_seconds(_highr)`, `customers_created_total`, `events_published_total{routing_key,result}`                                                      |
+| Credit Score | `http_requests_total`, `http_request_duration_seconds(_highr)`, `score_evaluations_total{strategy,faixa_risco}`, `events_consumed_total{routing_key,result}`                                 |
+| Transactions | `http_server_requests_seconds` (histograma), `credit_decisions_total{status}`, `transactions_created_total{tipo}`, `events_published_total{routing_key}`; tag `application=transactions-api` |
 
 ## Regras de decisão de crédito
 
