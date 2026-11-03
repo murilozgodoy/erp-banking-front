@@ -60,3 +60,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  docker:
+    name: Build da imagem Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (sem push)
+        run: docker build -t erp-banking-front:ci .
