@@ -78,7 +78,7 @@ Grafana, Prometheus e Swagger. Na home, os **indicadores** (clientes, contas, cr
 
 ### 6. Rate limit e carga (3 min) — Vinicius
 
-1. Rate limit (50 req/s por IP, burst 100) no terminal:
+1. Rate limit (50 req/s por cliente, burst 100; teto de 200 req/s por IP de conexão) no terminal:
 
    ```bash
    cd erp-banking-infra/load-tests

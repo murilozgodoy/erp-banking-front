@@ -78,8 +78,10 @@ Configuração em `erp-banking-infra/gateway/` (nginx 1.27).
 
 Exemplo: `GET /score/scores/customers/1/latest` → `credit-score-api:8082/scores/customers/1/latest`.
 
-- **Rate limit por IP:** 50 req/s com burst de 100 (`nodelay`). Atrás da Vercel o IP considerado é o primeiro do
-  `X-Forwarded-For`. Em excesso: **429** `{"detail":"Too Many Requests","request_id":"..."}` com `Retry-After: 1`.
+- **Rate limit em duas zonas:** por cliente, 50 req/s com burst de 100 (`nodelay`) — atrás da Vercel o IP considerado
+  é o primeiro do `X-Forwarded-For`; e por IP de conexão, 200 req/s com burst de 400, um teto que impede contornar o
+  limite forjando o `X-Forwarded-For` (e cabe todo o tráfego que chega pelos IPs da Vercel). Em excesso: **429**
+  `{"detail":"Too Many Requests","request_id":"..."}` com `Retry-After: 1`.
 - **Serviço fora do ar:** 502/503/504 do upstream viram **503** `{"detail":"Service Unavailable","request_id":"..."}`.
   Corpo acima de 2 MB: 413. Além do gateway, o Transactions responde **503** em `POST /credits` quando o Score
   está fora (timeout + retry + circuit breaker na chamada ao Score).
@@ -127,6 +129,10 @@ Endpoints de métricas (públicos, sem token, mas só alcançáveis pela rede in
 - Onboarding e Score: `GET /metrics` (`prometheus-fastapi-instrumentator`).
 - Transactions: `GET /actuator/prometheus` e `GET /actuator/health` (Micrometer, tag
   `application=transactions-api`).
+
+O Prometheus fica publicado na 8082 sem login, mas com a **API de lifecycle desligada** (`/-/quit` e `/-/reload`
+respondem 403; recarregar a config: `docker compose kill -s SIGHUP prometheus`). O receptor de remote write fica
+ligado para o k6.
 
 Alvos do Prometheus (scrape a cada 15 s), em `erp-banking-infra/prometheus/prometheus.yml`:
 

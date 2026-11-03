@@ -74,7 +74,8 @@ flowchart LR
 | `/transactions/...` | `transactions-api` |
 | `/gateway/health`   | o próprio gateway  |
 
-- **Rate limit por IP:** 50 req/s, burst 100 → **429** JSON com `Retry-After`.
+- **Rate limit:** 50 req/s por cliente (burst 100) + teto de 200 req/s por IP de conexão (burst 400, contra
+  `X-Forwarded-For` forjado) → **429** JSON com `Retry-After`.
 - **`X-Request-ID`** gerado/propagado — rastreia a requisição nos logs de todos os serviços.
 - Serviço fora → **503** JSON padronizado; timeouts; logs JSON.
 - `/metrics` e `/actuator` **não** são expostos (só o Prometheus, pela rede interna).
