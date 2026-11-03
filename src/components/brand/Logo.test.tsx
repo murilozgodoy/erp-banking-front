@@ -10,6 +10,15 @@ describe('marca ErpIa', () => {
     expect(container.querySelector('rect')).toHaveAttribute('fill', '#1A221D')
   })
 
+  it('desenha o "I" com serifas para "ErpIa" não ler como "Erpla"', () => {
+    const { container } = render(<ErpIaLogo />)
+    const logo = screen.getByRole('img', { name: 'ErpIa' })
+    expect(logo).toHaveTextContent('Erpa')
+    const glyph = container.querySelector('[data-glyph="serif-i"]')
+    expect(glyph).toHaveAttribute('aria-hidden', 'true')
+    expect(glyph?.parentElement).toHaveTextContent(/^a$/)
+  })
+
   it('símbolo é decorativo sem título e nomeado com título', () => {
     const { container, rerender } = render(<ErpIaMark />)
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
