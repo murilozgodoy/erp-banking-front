@@ -8,12 +8,14 @@ import { dayMonth, relativeDay } from '../../lib/format'
 import type { Payable, PayableStatus, PayablesReport } from '../../types'
 import { Button } from '../../ui/Button'
 import { DataTable, type Column } from '../../ui/DataTable'
+import { GatedButton } from '../../ui/Gated'
 import { Money } from '../../ui/Money'
 import { Pill } from '../../ui/Pill'
 import { Segmented } from '../../ui/Segmented'
 import { EmptyState, ErrorState, Panel } from '../../ui/Surface'
 import { RowsSkeleton } from './RowsSkeleton'
 import { CATEGORIA_LABEL, pagavel, STATUS_PILL } from './model'
+import { usePaymentHistory } from './queries'
 
 const FILTROS: { value: PayableStatus; label: string }[] = [
   { value: 'ABERTO', label: 'Abertas' },
@@ -58,6 +60,17 @@ interface PayablesPanelProps {
 /** Contas a pagar do ERP, filtradas por status, com "Pagar" na linha. */
 export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
   const [filtro, setFiltro] = useState<PayableStatus>('ABERTO')
+  // Conta paga acima do limite de alguém: fica aberta, mas com o pagamento esperando aprovação.
+  const history = usePaymentHistory()
+  const pendentes = useMemo(
+    () =>
+      new Set(
+        (history.data ?? [])
+          .filter((p) => p.status === 'PENDENTE_APROVACAO' && p.payable_id !== null)
+          .map((p) => p.payable_id),
+      ),
+    [history.data],
+  )
   const itens = useMemo(() => query.data?.itens ?? [], [query.data])
   const counts = useMemo(() => {
     const result: Record<PayableStatus, number> = { ABERTO: 0, ATRASADO: 0, AGENDADO: 0, PAGO: 0 }
@@ -133,15 +146,18 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
       header: 'Ação',
       align: 'right',
       cell: (c) =>
-        pagavel(c) ? (
-          <Button
+        pendentes.has(c.id) ? (
+          <Pill tone="warning">Pendente de aprovação</Pill>
+        ) : pagavel(c) ? (
+          <GatedButton
+            permissao="pagar"
             size="sm"
             variant={c.status === 'ATRASADO' ? 'primary' : 'secondary'}
             onClick={() => onPay(c)}
             aria-label={`Pagar ${c.fornecedor}, vencimento ${dayMonth(c.vencimento)}`}
           >
             Pagar
-          </Button>
+          </GatedButton>
         ) : (
           <span className="text-xs text-ink-faint">—</span>
         ),
@@ -203,9 +219,9 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
                 title={empty.title}
                 action={
                   filtro === 'ABERTO' ? (
-                    <Button variant="secondary" size="sm" onClick={onNew}>
+                    <GatedButton permissao="pagar" variant="secondary" size="sm" onClick={onNew}>
                       Novo pagamento
-                    </Button>
+                    </GatedButton>
                   ) : undefined
                 }
               >

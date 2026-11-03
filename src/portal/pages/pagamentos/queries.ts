@@ -9,6 +9,7 @@ import type { PaymentRequest } from '../../types'
 export const paymentKeys = {
   payables: [...portalKeys.erp, 'payables'] as const,
   payments: [...portalKeys.erp, 'payments'] as const,
+  pending: [...portalKeys.erp, 'payments', 'pending'] as const,
   statement: (days: number) => [...portalKeys.erp, 'statement', days] as const,
 }
 
@@ -49,4 +50,41 @@ export function usePay() {
     onSuccess: refresh,
   })
   return { ...mutation, refresh }
+}
+
+/** Pagamentos acima do limite de alguém, esperando aprovação (`aprovar_pagamentos`). */
+export function usePendingPayments(enabled: boolean) {
+  const api = usePortalApi()
+  return useQuery({ queryKey: paymentKeys.pending, queryFn: api.erp.pendingPayments, enabled })
+}
+
+/** Aprovar ou rejeitar: os dois atualizam a bandeja, saldo, contas, histórico e extrato. */
+function useRefreshErp() {
+  const queryClient = useQueryClient()
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: portalKeys.erp }),
+      queryClient.invalidateQueries({ queryKey: portalKeys.overview }),
+    ])
+}
+
+/** Aprovar executa o débito (ou agenda) e devolve o comprovante, como o `POST /me/payments`. */
+export function useApprovePayment() {
+  const api = usePortalApi()
+  const refresh = useRefreshErp()
+  return useMutation({
+    mutationFn: (id: number) => api.erp.approvePayment(id),
+    onSettled: refresh,
+  })
+}
+
+/** Rejeitar não move dinheiro; o motivo é opcional. */
+export function useRejectPayment() {
+  const api = usePortalApi()
+  const refresh = useRefreshErp()
+  return useMutation({
+    mutationFn: ({ id, motivo }: { id: number; motivo?: string }) =>
+      api.erp.rejectPayment(id, motivo),
+    onSettled: refresh,
+  })
 }

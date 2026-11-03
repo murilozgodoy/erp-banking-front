@@ -68,7 +68,14 @@ export function StatementPanel() {
     {
       key: 'descricao',
       header: 'Lançamento',
-      cell: (e) => <span className="line-clamp-2 text-ink">{e.descricao}</span>,
+      cell: (e) => (
+        <>
+          <span className="line-clamp-2 text-ink">{e.descricao}</span>
+          {e.created_by_nome && (
+            <span className="block text-xs text-ink-faint">feito por {e.created_by_nome}</span>
+          )}
+        </>
+      ),
     },
     { key: 'valor', header: 'Valor', align: 'right', cell: (e) => <Valor entry={e} /> },
     {
