@@ -6,14 +6,15 @@ API Gateway, comunicação assíncrona pelo RabbitMQ e observabilidade com Prome
 
 ## URLs
 
-| O quê              | URL                                                                   | Acesso                                          |
-| ------------------ | --------------------------------------------------------------------- | ----------------------------------------------- |
-| Front (Vercel)     | <https://erp-banking-front.vercel.app>                                | login Auth0                                     |
-| API Gateway (EC2)  | <http://3.235.6.136:8080/gateway/health>                              | público                                         |
-| Grafana (EC2)      | <http://3.235.6.136:8081>                                             | usuário `admin`; senha com o grupo (ver abaixo) |
-| Prometheus (EC2)   | <http://3.235.6.136:8082> (alvos em `/targets`, alertas em `/alerts`) | público                                         |
-| Swagger Onboarding | <http://3.235.6.136:8080/onboarding/docs>                             | público (endpoints exigem token)                |
-| Swagger Score      | <http://3.235.6.136:8080/score/docs>                                  | público (endpoints exigem token)                |
+| O quê                | URL                                                                   | Acesso                                                                    |
+| -------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Front (Vercel)       | <https://erp-banking-front.vercel.app>                                | login Auth0                                                               |
+| API Gateway (EC2)    | <http://3.235.6.136:8080/gateway/health>                              | público                                                                   |
+| Grafana (EC2)        | <http://3.235.6.136:8081>                                             | usuário `admin`; senha com o grupo (ver abaixo)                           |
+| Prometheus (EC2)     | <http://3.235.6.136:8082> (alvos em `/targets`, alertas em `/alerts`) | publicado pelo compose (sem login; restrinja no Security Group se quiser) |
+| Swagger Onboarding   | <http://3.235.6.136:8080/onboarding/docs>                             | público (endpoints exigem token)                                          |
+| Swagger Score        | <http://3.235.6.136:8080/score/docs>                                  | público (endpoints exigem token)                                          |
+| Swagger Transactions | <http://3.235.6.136:8080/transactions/swagger-ui/index.html>          | público (endpoints exigem token)                                          |
 
 A senha do Grafana é o `GRAFANA_ADMIN_PASSWORD` do `.env` do `erp-banking-infra` na EC2 (não é versionada). O
 RabbitMQ Management não é publicado (só rede interna do compose): mostre as filas pelo dashboard **RabbitMQ** do
@@ -22,7 +23,8 @@ Grafana ou, na EC2, com `docker compose exec rabbitmq rabbitmqctl list_queues na
 ## Antes de começar (checklist, 10 min antes)
 
 - [ ] <http://3.235.6.136:8080/gateway/health> responde `{"status":"UP"}`.
-- [ ] Prometheus → **Status → Targets**: os alvos `UP` (onboarding, score, transactions, nginx-exporter, rabbitmq).
+- [ ] Prometheus → **Status → Targets**: os 7 jobs `UP` (`onboarding-api`, `credit-score-api`, `transactions-api`,
+      `gateway`, `rabbitmq`, `rabbitmq-detailed`, `prometheus`).
 - [ ] Usuários de teste no Auth0, um por perfil: **admin**, **analista** e **atendente** (senhas com o grupo).
 - [ ] A URL da Vercel cadastrada no Auth0 (Allowed Callback / Logout / Web Origins) — sem isso o login falha.
 - [ ] Abas abertas: front, Grafana (dashboard **Visão geral**), Prometheus (`/alerts`) e um terminal no
@@ -68,8 +70,9 @@ Grafana, Prometheus e Swagger. Na home, os **indicadores** (clientes, contas, cr
 
 1. Grafana → **Negócio**: clientes criados, transações por tipo, decisões de crédito por status, eventos
    publicados/consumidos — refletindo o passo 4.
-2. **Visão geral** / **por serviço**: req/s, latência p95 e erros por serviço; **Transactions (JVM)**: memória,
-   threads, GC e pool do banco; **RabbitMQ**: filas e mensagens; **Gateway**: conexões e req/s do nginx.
+2. **Visão geral**: UP/DOWN, req/s, p95 e 5xx por serviço, além do gateway (nginx) e dos eventos;
+   **Serviços Python (onboarding / score)**: por handler; **Transactions API (JVM)**: memória, threads, GC e pool
+   do banco; **RabbitMQ**: filas, consumidores e mensagens.
 3. Prometheus → `/alerts`: regras `ServiceDown`, `GatewayNginxDown`, `HighErrorRatePython/Java`,
    `HighLatencyP95Python/Java`, `RabbitMQQueueBacklog`, `RabbitMQBacklogTotal`, `EventPublishErrors` e
    `GatewayTrafficSpike`. Uma consulta rápida, ex.: `sum by (status) (credit_decisions_total)`.
@@ -104,9 +107,9 @@ back via compose na EC2 e do front na Vercel. Documentação em `erp-banking-fro
 
 ## Plano B
 
-| Problema                     | O que fazer                                                                                    |
-| ---------------------------- | ---------------------------------------------------------------------------------------------- |
-| Login na Vercel falha        | Rodar o front local (`npm run dev`, `.env` apontando para `http://3.235.6.136:8080/<svc>`)     |
-| Um serviço `Offline`         | `ssh` na EC2 → `docker compose ps` / `docker compose up -d <serviço>` no `erp-banking-infra`   |
-| Decisão não aparece na ficha | Esperar alguns segundos e recarregar; conferir a fila `credit-score.credit-decided` no Grafana |
-| EC2 fora do ar               | Subir o stack local (`docker compose up -d` no infra) e usar `http://localhost:8080`           |
+| Problema                     | O que fazer                                                                                                                                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Login na Vercel falha        | Front local (`npm run dev`, `.env` com `http://3.235.6.136:8080/<svc>`); exige `http://localhost:5173` no `CORS_ORIGINS` da EC2, e os 429/503 do gateway chegam sem CORS (aparecem como erro de rede) |
+| Um serviço `Offline`         | `ssh` na EC2 → `docker compose ps` / `docker compose up -d <serviço>` no `erp-banking-infra`                                                                                                          |
+| Decisão não aparece na ficha | Esperar alguns segundos e recarregar; conferir a fila `credit-score.credit-decided` no Grafana                                                                                                        |
+| EC2 fora do ar               | Stack local (`docker compose up -d` no infra) **e** front local (`npm run dev`, `.env` padrão `http://localhost:8080/<svc>`); a Vercel não alcança o localhost                                        |
