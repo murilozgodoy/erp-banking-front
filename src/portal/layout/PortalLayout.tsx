@@ -8,6 +8,8 @@ import { ErpIaLogo } from '@/components/brand/Logo'
 import { usePermissions } from '@/hooks/usePermissions'
 import { cn } from '@/lib/cn'
 
+import { AssistantLauncher } from '../assistant/AssistantLauncher'
+import { AssistantProvider } from '../assistant/AssistantProvider'
 import { formatCnpj } from '../lib/format'
 import { SkipLink } from '../ui/SkipLink'
 
@@ -51,6 +53,14 @@ function NavItems({ pendencias, onNavigate }: { pendencias?: number; onNavigate?
 
 /** Shell do portal: rail grafite com a navegação e a conta, área de trabalho em papel. */
 export function PortalLayout() {
+  return (
+    <AssistantProvider>
+      <PortalShell />
+    </AssistantProvider>
+  )
+}
+
+function PortalShell() {
   const { user, logout } = useAuth0()
   const { isStaff } = usePermissions()
   const queryClient = useQueryClient()
@@ -114,6 +124,7 @@ export function PortalLayout() {
       </nav>
 
       <div className="space-y-0.5 border-t border-rail-raised pt-4">
+        <AssistantLauncher />
         {isStaff && (
           <Link
             to="/"

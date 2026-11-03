@@ -3,20 +3,36 @@ import { X } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
+import { cn } from '@/lib/cn'
+
 interface SheetProps {
   open: boolean
   onClose: () => void
-  title: string
+  /** Texto do título (nome acessível do diálogo); aceita `<Marca/>` e ícones decorativos. */
+  title: ReactNode
   description?: ReactNode
   children: ReactNode
   footer?: ReactNode
+  /** Ações do cabeçalho, antes do botão de fechar. */
+  actions?: ReactNode
+  /** `md` = 512 px (padrão); `sm` = 420 px. Abaixo disso, tela cheia. */
+  size?: 'sm' | 'md'
 }
 
 /**
  * Painel lateral modal para tarefas focadas (pagar, antecipar, revisar). Em portal, com foco
  * preso, Esc para fechar e retorno do foco ao gatilho.
  */
-export function Sheet({ open, onClose, title, description, children, footer }: SheetProps) {
+export function Sheet({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  actions,
+  size = 'md',
+}: SheetProps) {
   const reduce = useReducedMotion()
   const titleId = useId()
   const panel = useRef<HTMLDivElement>(null)
@@ -89,7 +105,12 @@ export function Sheet({ open, onClose, title, description, children, footer }: S
             animate={{ x: 0, opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { x: 32, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="relative flex h-full w-full max-w-lg flex-col border-l border-line bg-surface shadow-overlay"
+            className={cn(
+              'relative flex h-full w-full flex-col border-l border-line bg-surface shadow-overlay',
+              size === 'sm'
+                ? 'max-w-[420px] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]'
+                : 'max-w-lg',
+            )}
           >
             <header className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
               <div>
@@ -98,14 +119,17 @@ export function Sheet({ open, onClose, title, description, children, footer }: S
                 </h2>
                 {description && <p className="mt-0.5 text-sm text-ink-muted">{description}</p>}
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Fechar"
-                className="grid size-8 place-items-center rounded-control text-ink-muted hover:bg-sunken hover:text-ink pointer-coarse:size-11"
-              >
-                <X aria-hidden className="size-4" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {actions}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Fechar"
+                  className="grid size-8 place-items-center rounded-control text-ink-muted hover:bg-sunken hover:text-ink pointer-coarse:size-11"
+                >
+                  <X aria-hidden className="size-4" />
+                </button>
+              </div>
             </header>
             <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
             {footer && (
