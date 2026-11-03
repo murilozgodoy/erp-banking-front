@@ -78,6 +78,9 @@ export interface OnboardingDraft {
   observacoes: string
   onboarding_status: OnboardingStatus
   updated_at: string | null
+  /** Decisão do analista (reprovado ou aprovado com comentário). */
+  review_comment?: string | null
+  reviewed_at?: string | null
 }
 
 export interface OnboardingPayload {
@@ -104,16 +107,17 @@ export interface ReviewItem {
   customer_id: number
   empresa: Empresa
   segmento: Segmento
-  observacoes: string
+  observacoes: string | null
   /** Só o resumo; a análise completa vem de `GET /scores/analyses/{id}`. */
   analise: AnaliseResumo | null
+  comentario?: string | null
   submitted_at: string
 }
 
 export interface AnaliseResumo {
-  score: number
-  faixa_risco: FaixaRisco
-  gerado_por: 'regras' | 'llm+regras'
+  score: number | null
+  faixa_risco: FaixaRisco | null
+  gerado_por: 'regras' | 'llm+regras' | null
   status: AnalysisStatus
 }
 
@@ -204,16 +208,19 @@ export type AnalysisStatus = 'APROVADO' | 'ANALISE_MANUAL' | 'EM_ANALISE' | 'REP
 export interface BusinessAnalysis {
   customer_id: number
   status: AnalysisStatus
-  score: number
-  faixa_risco: FaixaRisco
-  resumo: string
-  gerado_por: 'regras' | 'llm+regras'
-  atualizado_em: string
+  /** `null` enquanto a análise roda (EM_ANALISE), como score/faixa/resumo/gerado_por/atualizado_em. */
+  score: number | null
+  faixa_risco: FaixaRisco | null
+  resumo: string | null
+  gerado_por: 'regras' | 'llm+regras' | null
+  atualizado_em: string | null
   kpis: Kpi[]
   insights: Insight[]
   oportunidades: Oportunidade[]
   pontos_fortes: string[]
   riscos: string[]
+  /** Por que foi para a análise manual (quando foi). */
+  motivos_revisao?: { codigo: string; descricao: string }[]
 }
 
 // ---------- Transactions: ERP + banking (seção 5) ----------
@@ -365,6 +372,7 @@ export interface StatementEntry {
 }
 
 export interface InventoryItem {
+  id: number
   sku: string
   nome: string
   quantidade: number

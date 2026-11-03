@@ -19,6 +19,8 @@ export function allowed(status: OnboardingStatus, path: string): boolean {
   const statusPage = path.startsWith('/app/status')
   if (status === 'NAO_INICIADO' || status === 'RASCUNHO') return onboarding
   if (status === 'APROVADO') return !onboarding
-  // Em análise, análise manual ou reprovado: só a página de status.
+  // Reprovado: vê o status e pode revisar e reenviar o cadastro.
+  if (status === 'REPROVADO') return statusPage || onboarding
+  // Em análise ou análise manual: só a página de status.
   return statusPage
 }

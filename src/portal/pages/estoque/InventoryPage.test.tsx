@@ -20,6 +20,7 @@ const url = (path: string) => `${env.transactionsApiUrl}${path}`
 
 function item(overrides: Partial<InventoryItem>): InventoryItem {
   return {
+    id: 1,
     sku: 'SKU-1',
     nome: 'Item',
     quantidade: 10,

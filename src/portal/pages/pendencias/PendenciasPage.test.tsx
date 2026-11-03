@@ -66,11 +66,11 @@ describe('PendenciasPage', () => {
       /^\/app\/credito\?produto=ANTECIPACAO_RECEBIVEIS&valor=\d+$/,
     )
 
-    // A oferta de capital de giro já é uma ação de crédito: o botão vai direto ao simulador.
+    // Proposta em revisão (como o back gera: credit-request-{id}) leva ao acompanhamento.
     const credito = screen.getByRole('region', { name: 'Crédito' })
-    expect(within(credito).getByRole('link', { name: /Simular/ })).toHaveAttribute(
+    expect(within(credito).getByRole('link', { name: /Acompanhar/ })).toHaveAttribute(
       'href',
-      expect.stringMatching(/^\/app\/credito\?produto=CAPITAL_DE_GIRO&valor=\d+$/),
+      '/app/credito',
     )
 
     const insight = await screen.findByRole('complementary', { name: 'Insight da ErpIa' })
