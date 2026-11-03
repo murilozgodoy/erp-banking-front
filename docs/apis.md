@@ -91,12 +91,12 @@ Rodando o serviço sozinho em dev, responde direto na porta do serviço.
 
 Exchange `erp.events` (topic). Todo evento tem `event_id`, `event_type` e `occurred_at`, em `snake_case`.
 
-| Routing key                  | Produtor     | Consumidor                                    | Campos extras                                                                                                   |
-| ---------------------------- | ------------ | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `credit.decided`             | Transactions | Score (fila `credit-score.credit-decided`)    | `credit_request_id, customer_id, valor_solicitado, prazo_meses, score, faixa_risco, status, motivo, taxa_juros` |
-| `transaction.created`        | Transactions | —                                             | `transaction_id, account_id, customer_id, tipo, valor, saldo_apos`                                              |
-| `customer.created`           | Onboarding   | — (fila `transactions.customer-created`)      | `customer_id, nome, cpf, email`                                                                                 |
-| `customer.anamnesis_updated` | Onboarding   | Score (fila `credit-score.anamnesis-updated`) | `customer_id, dividas_ativas, comprometimento_renda`                                                            |
+| Routing key                  | Produtor     | Consumidor                                                                                                    | Campos extras                                                                                                   |
+| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `credit.decided`             | Transactions | Score (fila `credit-score.credit-decided`)                                                                    | `credit_request_id, customer_id, valor_solicitado, prazo_meses, score, faixa_risco, status, motivo, taxa_juros` |
+| `transaction.created`        | Transactions | —                                                                                                             | `transaction_id, account_id, customer_id, tipo, valor, saldo_apos`                                              |
+| `customer.created`           | Onboarding   | Transactions (`transactions.customer-created`): abre conta corrente com saldo zero (`AUTO_OPEN_ACCOUNT=true`) | `customer_id, nome, cpf, email`                                                                                 |
+| `customer.anamnesis_updated` | Onboarding   | Score (fila `credit-score.anamnesis-updated`)                                                                 | `customer_id, dividas_ativas, comprometimento_renda`                                                            |
 
 ## Regras de decisão de crédito
 
