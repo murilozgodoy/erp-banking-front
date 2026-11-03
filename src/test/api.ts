@@ -12,6 +12,7 @@ export function fakeApi() {
       latest: vi.fn(),
       history: vi.fn(),
       decisions: vi.fn(),
+      status: vi.fn(),
     },
     accounts: {
       list: vi.fn(),

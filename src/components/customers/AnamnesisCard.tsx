@@ -54,7 +54,11 @@ function AnamnesisForm({ customer }: { customer: Customer }) {
 
   const save = useMutation({
     mutationFn: (input: AnamnesisInput) => api.customers.saveAnamnesis(customer.id, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer', customer.id] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['customer', customer.id] }),
+        queryClient.invalidateQueries({ queryKey: ['scores', customer.id, 'status'] }),
+      ]),
   })
 
   const submit = (event: React.FormEvent) => {

@@ -38,3 +38,8 @@ pnpm-debug.log*
 Thumbs.db
 *.suo
 *.sw?
+
+# Vercel CLI (vínculo local com o projeto)
+.vercel
+
+.vercel

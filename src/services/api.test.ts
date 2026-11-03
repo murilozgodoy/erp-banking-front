@@ -41,12 +41,14 @@ describe('scoresApi', () => {
     await api.evaluate(3, 'simple')
     await api.history(3)
     await api.decisions(3)
+    await api.status(3)
 
     expect(requests.map((r) => [r.method, r.url])).toEqual([
       ['get', '/scores/strategies'],
       ['post', '/scores/evaluations'],
       ['get', '/scores/evaluations'],
       ['get', '/scores/decisions'],
+      ['get', '/scores/customers/3/status'],
     ])
     expect(requests[3].params).toEqual({ customer_id: 3 })
     expect(body(requests[1])).toEqual({ customer_id: 3, strategy: 'simple' })
