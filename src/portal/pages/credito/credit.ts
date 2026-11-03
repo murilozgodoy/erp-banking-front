@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type Query,
+} from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useEffect, useState } from 'react'
 
@@ -62,6 +68,11 @@ export function useSimulation(input: SimulationRequest | null) {
   return { ...query, pending, active: input !== null }
 }
 
+function deAntecipacao(query: Query): boolean {
+  const input = query.queryKey[2] as SimulationRequest | undefined
+  return input?.produto === 'ANTECIPACAO_RECEBIVEIS'
+}
+
 /** `POST /me/credit/requests`; aprovado muda saldo, contas e recebíveis. */
 export function useContract({ onError }: { onError?: (error: Error) => void } = {}) {
   const api = usePortalApi()
@@ -70,8 +81,17 @@ export function useContract({ onError }: { onError?: (error: Error) => void } = 
     mutationFn: (simulationId: string) => api.erp.requestCredit({ simulation_id: simulationId }),
     onError,
     onSuccess: async (request) => {
-      // A simulação usada não serve mais: a próxima contratação precisa de uma nova.
-      void queryClient.invalidateQueries({ queryKey: SIMULATION_ROOT })
+      // A simulação usada não serve mais: a próxima contratação precisa de uma nova. A da
+      // antecipação só fica marcada: os recebíveis dela acabaram de mudar e refazê-la daria 422.
+      void queryClient.invalidateQueries({
+        queryKey: SIMULATION_ROOT,
+        predicate: (q) => !deAntecipacao(q),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: SIMULATION_ROOT,
+        predicate: deAntecipacao,
+        refetchType: 'none',
+      })
       if (request.status === 'APROVADO') {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: portalKeys.erp }),
