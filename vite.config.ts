@@ -27,7 +27,12 @@ export default defineConfig({
               test: /node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/,
               priority: 2,
             },
-            { name: 'vendor', test: /node_modules[\\/]/, priority: 1 },
+            // O motion fica fora do vendor: só a landing (lazy) usa e ele carrega junto com ela.
+            {
+              name: 'vendor',
+              test: /node_modules[\\/](?!(motion|framer-motion|motion-dom|motion-utils)[\\/])/,
+              priority: 1,
+            },
           ],
         },
       },

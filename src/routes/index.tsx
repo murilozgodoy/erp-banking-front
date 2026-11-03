@@ -9,7 +9,7 @@ import { CreditsPage } from '@/pages/credits/CreditsPage'
 import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage'
 import { CustomersPage } from '@/pages/customers/CustomersPage'
 import { NewCustomerPage } from '@/pages/customers/NewCustomerPage'
-import { HomePage } from '@/pages/HomePage'
+import { LandingGate } from '@/pages/landing/LandingGate'
 import { LoginPage } from '@/pages/LoginPage'
 import { MonitoringPage } from '@/pages/MonitoringPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -19,6 +19,8 @@ export const router = createBrowserRouter([
   {
     element: <Auth0ProviderWithNavigate />,
     children: [
+      // "/": landing para visitantes, início de sempre para quem está logado.
+      { index: true, element: <LandingGate /> },
       {
         element: <MainLayout />,
         children: [
@@ -26,7 +28,6 @@ export const router = createBrowserRouter([
           {
             element: <RequireAuth />,
             children: [
-              { index: true, element: <HomePage /> },
               { path: 'clientes', element: <CustomersPage /> },
               { path: 'clientes/novo', element: <NewCustomerPage /> },
               { path: 'clientes/:id', element: <CustomerDetailPage /> },
