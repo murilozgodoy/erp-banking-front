@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { Auth0ProviderWithNavigate } from '@/components/auth/Auth0ProviderWithNavigate'
+import { BackofficeOnly } from '@/components/auth/BackofficeOnly'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { AccountDetailPage } from '@/pages/accounts/AccountDetailPage'
@@ -21,6 +22,7 @@ import { PortalGate } from '@/portal/layout/PortalGate'
 import { PortalLayout } from '@/portal/layout/PortalLayout'
 import { CreditPage } from '@/portal/pages/credito/CreditPage'
 import { TeamPage } from '@/portal/pages/equipe/TeamPage'
+import { PortalProfilePage } from '@/portal/pages/perfil/PortalProfilePage'
 import { InventoryPage } from '@/portal/pages/estoque/InventoryPage'
 import { OnboardingPage } from '@/portal/pages/onboarding/OnboardingPage'
 import { OverviewPage } from '@/portal/pages/overview/OverviewPage'
@@ -43,15 +45,21 @@ export const router = createBrowserRouter([
           {
             element: <RequireAuth />,
             children: [
-              { path: 'clientes', element: <CustomersPage /> },
-              { path: 'clientes/novo', element: <NewCustomerPage /> },
-              { path: 'clientes/:id', element: <CustomerDetailPage /> },
-              { path: 'contas', element: <AccountsPage /> },
-              { path: 'contas/:id', element: <AccountDetailPage /> },
-              { path: 'creditos', element: <CreditsPage /> },
-              { path: 'analises', element: <AnalisesPage /> },
-              { path: 'perfil', element: <ProfilePage /> },
-              { path: 'monitoramento', element: <MonitoringPage /> },
+              {
+                // Empresa cliente não usa o backoffice: vai para o portal.
+                element: <BackofficeOnly />,
+                children: [
+                  { path: 'clientes', element: <CustomersPage /> },
+                  { path: 'clientes/novo', element: <NewCustomerPage /> },
+                  { path: 'clientes/:id', element: <CustomerDetailPage /> },
+                  { path: 'contas', element: <AccountsPage /> },
+                  { path: 'contas/:id', element: <AccountDetailPage /> },
+                  { path: 'creditos', element: <CreditsPage /> },
+                  { path: 'analises', element: <AnalisesPage /> },
+                  { path: 'perfil', element: <ProfilePage /> },
+                  { path: 'monitoramento', element: <MonitoringPage /> },
+                ],
+              },
             ],
           },
           { path: '*', element: <NotFoundPage /> },
@@ -84,6 +92,7 @@ export const router = createBrowserRouter([
                   { path: 'estoque', element: <InventoryPage /> },
                   { path: 'credito', element: <CreditPage /> },
                   { path: 'equipe', element: <TeamPage /> },
+                  { path: 'perfil', element: <PortalProfilePage /> },
                   { path: '*', element: <Navigate to="/app" replace /> },
                 ],
               },

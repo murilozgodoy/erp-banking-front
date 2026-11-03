@@ -1,6 +1,6 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftRight, Building2, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
+import { ArrowLeftRight, Building2, LogOut, Menu, Moon, Sun, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 
@@ -133,6 +133,20 @@ function PortalShell() {
 
       <div className="space-y-0.5 border-t border-rail-raised pt-4">
         <AssistantLauncher />
+        <NavLink
+          to="/app/perfil"
+          className={({ isActive }) =>
+            cn(
+              'flex h-9 items-center gap-3 rounded-control px-3 text-sm pointer-coarse:h-11',
+              isActive
+                ? 'bg-rail-raised text-rail-ink'
+                : 'text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink',
+            )
+          }
+        >
+          <UserRound aria-hidden className="size-[18px]" />
+          Meu perfil
+        </NavLink>
         {isStaff && (
           <Link
             to="/"

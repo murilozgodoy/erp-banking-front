@@ -162,3 +162,39 @@ export function insightQuestion(titulo: string, texto?: string) {
   const detalhe = texto?.trim() ? ` ${texto.trim().replace(/([^.!?])$/, '$1.')}` : ''
   return `Sobre "${titulo.trim()}":${detalhe} O que está causando isso e o que você recomenda?`
 }
+
+/** Tamanho máximo do rótulo curto de um chip de sugestão. */
+export const CHIP_MAX = 28
+const CHIP_WORDS = 4
+/** Palavras que não fecham bem um rótulo cortado ("Capital de giro sai" → "Capital de giro"). */
+const SOLTAS =
+  /^(a|o|as|os|de|da|do|das|dos|e|em|na|no|nas|nos|ou|para|pra|por|com|que|se|so|só|um|uma|meu|minha|meus|minhas|mais|eu|fica|ficam|sai|é|são|está|estão|vai|faz)$/i
+/** Começos que não dizem nada ("E se eu antecipar…" → "Antecipar…"). */
+const ABERTURA = /^(e|se|eu)$/i
+
+/**
+ * Rótulo curto (2 a 4 palavras, até ~28 caracteres) para uma pergunta longa: a primeira oração,
+ * cortada entre palavras, sem reticências e sem terminar em preposição. Valores como "R$ 42 mil"
+ * contam como uma palavra só. A pergunta inteira continua sendo a enviada.
+ */
+export function chipLabel(pergunta: string): string {
+  const oracao =
+    pergunta
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(/[,;:?!.]\s|[?!.]$|[,;:]|\s[–—-]\s/)
+      .find((parte) => parte.trim())
+      ?.trim() ?? ''
+  const tokens = oracao.match(/R\$\s?[\d.,]+(?:\s(?:mil|milhões|milhão|mi))?|\S+/gi) ?? []
+  while (tokens.length > 1 && ABERTURA.test(tokens[0] ?? '')) tokens.shift()
+  const escolhidos: string[] = []
+  for (const token of tokens) {
+    const proximo = [...escolhidos, token].join(' ')
+    if (escolhidos.length >= CHIP_WORDS || (escolhidos.length && proximo.length > CHIP_MAX)) break
+    escolhidos.push(token)
+  }
+  while (escolhidos.length > 1 && SOLTAS.test(escolhidos[escolhidos.length - 1])) escolhidos.pop()
+  const label = escolhidos.join(' ')
+  if (!label) return pergunta.trim()
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}

@@ -34,6 +34,7 @@ import type {
   SimulationRequest,
   StatementEntry,
 } from '../types'
+import { resetConversas } from './assistantStore'
 import {
   analiseNegocio,
   cnpjComDv,
@@ -245,6 +246,7 @@ export function resetMockDb(status: OnboardingStatus = 'NAO_INICIADO') {
   fila = null
   erpCache = null
   team.resetTeam()
+  resetConversas()
 }
 
 /** Troca o cenário do onboarding mantendo os dados do ERP (barra de dev). */
