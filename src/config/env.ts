@@ -31,6 +31,12 @@ function optionalUrl(name: OptionalEnvName): string | undefined {
   return value || undefined
 }
 
+/** Número positivo da variável, ou o padrão se ela estiver vazia/inválida (evita timeout 0 = infinito). */
+function positiveNumber(value: string | undefined, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
 export const env = {
   onboardingApiUrl: baseUrl('VITE_ONBOARDING_API_URL'),
   scoreApiUrl: baseUrl('VITE_SCORE_API_URL'),
@@ -39,7 +45,7 @@ export const env = {
   gatewayUrl: optionalUrl('VITE_GATEWAY_URL'),
   grafanaUrl: optionalUrl('VITE_GRAFANA_URL'),
   prometheusUrl: optionalUrl('VITE_PROMETHEUS_URL'),
-  apiTimeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 10000),
+  apiTimeoutMs: positiveNumber(import.meta.env.VITE_API_TIMEOUT_MS, 10_000),
   auth0: {
     domain: required('VITE_AUTH0_DOMAIN'),
     clientId: required('VITE_AUTH0_CLIENT_ID'),

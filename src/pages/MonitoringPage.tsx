@@ -36,18 +36,11 @@ function toolLinks(): ToolLink[] {
       href: `${env.prometheusUrl}/targets`,
     })
   }
-  links.push(
-    {
-      label: 'Swagger — Onboarding API',
-      description: 'Documentação interativa (OpenAPI)',
-      href: `${env.onboardingApiUrl}/docs`,
-    },
-    {
-      label: 'Swagger — Credit Score API',
-      description: 'Documentação interativa (OpenAPI)',
-      href: `${env.scoreApiUrl}/docs`,
-    },
-  )
+  links.push({
+    label: 'Swagger — Transactions API',
+    description: 'Documentação interativa (OpenAPI, pública)',
+    href: `${env.transactionsApiUrl}/swagger-ui/index.html`,
+  })
   return links
 }
 
@@ -128,6 +121,11 @@ function Monitoring() {
             </li>
           ))}
         </ul>
+        <p className="mt-3 text-xs text-slate-500">
+          O Swagger das APIs Python (<code>/onboarding/docs</code>, <code>/score/docs</code>) fica
+          atrás do Auth0: a própria página exige o access token, então não abre direto no navegador
+          (401).
+        </p>
       </Card>
     </section>
   )

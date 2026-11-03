@@ -1,13 +1,14 @@
 import { QueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 
-import { retryAfterSeconds } from './errors'
+import { isAuth0SessionError, retryAfterSeconds } from './errors'
 
 /**
  * Erros 4xx (validação, permissão, não encontrado) não melhoram com retentativa; a exceção
  * é o 429 do rate limit do gateway, que passa depois de alguns segundos.
  */
 function isClientError(error: unknown): boolean {
+  if (isAuth0SessionError(error)) return true
   if (!isAxiosError(error) || error.response === undefined) return false
   const { status } = error.response
   return status < 500 && status !== 429

@@ -21,13 +21,13 @@ docker compose ps       # todos healthy
 ./scripts/smoke.sh      # health de gateway e serviços (ACCESS_TOKEN=... para o fluxo completo)
 ```
 
-| URL local                                                  | O quê                                                                     |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `http://localhost:8080`                                    | API Gateway (`/onboarding`, `/score`, `/transactions`, `/gateway/health`) |
-| `http://localhost:8081`                                    | Grafana (usuário `admin`, senha `GRAFANA_ADMIN_PASSWORD`)                 |
-| `http://localhost:8082`                                    | Prometheus                                                                |
-| `http://localhost:8080/onboarding/docs`, `/score/docs`     | Swagger das APIs Python pelo gateway (os endpoints exigem token)          |
-| `http://localhost:8080/transactions/swagger-ui/index.html` | Swagger do Transactions pelo gateway                                      |
+| URL local                                                  | O quê                                                                                              |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `http://localhost:8080`                                    | API Gateway (`/onboarding`, `/score`, `/transactions`, `/gateway/health`)                          |
+| `http://localhost:8081`                                    | Grafana (usuário `admin`, senha `GRAFANA_ADMIN_PASSWORD`)                                          |
+| `http://localhost:8082`                                    | Prometheus                                                                                         |
+| `http://localhost:8080/onboarding/docs`, `/score/docs`     | Swagger das APIs Python pelo gateway (a página e o `/openapi.json` exigem token: 401 no navegador) |
+| `http://localhost:8080/transactions/swagger-ui/index.html` | Swagger do Transactions pelo gateway                                                               |
 
 Postgres e RabbitMQ não são publicados; para acessá-los use o override
 `docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d` (publica só em `127.0.0.1`). Pelo

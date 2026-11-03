@@ -27,6 +27,15 @@ describe('env', () => {
     expect(env.prometheusUrl).toBeUndefined()
   })
 
+  it('timeout vazio ou inválido usa o padrão de 10 s', async () => {
+    vi.stubEnv('VITE_API_TIMEOUT_MS', '')
+    expect((await import('./env')).env.apiTimeoutMs).toBe(10_000)
+
+    vi.resetModules()
+    vi.stubEnv('VITE_API_TIMEOUT_MS', 'abc')
+    expect((await import('./env')).env.apiTimeoutMs).toBe(10_000)
+  })
+
   it('falha cedo quando falta uma variável obrigatória', async () => {
     vi.stubEnv('VITE_AUTH0_AUDIENCE', '  ')
 

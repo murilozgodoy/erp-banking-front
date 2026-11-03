@@ -36,29 +36,29 @@ Os demais erros (400, 401, 403, 404, 409, 422...) vêm dos serviços sem altera�
 
 ### Onboarding API (`:8081`)
 
-| Método | Rota                           | Permissão         | Descrição                                                                     |
-| ------ | ------------------------------ | ----------------- | ----------------------------------------------------------------------------- |
-| GET    | `/customers?q=&limit=&offset=` | `read:customers`  | Lista clientes (mais recentes primeiro); `q` busca por nome ou dígitos do CPF |
-| POST   | `/customers`                   | `write:customers` | Cria cliente (endereço e perfil financeiro opcionais)                         |
-| GET    | `/customers/{id}`              | `read:customers`  | Consulta cliente (usado internamente pelo Score)                              |
-| PUT    | `/customers/{id}/anamnesis`    | `write:customers` | Grava a anamnese (publica `customer.anamnesis_updated`)                       |
-| GET    | `/health`                      | pública           | Health check                                                                  |
-| GET    | `/metrics`                     | pública\*         | Métricas Prometheus                                                           |
-| GET    | `/docs`                        | —                 | Swagger UI (pelo gateway: `/onboarding/docs`; os endpoints exigem token)      |
+| Método | Rota                           | Permissão         | Descrição                                                                                                 |
+| ------ | ------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------- |
+| GET    | `/customers?q=&limit=&offset=` | `read:customers`  | Lista clientes (mais recentes primeiro); `q` busca por nome ou dígitos do CPF                             |
+| POST   | `/customers`                   | `write:customers` | Cria cliente (endereço e perfil financeiro opcionais)                                                     |
+| GET    | `/customers/{id}`              | `read:customers`  | Consulta cliente (usado internamente pelo Score)                                                          |
+| PUT    | `/customers/{id}/anamnesis`    | `write:customers` | Grava a anamnese (publica `customer.anamnesis_updated`)                                                   |
+| GET    | `/health`                      | pública           | Health check                                                                                              |
+| GET    | `/metrics`                     | pública\*         | Métricas Prometheus                                                                                       |
+| GET    | `/docs`                        | —                 | Swagger UI e `/openapi.json` **exigem token** (401 sem `Authorization`; pelo gateway: `/onboarding/docs`) |
 
 ### Credit Score API (`:8082`)
 
-| Método | Rota                               | Permissão      | Descrição                                                                                       |
-| ------ | ---------------------------------- | -------------- | ----------------------------------------------------------------------------------------------- |
-| POST   | `/scores/evaluations`              | `write:scores` | Body `{customer_id, strategy?}`. Chama o Onboarding (token relay), aplica a Strategy e persiste |
-| GET    | `/scores/evaluations?customer_id=` | `read:scores`  | Histórico de avaliações do cliente                                                              |
-| GET    | `/scores/customers/{id}/latest`    | `read:scores`  | Score vigente (usado pelo Transactions)                                                         |
-| GET    | `/scores/strategies`               | `read:scores`  | Strategies disponíveis na Factory (`simple`, `weighted`) e qual é a padrão                      |
-| GET    | `/scores/customers/{id}/status`    | `read:scores`  | Se o score está desatualizado (anamnese alterada depois da última avaliação)                    |
-| GET    | `/scores/decisions?customer_id=`   | `read:scores`  | Decisões de crédito recebidas pelo evento `credit.decided`, da mais recente para a mais antiga  |
-| GET    | `/health`                          | pública        | Health check                                                                                    |
-| GET    | `/metrics`                         | pública\*      | Métricas Prometheus                                                                             |
-| GET    | `/docs`                            | —              | Swagger UI (pelo gateway: `/score/docs`; os endpoints exigem token)                             |
+| Método | Rota                               | Permissão      | Descrição                                                                                            |
+| ------ | ---------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| POST   | `/scores/evaluations`              | `write:scores` | Body `{customer_id, strategy?}`. Chama o Onboarding (token relay), aplica a Strategy e persiste      |
+| GET    | `/scores/evaluations?customer_id=` | `read:scores`  | Histórico de avaliações do cliente                                                                   |
+| GET    | `/scores/customers/{id}/latest`    | `read:scores`  | Score vigente (usado pelo Transactions)                                                              |
+| GET    | `/scores/strategies`               | `read:scores`  | Strategies disponíveis na Factory (`simple`, `weighted`) e qual é a padrão                           |
+| GET    | `/scores/customers/{id}/status`    | `read:scores`  | Se o score está desatualizado (anamnese alterada depois da última avaliação)                         |
+| GET    | `/scores/decisions?customer_id=`   | `read:scores`  | Decisões de crédito recebidas pelo evento `credit.decided`, da mais recente para a mais antiga       |
+| GET    | `/health`                          | pública        | Health check                                                                                         |
+| GET    | `/metrics`                         | pública\*      | Métricas Prometheus                                                                                  |
+| GET    | `/docs`                            | —              | Swagger UI e `/openapi.json` **exigem token** (401 sem `Authorization`; pelo gateway: `/score/docs`) |
 
 - `GET /scores/customers/{id}/status` devolve
   `{customer_id, desatualizado, motivo, dividas_ativas, comprometimento_renda, updated_at}`; `desatualizado` vira `true` ao

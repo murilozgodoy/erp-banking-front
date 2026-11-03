@@ -35,10 +35,11 @@ describe('MonitoringPage', () => {
       'href',
       'http://prometheus.test/targets',
     )
-    expect(screen.getByRole('link', { name: /Swagger — Onboarding/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Swagger — Transactions/ })).toHaveAttribute(
       'href',
-      'http://onboarding.test/docs',
+      'http://transactions.test/swagger-ui/index.html',
     )
+    expect(screen.queryByRole('link', { name: /Swagger — Onboarding/ })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Verificar agora' }))
     await vi.waitFor(() => expect(checkServicesHealth).toHaveBeenCalledTimes(2))
