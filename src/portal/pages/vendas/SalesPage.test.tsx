@@ -213,6 +213,28 @@ describe('SalesPage', () => {
     expect(firstProduct()).toHaveTextContent('Pão francês')
   })
 
+  it('ordena por produto, ranking e % do total; avisa quando o ERP não manda itens', async () => {
+    serveWindows(server, fixture(1000), fixture(1000))
+    const { unmount } = renderSales()
+    const tabela = await screen.findByRole('table', { name: 'Produtos mais vendidos no período' })
+    const first = () => within(tabela).getAllByRole('row')[1]
+    const user = userEvent.setup()
+    await user.click(within(tabela).getByRole('button', { name: /Produto/ }))
+    expect(first()).toHaveTextContent('Pão francês')
+    await user.click(within(tabela).getByRole('button', { name: /^#/ }))
+    expect(first()).toHaveTextContent('Bolo de cenoura')
+    await user.click(within(tabela).getByRole('button', { name: /% do total/ }))
+    expect(first()).toHaveTextContent('Pão francês')
+    unmount()
+
+    server.resetHandlers()
+    serveWindows(server, fixture(1000, { top_produtos: [] }), fixture(1000))
+    renderSales()
+    expect(
+      await screen.findByText('O ERP não enviou itens vendidos neste período.'),
+    ).toBeInTheDocument()
+  })
+
   it('período sem vendas ensina e sugere um período maior', async () => {
     serveWindows(server, fixture(0, { serie: [], top_produtos: [] }), fixture(0))
     renderSales()
