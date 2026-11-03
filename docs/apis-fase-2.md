@@ -632,6 +632,12 @@ aparece nas ofertas. O limite já desconta o que foi aprovado no mesmo produto. 
 }
 ```
 
+> **Exceção de nomenclatura:** `POST/GET /me/credit/requests` e `POST /me/credit/requests/{id}/confirm` são as
+> únicas rotas `/me` que respondem em **camelCase**. Elas devolvem o mesmo `CreditResponseDto` do `GET /credits`
+> (backoffice), com `taxaJuros` em fração (`0.0209` = 2,09% a.m.). O resto do portal é snake_case. É intencional,
+> para reaproveitar o fluxo de crédito da Etapa 4 sem duplicar campos; o front lê esse formato em
+> `PortalCreditRequest` (`src/portal/types.ts`).
+
 `status`: `APROVADO`, `REVISAO`, `NEGADO` ou `AGUARDANDO_CONTRATACAO` (quem só tem `pedir_credito`; sem decisão,
 contrato nem `credit.decided` até alguém com `contratar_credito` chamar `/confirm`). Na antecipação aprovada, os
 recebíveis usados passam a `ANTECIPADO`.
