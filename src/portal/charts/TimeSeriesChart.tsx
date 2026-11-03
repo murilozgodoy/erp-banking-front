@@ -310,29 +310,32 @@ export function TimeSeriesChart({
         </figcaption>
       )}
 
-      <table className="sr-only">
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Data</th>
-            {series.map((s) => (
-              <th key={s.key} scope="col">
-                {s.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {dates.map((date, i) => (
-            <tr key={date}>
-              <th scope="row">{dayMonth(date)}</th>
+      {/* div: tabela com largura de 1 px ainda empurra o scroll horizontal no Chrome. */}
+      <div className="sr-only">
+        <table>
+          <caption>{title}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Data</th>
               {series.map((s) => (
-                <td key={s.key}>{formatValue(s.values[i]?.value ?? 0)}</td>
+                <th key={s.key} scope="col">
+                  {s.label}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {dates.map((date, i) => (
+              <tr key={date}>
+                <th scope="row">{dayMonth(date)}</th>
+                {series.map((s) => (
+                  <td key={s.key}>{formatValue(s.values[i]?.value ?? 0)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   )
 }

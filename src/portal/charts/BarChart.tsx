@@ -145,18 +145,21 @@ export function BarChart({
           </div>
         )}
       </div>
-      <table className="sr-only">
-        <caption>{title}</caption>
-        <tbody>
-          {data.map((d) => (
-            <tr key={d.key}>
-              <th scope="row">{d.label}</th>
-              <td>{formatValue(d.value)}</td>
-              {d.detail && <td>{d.detail}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* div: tabela com largura de 1 px ainda empurra o scroll horizontal no Chrome. */}
+      <div className="sr-only">
+        <table>
+          <caption>{title}</caption>
+          <tbody>
+            {data.map((d) => (
+              <tr key={d.key}>
+                <th scope="row">{d.label}</th>
+                <td>{formatValue(d.value)}</td>
+                {d.detail && <td>{d.detail}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   )
 }
