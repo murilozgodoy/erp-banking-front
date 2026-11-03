@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import vercel from '../../vercel.json'
 
 describe('vercel.json', () => {
-  it('reescreve /api/<svc>/* para o gateway na EC2 3.235.6.136:8081 (prefixo do serviço mantido)', () => {
+  it('reescreve /api/<svc>/* para o gateway na EC2 3.235.6.136:8080 (prefixo do serviço mantido)', () => {
     const api = vercel.rewrites.filter(({ source }) => source.startsWith('/api/'))
 
     expect(api.map(({ source }) => source)).toEqual([
