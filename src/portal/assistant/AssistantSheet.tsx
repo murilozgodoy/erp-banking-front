@@ -14,6 +14,7 @@ import {
   Maximize2,
   MessageSquare,
   Minimize2,
+  MoreHorizontal,
   Package,
   Plus,
   ReceiptText,
@@ -40,18 +41,25 @@ import { Link, useNavigate } from 'react-router'
 import { Faisca, Marca } from '@/components/brand/Logo'
 import { ReadingMark, ReadingStep } from '@/components/brand/ReadingSteps'
 import { cn } from '@/lib/cn'
+import { errorMessage } from '@/lib/errors'
 
 import { useMe, useOverview } from '../layout/queries'
-import { number } from '../lib/format'
+import { dayMonth, daysFromToday, isoDay, number, relativeDay } from '../lib/format'
 import { Button } from '../ui/Button'
 import { Sheet } from '../ui/Sheet'
+import { ErrorState, Skeleton } from '../ui/Surface'
 
 import { AssistantMark } from './AssistantMark'
 import { useAssistantContext } from './context'
 import { Markdown } from './markdown'
 import { readingSteps, stepsFromAnswer, type Etapa } from './reading'
-import { iconFor, suggestionsFor, type SugestaoIcone } from './suggestions'
-import { MAX_CHARS, type AssistantFailure, type ChatEntry } from './useAssistant'
+import { chipLabel, iconFor, suggestionsFor, type SugestaoIcone } from './suggestions'
+import {
+  MAX_CHARS,
+  useConversationList,
+  type AssistantFailure,
+  type ChatEntry,
+} from './useAssistant'
 
 const EASE = [0.16, 1, 0.3, 1] as const
 /** O contador aparece perto do limite. */
@@ -372,6 +380,18 @@ function Thread({ onAsk, onRetry }: { onAsk: (question: string) => void; onRetry
   }, [chat.entries.length, chat.pendingQuestion, reduce])
 
   const lastIndex = chat.pendingQuestion === null ? turns.length - 1 : -1
+  if (chat.loading) return <ThreadSkeleton />
+  if (chat.loadError) {
+    return (
+      <div className="pt-2">
+        <ErrorState
+          title="Não conseguimos abrir esta conversa"
+          message={chat.loadError}
+          onRetry={chat.reload}
+        />
+      </div>
+    )
+  }
   return (
     <div
       role="log"
@@ -404,6 +424,24 @@ function Thread({ onAsk, onRetry }: { onAsk: (question: string) => void; onRetry
           )}
         </TurnView>
       )}
+    </div>
+  )
+}
+
+function ThreadSkeleton() {
+  return (
+    <div role="status" aria-label="Carregando a conversa" className="space-y-8 pb-4">
+      {[0, 1].map((turn) => (
+        <div key={turn} className="space-y-4">
+          <Skeleton className="ml-auto h-10 w-3/5 rounded-[1.25rem]" />
+          <div className="space-y-2.5">
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-11/12" />
+            <Skeleton className="h-3.5 w-2/3" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -679,7 +717,7 @@ function Answer({
             <ChipRow
               items={entry.sugestoes.map((sugestao) => ({
                 key: sugestao,
-                label: sugestao,
+                label: chipLabel(sugestao),
                 icon: iconFor(sugestao),
               }))}
               onPick={onAsk}
@@ -691,76 +729,161 @@ function Answer({
   )
 }
 
-function relativeTime(iso: string, now = Date.now()) {
-  const minutes = Math.round((now - new Date(iso).getTime()) / 60_000)
-  if (!Number.isFinite(minutes) || minutes < 1) return 'agora'
-  const rtf = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' })
-  if (minutes < 60) return rtf.format(-minutes, 'minute')
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return rtf.format(-hours, 'hour')
-  return rtf.format(-Math.round(hours / 24), 'day')
+/** "hoje", "ontem", "há 3 dias"; depois de uma semana, a data ("18 nov"). */
+function conversationDate(iso: string, today = new Date()) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const day = isoDay(date)
+  return daysFromToday(day, today) < -6 ? dayMonth(day) : relativeDay(day, today)
 }
+
+function Confirm({
+  question,
+  confirmLabel,
+  busy,
+  error,
+  onConfirm,
+  onCancel,
+}: {
+  question: string
+  confirmLabel: string
+  busy: boolean
+  error: string | null
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const group = useRef<HTMLDivElement>(null)
+  // O foco vai para "Cancelar": um Enter por engano não apaga.
+  useEffect(() => group.current?.querySelector('button')?.focus(), [])
+  return (
+    <div ref={group} role="group" aria-label={question} className="py-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <p className="text-sm font-medium text-ink">{question}</p>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="max-sm:h-11"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            variant="danger"
+            className="max-sm:h-11"
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {busy ? 'Apagando…' : confirmLabel}
+          </Button>
+        </div>
+      </div>
+      {error && (
+        <p role="alert" className="mt-1.5 text-xs text-negative">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+const DELETE_ERROR = 'Não foi possível apagar agora. Tente de novo em instantes.'
 
 function HistoryView({ onOpen }: { onOpen: (id: string) => void }) {
   const { chat } = useAssistantContext()
+  const list = useConversationList(true)
   const [confirm, setConfirm] = useState<string | null>(null)
+  const [options, setOptions] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const optionsId = useId()
+  const conversas = list.data?.pages.flat() ?? []
 
-  return (
-    <section aria-labelledby="assistant-history" className="pb-4">
-      <h3 id="assistant-history" className="mb-3 text-sm font-semibold text-ink">
-        Conversas
-      </h3>
-      {chat.conversations.length === 0 ? (
-        <p className="py-10 text-center text-sm text-ink-muted">
-          Suas conversas desta sessão aparecem aqui.
+  const ask = (target: string | null) => {
+    setConfirm(target)
+    setError(null)
+  }
+  const run = async (action: () => Promise<void>) => {
+    setBusy(true)
+    setError(null)
+    try {
+      await action()
+      setConfirm(null)
+      setOptions(false)
+    } catch {
+      setError(DELETE_ERROR)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  let body: ReactNode
+  if (list.isPending) {
+    body = (
+      <ul role="status" aria-label="Carregando as conversas" className="divide-y divide-line">
+        {[0, 1, 2, 3].map((row) => (
+          <li key={row} className="space-y-2 px-2 py-3">
+            <Skeleton className={cn('h-3.5', row % 2 ? 'w-3/5' : 'w-4/5')} />
+            <Skeleton className="h-3 w-28" />
+          </li>
+        ))}
+      </ul>
+    )
+  } else if (list.isError) {
+    body = (
+      <ErrorState
+        title="Não conseguimos carregar as conversas"
+        message={errorMessage(list.error)}
+        onRetry={() => void list.refetch()}
+      />
+    )
+  } else if (conversas.length === 0) {
+    body = (
+      <div className="flex flex-col items-center py-12 text-center">
+        <MessageSquare aria-hidden className="size-5 text-ink-faint" />
+        <p className="mt-3 text-sm font-medium text-ink">Suas conversas aparecem aqui.</p>
+        <p className="mt-1 max-w-[34ch] text-sm text-ink-muted">
+          Cada conversa com a ErpIa fica guardada para você retomar depois, de qualquer tela.
         </p>
-      ) : (
+      </div>
+    )
+  } else {
+    body = (
+      <>
         <ul className="divide-y divide-line border-y border-line">
-          {chat.conversations.map((conversa) => (
+          {conversas.map((conversa) => (
             <li key={conversa.id} className="py-1">
               {confirm === conversa.id ? (
-                <div
-                  role="group"
-                  aria-label="Confirmar exclusão"
-                  className="flex items-center justify-between gap-3 py-2"
-                >
-                  <p className="text-sm text-ink">Apagar esta conversa?</p>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setConfirm(null)}>
-                      Cancelar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => {
-                        chat.deleteConversation(conversa.id)
-                        setConfirm(null)
-                      }}
-                    >
-                      Apagar
-                    </Button>
-                  </div>
-                </div>
+                <Confirm
+                  question="Apagar esta conversa?"
+                  confirmLabel="Apagar"
+                  busy={busy}
+                  error={error}
+                  onCancel={() => ask(null)}
+                  onConfirm={() => void run(() => chat.deleteConversation(conversa.id))}
+                />
               ) : (
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => onOpen(conversa.id)}
                     aria-current={conversa.id === chat.currentId || undefined}
-                    className="min-w-0 flex-1 rounded-control px-2 py-2 text-left transition-colors duration-150 hover:bg-sunken"
+                    className="min-w-0 flex-1 rounded-control px-2 py-2 text-left transition-colors duration-150 hover:bg-sunken aria-[current]:bg-sunken"
                   >
                     <span className="block truncate text-sm font-medium text-ink">
                       {conversa.titulo}
                     </span>
                     <span className="tabular block text-xs text-ink-faint">
-                      {relativeTime(conversa.updated_at)} · {conversa.mensagens}{' '}
+                      {conversationDate(conversa.updated_at)} · {conversa.mensagens}{' '}
                       {conversa.mensagens === 1 ? 'mensagem' : 'mensagens'}
                     </span>
                   </button>
                   <button
                     type="button"
                     aria-label={`Apagar a conversa "${conversa.titulo}"`}
-                    onClick={() => setConfirm(conversa.id)}
+                    onClick={() => ask(conversa.id)}
                     className={iconButton}
                   >
                     <Trash2 aria-hidden className="size-4" />
@@ -770,39 +893,71 @@ function HistoryView({ onOpen }: { onOpen: (id: string) => void }) {
             </li>
           ))}
         </ul>
-      )}
-      {chat.conversations.length > 0 && (
-        <div className="mt-4">
-          {confirm === 'all' ? (
-            <div
-              role="group"
-              aria-label="Confirmar exclusão"
-              className="flex flex-wrap items-center justify-between gap-3"
+        {list.hasNextPage && (
+          <div className="mt-3 flex justify-center">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void list.fetchNextPage()}
+              disabled={list.isFetchingNextPage}
             >
-              <p className="text-sm text-ink">Apagar todas as conversas?</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setConfirm(null)}>
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => {
-                    chat.deleteAll()
-                    setConfirm(null)
-                  }}
-                >
-                  Apagar tudo
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button size="sm" variant="ghost" onClick={() => setConfirm('all')}>
-              Apagar todo o histórico
+              {list.isFetchingNextPage ? 'Carregando…' : 'Mostrar mais conversas'}
             </Button>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  return (
+    <section aria-labelledby="assistant-history" className="pb-4">
+      <div className="mb-3 flex min-h-9 items-center justify-between gap-2">
+        <h3 id="assistant-history" className="text-sm font-semibold text-ink">
+          Conversas
+        </h3>
+        {conversas.length > 0 && (
+          <button
+            type="button"
+            aria-label="Opções do histórico"
+            aria-expanded={options}
+            aria-controls={optionsId}
+            onClick={() => {
+              setOptions((value) => !value)
+              if (confirm === 'all') ask(null)
+            }}
+            className={cn(iconButton, 'size-9', options && 'bg-sunken text-ink')}
+          >
+            <MoreHorizontal aria-hidden className="size-4" />
+          </button>
+        )}
+      </div>
+      {options && conversas.length > 0 && (
+        <div id={optionsId} className="mb-3 rounded-panel bg-sunken px-3 py-1">
+          {confirm === 'all' ? (
+            <Confirm
+              question="Apagar todas as conversas?"
+              confirmLabel="Apagar tudo"
+              busy={busy}
+              error={error}
+              onCancel={() => ask(null)}
+              onConfirm={() => void run(chat.deleteAll)}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+              <p className="text-xs text-ink-muted">Apaga as conversas de todas as telas.</p>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-negative max-sm:h-11"
+                onClick={() => ask('all')}
+              >
+                Apagar todo o histórico
+              </Button>
+            </div>
           )}
         </div>
       )}
+      {body}
     </section>
   )
 }
@@ -830,6 +985,14 @@ function FailureNotice({ failure, onRetry }: { failure: AssistantFailure; onRetr
       message = `Você atingiu o limite de 10 perguntas por minuto. Tente de novo em ${
         wait > 0 ? `${wait} s` : 'instantes'
       }.`
+      break
+    case 'permissao':
+      message = 'Peça a um administrador a permissão de usar o assistente.'
+      action = null
+      break
+    case 'perdida':
+      message =
+        'Esta conversa não está mais disponível. Tente de novo para perguntar numa conversa nova.'
       break
     case 'onboarding':
       message = 'O assistente fica disponível depois que o cadastro da empresa for aprovado.'
@@ -928,7 +1091,7 @@ function Composer({ inputRef }: { inputRef: RefObject<HTMLTextAreaElement | null
           aria-describedby={`${id}-hint${near ? ` ${id}-count` : ''}`}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Pergunte sobre a sua empresa…"
+          placeholder="Converse com a ErpIa…"
           className="block [field-sizing:content] max-h-48 min-h-12 w-full resize-none bg-transparent text-[0.9375rem] leading-6 text-ink outline-none placeholder:text-ink-faint focus-visible:outline-none"
         />
         <div className="mt-1.5 flex items-center justify-between gap-3">
