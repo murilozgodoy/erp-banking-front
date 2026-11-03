@@ -19,7 +19,7 @@ const links: { to: string; label: string; permission?: Permission; admin?: boole
 
 export function Header() {
   const { isAuthenticated, user, logout } = useAuth0()
-  const { can, isAdmin, canUsePortal } = usePermissions()
+  const { can, isAdmin, canUsePortal, isStaff } = usePermissions()
   const queryClient = useQueryClient()
 
   const signOut = () => {
@@ -58,7 +58,8 @@ export function Header() {
         </div>
         {isAuthenticated && (
           <div className="flex items-center gap-3">
-            {canUsePortal && (
+            {/* Seletor só para a equipe interna que também acessa o portal (admin). */}
+            {isStaff && canUsePortal && (
               <nav
                 aria-label="Área"
                 className="flex rounded-control border border-line bg-sunken p-0.5 text-xs font-medium"

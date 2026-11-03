@@ -49,4 +49,19 @@ describe('MainLayout / Header', () => {
       '/monitoramento',
     )
   })
+
+  it('seletor Backoffice | Portal só para a equipe interna com acesso ao portal', async () => {
+    vi.mocked(useAuth0).mockReturnValue(
+      auth0State({ permissions: [...BACKOFFICE_PERMISSIONS, 'read:self'] }),
+    )
+    const { unmount } = renderPage(<MainLayout />)
+    expect(await screen.findByRole('link', { name: 'Portal' })).toHaveAttribute('href', '/app')
+    unmount()
+
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ['read:self', 'write:self'] }))
+    renderPage(<MainLayout />)
+    await screen.findByRole('button', { name: 'Sair' })
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByRole('navigation', { name: 'Área' })).not.toBeInTheDocument()
+  })
 })

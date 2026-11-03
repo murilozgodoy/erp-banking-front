@@ -5,13 +5,16 @@ import { screenFor } from '../assistant/suggestions'
 import type { AssistantRequest, AssistantResponse, ProdutoCredito } from '../types'
 import { PRODUTO_LABEL, simulatorHref } from '../ui/credit'
 import { RESPOSTA_RECUSA } from './assistantFixtures'
+import * as store from './assistantStore'
 import * as db from './db'
 
 /**
  * Mock do `POST /me/assistant/messages` (Score, seção 9): respostas prontas, mas com os números
  * do banco em memória, escolhidas pela pergunta e, sem palavra-chave, pela tela (`rota`).
  *
- * Para testar erros, inclua na pergunta `[503]`, `[429]`, `[409]` ou `[500]`.
+ * As conversas ficam em `assistantStore` (seção 10), por usuário.
+ *
+ * Para testar erros, inclua na pergunta `[503]`, `[429]`, `[409]`, `[403]` ou `[500]`.
  */
 
 const MAX_MESSAGES = 20
@@ -282,19 +285,30 @@ const MARCADORES: [string, number, Record<string, string>][] = [
   ['[503]', 503, { error: 'ASSISTENTE_INDISPONIVEL' }],
   ['[429]', 429, { error: 'LIMITE_ASSISTENTE' }],
   ['[409]', 409, { error: 'ONBOARDING_PENDENTE' }],
+  ['[403]', 403, { error: 'SEM_PERMISSAO', permissao: 'usar_assistente' }],
   ['[500]', 500, { error: 'ERRO_INTERNO' }],
 ]
+
+const NAO_ENCONTRADA = () =>
+  HttpResponse.json({ error: 'CONVERSA_NAO_ENCONTRADA' }, { status: 404 })
+
+async function latencia(ms = 250) {
+  if (import.meta.env.MODE !== 'test') await delay(ms)
+}
+
+function onboardingPendente() {
+  return HttpResponse.json(
+    { error: 'ONBOARDING_PENDENTE', status: db.me().onboarding_status },
+    { status: 409 },
+  )
+}
 
 export function assistantHandlers(base: string): HttpHandler[] {
   return [
     http.post(`${base}/me/assistant/messages`, async ({ request }) => {
-      if (import.meta.env.MODE !== 'test') await delay(2400)
-      if (!db.onboardingAprovado()) {
-        return HttpResponse.json(
-          { error: 'ONBOARDING_PENDENTE', status: db.me().onboarding_status },
-          { status: 409 },
-        )
-      }
+      await latencia(2400)
+      if (!db.onboardingAprovado()) return onboardingPendente()
+      const sub = store.usuarioDo(request)
       let body: Partial<AssistantRequest>
       try {
         body = (await request.json()) as Partial<AssistantRequest>
@@ -320,15 +334,65 @@ export function assistantHandlers(base: string): HttpHandler[] {
       }
       const pergunta = messages[messages.length - 1].content
       const marcador = MARCADORES.find(([marca]) => pergunta.includes(marca))
-      if (marcador) {
+      // Só o 503 chega depois de salvar a pergunta; os demais erros barram antes, como no back.
+      if (marcador && marcador[1] !== 503) {
         return HttpResponse.json(marcador[2], {
           status: marcador[1],
           headers: marcador[1] === 429 ? { 'Retry-After': '20' } : undefined,
         })
       }
-      return HttpResponse.json(
-        responder({ messages, rota: typeof body.rota === 'string' ? body.rota : undefined }),
+      const id = typeof body.conversation_id === 'string' ? body.conversation_id : undefined
+      const existente = id ? store.buscar(sub, id) : null
+      if (id && !existente) return NAO_ENCONTRADA()
+      const conversa = existente ?? store.criar(sub, pergunta)
+      const vazia = { fontes: [], acoes: [], sugestoes: [] }
+      store.adicionar(sub, conversa.id, { role: 'user', content: pergunta, ...vazia })
+      if (marcador) {
+        // A pergunta ficou salva: o 503 devolve a conversa para a nova tentativa.
+        return HttpResponse.json({ ...marcador[2], conversation_id: conversa.id }, { status: 503 })
+      }
+      const historico = (store.buscar(sub, conversa.id)?.mensagens ?? []).map(
+        ({ role, content }) => ({ role, content }),
       )
+      const resposta = responder({
+        messages: historico.slice(-MAX_MESSAGES),
+        rota: typeof body.rota === 'string' ? body.rota : undefined,
+      })
+      const salva = store.adicionar(sub, conversa.id, {
+        role: 'assistant',
+        content: resposta.resposta,
+        fontes: resposta.fontes,
+        acoes: resposta.acoes,
+        sugestoes: resposta.sugestoes,
+      })
+      return HttpResponse.json({ ...resposta, conversation_id: conversa.id, message_id: salva.id })
+    }),
+    http.get(`${base}/me/assistant/conversations`, async ({ request }) => {
+      await latencia()
+      const url = new URL(request.url)
+      const limit = Number(url.searchParams.get('limit') ?? 20)
+      const offset = Number(url.searchParams.get('offset') ?? 0)
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        return invalido('limit vai de 1 a 100.')
+      }
+      if (!Number.isInteger(offset) || offset < 0) return invalido('offset começa em 0.')
+      return HttpResponse.json(store.listar(store.usuarioDo(request), limit, offset))
+    }),
+    http.get(`${base}/me/assistant/conversations/:id`, async ({ request, params }) => {
+      await latencia()
+      const conversa = store.buscar(store.usuarioDo(request), String(params.id))
+      return conversa ? HttpResponse.json(conversa) : NAO_ENCONTRADA()
+    }),
+    http.delete(`${base}/me/assistant/conversations/:id`, async ({ request, params }) => {
+      await latencia()
+      return store.apagar(store.usuarioDo(request), String(params.id))
+        ? new HttpResponse(null, { status: 204 })
+        : NAO_ENCONTRADA()
+    }),
+    http.delete(`${base}/me/assistant/conversations`, async ({ request }) => {
+      await latencia()
+      store.apagarTodas(store.usuarioDo(request))
+      return new HttpResponse(null, { status: 204 })
     }),
   ]
 }
