@@ -19,9 +19,19 @@ type Band = {
   thickness: number
   /** Opacidade no tema claro e no escuro (o escuro aguenta mais sem perder contraste). */
   tone: string
-  /** Deriva em % do próprio tamanho (x, y), período de cada eixo em segundos e defasagem. */
+  /**
+   * Deriva em % do tamanho do hero (amplitude, x e y: a faixa vai de -d a +d) e duração de
+   * cada ida, em segundos, por eixo.
+   */
   drift: [number, number]
   period: [number, number]
+  /** Respiração vertical: a faixa engrossa e afina (scaleY 1 ± breathe), com a sua duração. */
+  breathe: number
+  breathePeriod: number
+  /** Brilho que corre ao longo da faixa: deslocamento do gradiente (unidades do desenho). */
+  flow: number
+  flowPeriod: number
+  /** Onde cada faixa começa no ciclo (s), para nunca andarem em bloco. */
   offset: number
 }
 
@@ -39,8 +49,12 @@ const BANDS: Band[] = [
     phase: 0.4,
     thickness: 120,
     tone: 'opacity-[0.07] dark:opacity-[0.11]',
-    drift: [2.4, 3],
-    period: [46, 34],
+    drift: [6, 2],
+    period: [22, 17],
+    breathe: 0.06,
+    breathePeriod: 19,
+    flow: 170,
+    flowPeriod: 15,
     offset: 0,
   },
   {
@@ -51,9 +65,13 @@ const BANDS: Band[] = [
     phase: 2.1,
     thickness: 170,
     tone: 'opacity-[0.05] dark:opacity-[0.08]',
-    drift: [-3, 2.2],
-    period: [58, 41],
-    offset: 9,
+    drift: [-7, 2.5],
+    period: [26, 19],
+    breathe: 0.05,
+    breathePeriod: 23,
+    flow: -200,
+    flowPeriod: 21,
+    offset: 7,
   },
   {
     base: 690,
@@ -63,9 +81,13 @@ const BANDS: Band[] = [
     phase: 4,
     thickness: 96,
     tone: 'opacity-[0.04] dark:opacity-[0.065]',
-    drift: [2, -2.6],
-    period: [37, 52],
-    offset: 17,
+    drift: [5, -3],
+    period: [18, 24],
+    breathe: 0.08,
+    breathePeriod: 16,
+    flow: 140,
+    flowPeriod: 18,
+    offset: 11,
   },
   {
     base: 400,
@@ -75,14 +97,24 @@ const BANDS: Band[] = [
     phase: 5.3,
     thickness: 220,
     tone: 'opacity-[0.03] dark:opacity-[0.05]',
-    drift: [-2, 2.4],
-    period: [60, 29],
-    offset: 23,
+    drift: [-4, 1.5],
+    period: [24, 14],
+    breathe: 0.04,
+    breathePeriod: 25,
+    flow: -120,
+    flowPeriod: 26,
+    offset: 5,
   },
 ]
 
 /** A faixa que leva o fio lima (a única lima do fundo), pela borda superior. */
 const THREAD_BAND = 1
+
+/**
+ * Quanto cada camada sobra de cada lado do hero (fração da largura), para a deriva horizontal
+ * nunca mostrar a ponta da faixa. Tem de ser maior que a maior amplitude em x.
+ */
+const BLEED = 0.1
 
 const SAMPLES = 14
 const X0 = -60
@@ -153,9 +185,10 @@ function usePageVisible() {
 }
 
 /**
- * "Linhas de fluxo": faixas largas de esmeralda que derivam devagar atrás do hero. Só
- * transform, uma camada composta por faixa; para com "reduzir movimento", fora da tela e com a
- * aba em segundo plano. Decorativo: `aria-hidden` e sem ponteiro.
+ * "Linhas de fluxo": faixas largas de esmeralda que derivam devagar atrás do hero, respiram
+ * na vertical e têm um brilho que corre ao longo delas. Só transform e atributo de gradiente
+ * (sem filtro), uma camada por faixa; para com "reduzir movimento", fora da tela e com a aba em
+ * segundo plano. Decorativo: `aria-hidden` e sem ponteiro.
  */
 export function HeroBackdrop({ className }: { className?: string }) {
   const still = useReducedMotion() === true
@@ -174,7 +207,9 @@ export function HeroBackdrop({ className }: { className?: string }) {
     const created = BANDS.flatMap((band, i) => {
       const layer = layers.current[i]
       if (!layer) return []
-      const [dx, dy] = band.drift
+      // O translate em % é da própria camada, que é mais larga que o hero.
+      const dx = band.drift[0] / (1 + 2 * BLEED)
+      const dy = band.drift[1]
       const x = animate(
         layer,
         { x: [`${-dx}%`, `${dx}%`] },
@@ -185,10 +220,26 @@ export function HeroBackdrop({ className }: { className?: string }) {
         { y: [`${-dy}%`, `${dy}%`] },
         { ...options, duration: band.period[1] },
       )
-      // Cada faixa começa num ponto diferente do ciclo, para nunca andarem em bloco.
+      const breathe = animate(
+        layer,
+        { scaleY: [1 - band.breathe, 1 + band.breathe] },
+        { ...options, duration: band.breathePeriod },
+      )
+      // O brilho corre ao longo da faixa: só o gradiente anda, o desenho fica.
+      const gradients = [...layer.querySelectorAll('linearGradient')]
+      const flow = animate(-band.flow, band.flow, {
+        ...options,
+        duration: band.flowPeriod,
+        onUpdate: (v) => {
+          for (const g of gradients)
+            g.setAttribute('gradientTransform', `translate(${v.toFixed(1)} 0)`)
+        },
+      })
       x.time = band.offset
       y.time = band.offset * 0.6
-      return [x, y]
+      breathe.time = band.offset * 0.4
+      flow.time = band.offset * 0.8
+      return [x, y, breathe, flow]
     })
     controls.current = created
     return () => {
@@ -217,7 +268,7 @@ export function HeroBackdrop({ className }: { className?: string }) {
           ref={(el) => {
             layers.current[i] = el
           }}
-          className="absolute inset-y-0 -right-[6%] -left-[6%] will-change-transform"
+          className="absolute inset-y-0 -right-[10%] -left-[10%] will-change-transform"
         >
           <svg
             viewBox={`0 0 ${W} ${H}`}
