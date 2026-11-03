@@ -27,11 +27,11 @@ describe('MonitoringPage', () => {
     expect(screen.getByText('12 ms')).toBeInTheDocument()
     expect(screen.getByText('Offline')).toBeInTheDocument()
     expect(screen.getByText(/2 de 3 no ar/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Grafana/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Grafana/ })).toHaveAttribute(
       'href',
       'http://grafana.test',
     )
-    expect(screen.getByRole('link', { name: /Prometheus/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Prometheus/ })).toHaveAttribute(
       'href',
       'http://prometheus.test/targets',
     )
