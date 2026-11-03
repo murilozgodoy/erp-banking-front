@@ -98,6 +98,16 @@ export interface CreditDecisionEvent {
   received_at: string
 }
 
+/** Situação do score: desatualizado quando a anamnese mudou depois da última avaliação. */
+export interface ScoreStatus {
+  customer_id: number
+  desatualizado: boolean
+  motivo: string | null
+  dividas_ativas: number | null
+  comprometimento_renda: number | null
+  updated_at: string | null
+}
+
 export interface ScoreStrategy {
   name: string
   description: string

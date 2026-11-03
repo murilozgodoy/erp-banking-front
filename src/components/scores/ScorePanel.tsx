@@ -28,6 +28,12 @@ export function ScorePanel({ customerId }: { customerId: number }) {
     queryKey: ['scores', customerId, 'history'],
     queryFn: () => api.scores.history(customerId),
   })
+  // Aviso opcional: se o endpoint falhar (ex.: Score antigo), o painel segue sem ele.
+  const status = useQuery({
+    queryKey: ['scores', customerId, 'status'],
+    queryFn: () => api.scores.status(customerId),
+    retry: false,
+  })
 
   return (
     <Card
@@ -44,7 +50,15 @@ export function ScorePanel({ customerId }: { customerId: number }) {
         ) : latest.isError ? (
           <Alert tone="error">{errorMessage(latest.error)}</Alert>
         ) : latest.data ? (
-          <LatestScore evaluation={latest.data} />
+          <>
+            {status.data?.desatualizado && (
+              <Alert tone="warning" title="Score desatualizado — reavalie">
+                {status.data.motivo ??
+                  'A anamnese do cliente mudou depois da última avaliação de score.'}
+              </Alert>
+            )}
+            <LatestScore evaluation={latest.data} />
+          </>
         ) : (
           <EmptyState>Este cliente ainda não tem score calculado.</EmptyState>
         )}

@@ -26,6 +26,7 @@ beforeEach(() => {
   api.scores.history.mockResolvedValue([])
   api.scores.strategies.mockResolvedValue(strategies)
   api.scores.decisions.mockResolvedValue([])
+  api.scores.status.mockResolvedValue({ customer_id: 1, desatualizado: false, motivo: null })
 })
 
 function renderDetail(permissions: Permission[]) {
@@ -125,6 +126,24 @@ describe('CustomerDetailPage', () => {
 
     expect(api.scores.evaluate).toHaveBeenCalledWith(1, 'simple')
     await vi.waitFor(() => expect(api.scores.latest).toHaveBeenCalledTimes(2))
+  })
+
+  it('avisa que o score está desatualizado após mudança na anamnese', async () => {
+    api.scores.latest.mockResolvedValue(evaluation())
+    api.scores.status.mockResolvedValue({ customer_id: 1, desatualizado: true, motivo: null })
+    renderDetail(['read:customers', 'read:scores'])
+
+    expect(await screen.findByText('Score desatualizado — reavalie')).toBeInTheDocument()
+    expect(screen.getByText(/A anamnese do cliente mudou/)).toBeInTheDocument()
+  })
+
+  it('status do score indisponível não atrapalha o painel', async () => {
+    api.scores.latest.mockResolvedValue(evaluation())
+    api.scores.status.mockRejectedValue(httpError(404, { detail: 'Not Found' }))
+    renderDetail(['read:customers', 'read:scores'])
+
+    expect(await screen.findByText('Score vigente')).toBeInTheDocument()
+    expect(screen.queryByText('Score desatualizado — reavalie')).not.toBeInTheDocument()
   })
 
   it('sem score calculado e com erro no cálculo', async () => {
