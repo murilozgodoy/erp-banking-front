@@ -1,18 +1,45 @@
-{ "theme": "base",
+{
+  "theme": "base",
   "themeVariables": {
     "fontFamily": "Instrument Sans Variable, Instrument Sans, Segoe UI, sans-serif",
     "fontSize": "17px",
     "background": "transparent",
-    "primaryColor": "#121714", "primaryTextColor": "#ECF0EA", "primaryBorderColor": "#313B34",
-    "lineColor": "#87908A", "secondaryColor": "#101511", "tertiaryColor": "#0A0D0B",
-    "clusterBkg": "#0A0D0B", "clusterBorder": "#222A25",
-    "edgeLabelBackground": "#0C110E", "titleColor": "#A2ABA4",
-    "actorBkg": "#121714", "actorBorder": "#3FC995", "actorTextColor": "#ECF0EA", "actorLineColor": "#313B34",
-    "signalColor": "#A2ABA4", "signalTextColor": "#ECF0EA",
-    "labelBoxBkgColor": "#121714", "labelBoxBorderColor": "#313B34", "labelTextColor": "#ECF0EA",
-    "loopTextColor": "#ECF0EA", "noteBkgColor": "#1F2A0B", "noteTextColor": "#D7F78A", "noteBorderColor": "#3E5214",
+    "primaryColor": "#121714",
+    "primaryTextColor": "#ECF0EA",
+    "primaryBorderColor": "#313B34",
+    "lineColor": "#87908A",
+    "secondaryColor": "#101511",
+    "tertiaryColor": "#0A0D0B",
+    "clusterBkg": "#0A0D0B",
+    "clusterBorder": "#222A25",
+    "edgeLabelBackground": "#0C110E",
+    "titleColor": "#A2ABA4",
+    "actorBkg": "#121714",
+    "actorBorder": "#3FC995",
+    "actorTextColor": "#ECF0EA",
+    "actorLineColor": "#313B34",
+    "signalColor": "#A2ABA4",
+    "signalTextColor": "#ECF0EA",
+    "labelBoxBkgColor": "#121714",
+    "labelBoxBorderColor": "#313B34",
+    "labelTextColor": "#ECF0EA",
+    "loopTextColor": "#ECF0EA",
+    "noteBkgColor": "#1F2A0B",
+    "noteTextColor": "#D7F78A",
+    "noteBorderColor": "#3E5214",
     "sequenceNumberColor": "#03190F"
   },
-  "flowchart": { "curve": "basis", "padding": 14, "nodeSpacing": 40, "rankSpacing": 55, "htmlLabels": true },
-  "sequence": { "actorMargin": 70, "messageMargin": 36, "mirrorActors": false, "showSequenceNumbers": true }
+  "flowchart": {
+    "curve": "basis",
+    "padding": 14,
+    "nodeSpacing": 40,
+    "rankSpacing": 55,
+    "htmlLabels": true
+  },
+  "sequence": {
+    "actorMargin": 70,
+    "messageMargin": 36,
+    "mirrorActors": false,
+    "showSequenceNumbers": true
+  }
 }

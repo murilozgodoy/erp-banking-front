@@ -441,12 +441,12 @@ O dono convida funcionários e decide **o que cada um pode fazer**. No Auth0 tod
 </div>
 <div>
 
-| Papel      | Preset                                   |
-| ---------- | ---------------------------------------- |
-| DONO/ADMIN | todas                                    |
+| Papel      | Preset                                    |
+| ---------- | ----------------------------------------- |
+| DONO/ADMIN | todas                                     |
 | FINANCEIRO | pagar, aprovar, pedir crédito, assistente |
-| OPERADOR   | pagar até um limite, estoque             |
-| LEITURA    | só ver o financeiro                      |
+| OPERADOR   | pagar até um limite, estoque              |
+| LEITURA    | só ver o financeiro                       |
 
 <p class="small mt"><strong>Aprovação de pagamentos:</strong> acima do limite o pagamento fica
 <em>pendente</em>, sem debitar, até outra pessoa aprovar. Convite por link de uso único (hash, 7 dias).</p>
@@ -552,16 +552,16 @@ Fala: João Baungartner (1 min 30 s). Escolher dois para aprofundar se o tempo a
 
 ## Padrões de projeto
 
-| Padrão                          | Onde                                                                         |
-| ------------------------------- | ---------------------------------------------------------------------------- |
-| **Strategy + Factory**          | Score: estratégias de score; `BusinessAnalyzer` com `RuleBasedAnalyzer` e `LlmAnalyzer` |
-| **API Gateway**                 | nginx: ponto único de entrada, rate limit, request-id                        |
-| **Publish/Subscribe**           | RabbitMQ `erp.events`, vários consumidores por evento                        |
-| **Transactional Outbox**        | Onboarding: `outbox_events` + relay com `FOR UPDATE SKIP LOCKED`             |
-| **Consumidor idempotente**      | `event_id` único; seeder e análise não refazem trabalho                      |
-| **Circuit Breaker + Retry**     | Transactions → Score (timeout, retry, 503 claro)                             |
-| **Token relay**                 | serviços e ferramentas do assistente repassam o JWT do usuário               |
-| **Repository · Database per service** | SQLAlchemy e Spring Data JPA; um schema por serviço                    |
+| Padrão                                | Onde                                                                                    |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Strategy + Factory**                | Score: estratégias de score; `BusinessAnalyzer` com `RuleBasedAnalyzer` e `LlmAnalyzer` |
+| **API Gateway**                       | nginx: ponto único de entrada, rate limit, request-id                                   |
+| **Publish/Subscribe**                 | RabbitMQ `erp.events`, vários consumidores por evento                                   |
+| **Transactional Outbox**              | Onboarding: `outbox_events` + relay com `FOR UPDATE SKIP LOCKED`                        |
+| **Consumidor idempotente**            | `event_id` único; seeder e análise não refazem trabalho                                 |
+| **Circuit Breaker + Retry**           | Transactions → Score (timeout, retry, 503 claro)                                        |
+| **Token relay**                       | serviços e ferramentas do assistente repassam o JWT do usuário                          |
+| **Repository · Database per service** | SQLAlchemy e Spring Data JPA; um schema por serviço                                     |
 
 <!--
 Fala: João Baungartner (1 min). Novidade da Fase 2: a mesma Strategy do score foi reaproveitada para a análise
