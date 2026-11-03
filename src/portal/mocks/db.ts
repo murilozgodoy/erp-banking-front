@@ -366,6 +366,48 @@ function erroDoValor(campo: ReturnType<typeof camposDe>[number], valor: unknown)
   return null
 }
 
+const UFS = new Set(
+  'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' '),
+)
+
+/**
+ * Como a API real (pydantic): mesmo no rascunho, cada campo da empresa que vier preenchido
+ * precisa ser válido, senão o PUT inteiro volta 422. `null` sempre passa.
+ */
+export function validarEmpresaRascunho(empresa: Partial<Empresa> | null): CampoErro[] {
+  if (!empresa) return []
+  const erros: CampoErro[] = []
+  const erro = (campo: keyof Empresa, mensagem: string) =>
+    erros.push({ campo: `empresa.${campo}`, erro: mensagem })
+  const presente = (valor: unknown) => valor !== null && valor !== undefined
+  for (const campo of ['razao_social', 'nome_fantasia'] as const) {
+    const valor = empresa[campo]
+    if (presente(valor) && String(valor).length > 160) erro(campo, 'Máximo de 160 caracteres.')
+  }
+  if (presente(empresa.cnpj) && !cnpjValido(String(empresa.cnpj))) {
+    erro('cnpj', 'CNPJ inválido.')
+  }
+  if (presente(empresa.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(empresa.email))) {
+    erro('email', 'E-mail inválido.')
+  }
+  if (presente(empresa.telefone)) {
+    const tamanho = String(empresa.telefone).length
+    if (tamanho < 8 || tamanho > 20) erro('telefone', 'Telefone inválido.')
+  }
+  if (presente(empresa.estado) && !UFS.has(String(empresa.estado))) erro('estado', 'UF inválida.')
+  const { fundacao_ano: ano, funcionarios } = empresa
+  if (presente(ano) && (typeof ano !== 'number' || ano < 1800 || ano > 2100)) {
+    erro('fundacao_ano', 'Ano inválido.')
+  }
+  if (
+    presente(funcionarios) &&
+    (typeof funcionarios !== 'number' || funcionarios < 0 || funcionarios > 2 ** 31 - 1)
+  ) {
+    erro('funcionarios', 'Número de funcionários inválido.')
+  }
+  return erros
+}
+
 export type SalvarResultado =
   | { tipo: 'ok'; draft: OnboardingDraft }
   | { tipo: 'conflito'; detail: string }
@@ -392,10 +434,10 @@ export function salvarOnboarding(payload: Partial<OnboardingPayload>): SalvarRes
     payload.respostas && typeof payload.respostas === 'object' ? payload.respostas : {}
   const observacoes = typeof payload.observacoes === 'string' ? payload.observacoes : ''
   const agora = new Date().toISOString()
-  if (payload.enviar) {
-    const erros = validarOnboarding(empresa, segmento, respostas)
-    if (erros.length > 0) return { tipo: 'invalido', erros }
-  }
+  const erros = payload.enviar
+    ? validarOnboarding(empresa, segmento, respostas)
+    : validarEmpresaRascunho(empresa)
+  if (erros.length > 0) return { tipo: 'invalido', erros }
   onboarding = {
     status: payload.enviar ? 'EM_ANALISE' : 'RASCUNHO',
     empresa,

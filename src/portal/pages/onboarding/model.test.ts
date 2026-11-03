@@ -190,6 +190,44 @@ describe('onboarding: modelo do wizard', () => {
     expect(envio.respostas.faturamento_mensal).toBe(RESPOSTAS_AURORA.faturamento_mensal)
   })
 
+  it('rascunho: campo da empresa que a API recusaria vai como null; o envio manda como está', () => {
+    const state: WizardState = {
+      ...completo(),
+      empresa: {
+        ...EMPRESA_AURORA,
+        razao_social: 'x'.repeat(161),
+        nome_fantasia: '  ',
+        cnpj: '1122233',
+        email: 'financeiro@aurora',
+        telefone: '1998',
+        cidade: '',
+        estado: 'XX',
+        fundacao_ano: 1700,
+        funcionarios: -2,
+      },
+    }
+    expect(toPayload(state, false).empresa).toEqual({
+      razao_social: null,
+      nome_fantasia: null,
+      cnpj: null,
+      email: null,
+      telefone: null,
+      cidade: null,
+      estado: null,
+      fundacao_ano: null,
+      funcionarios: null,
+    })
+    expect(toPayload(state, true, alimentacao).empresa.cnpj).toBe('1122233')
+    // Válidos passam como estão.
+    expect(toPayload(completo(), false).empresa).toEqual(EMPRESA_AURORA)
+    expect(validateEmpresa({ ...EMPRESA_AURORA, razao_social: 'x'.repeat(161) })).toEqual({
+      'empresa.razao_social': 'Use até 160 caracteres.',
+    })
+    expect(validateEmpresa({ ...EMPRESA_AURORA, funcionarios: 2 ** 31 })).toEqual({
+      'empresa.funcionarios': 'Confira o número de funcionários.',
+    })
+  })
+
   it('máscaras e leitura de números em pt-BR', () => {
     expect(formatPhone('')).toBe('')
     expect(formatPhone('1')).toBe('(1')

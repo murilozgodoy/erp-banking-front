@@ -103,6 +103,43 @@ describe('utilitários', () => {
     expect(varejo).toEqual([{ campo: 'canais', erro: 'Opção inválida.' }])
   })
 
+  it('rascunho com campo da empresa inválido volta 422, como a API real', async () => {
+    const db = await import('./db')
+    db.resetMockDb('NAO_INICIADO')
+    const rascunho = (empresa: object) =>
+      db.salvarOnboarding({
+        empresa: { ...db.EMPRESA_AURORA, ...empresa },
+        segmento: null,
+        respostas: {},
+        observacoes: '',
+        enviar: false,
+      })
+    const invalido = rascunho({
+      razao_social: 'x'.repeat(161),
+      cnpj: '1122233',
+      email: 'fin@',
+      telefone: '1234567',
+      estado: 'XX',
+      fundacao_ano: 1700,
+      funcionarios: -1,
+    })
+    expect(invalido.tipo).toBe('invalido')
+    expect(invalido.tipo === 'invalido' && invalido.erros.map((e) => e.campo)).toEqual([
+      'empresa.razao_social',
+      'empresa.cnpj',
+      'empresa.email',
+      'empresa.telefone',
+      'empresa.estado',
+      'empresa.fundacao_ano',
+      'empresa.funcionarios',
+    ])
+    expect(db.me().onboarding_status).toBe('NAO_INICIADO')
+    // `null` sempre passa no rascunho.
+    const parcial = rascunho({ cnpj: null, email: null, telefone: null, estado: null })
+    expect(parcial.tipo).toBe('ok')
+    expect(db.validarEmpresaRascunho(null)).toEqual([])
+  })
+
   it('pct_cartao_credito só nos segmentos combinados', () => {
     const com = TEMPLATES.filter((t) =>
       t.secoes.some((s) => s.campos.some((c) => c.id === 'pct_cartao_credito')),

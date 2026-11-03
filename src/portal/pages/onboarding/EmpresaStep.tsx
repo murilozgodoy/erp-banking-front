@@ -3,7 +3,7 @@ import type { ChangeEvent, ReactNode } from 'react'
 import { SelectField, TextField } from '../../ui/Field'
 import { formatCnpj } from '../../lib/format'
 import type { Empresa } from '../../types'
-import { EMPRESA_LABELS, formatPhone, parseInteger, UFS, type Errors } from './model'
+import { EMPRESA_LABELS, formatPhone, MAX_NOME, parseInteger, UFS, type Errors } from './model'
 
 interface EmpresaStepProps {
   empresa: Empresa
@@ -27,6 +27,7 @@ export function EmpresaStep({ empresa, errors, onChange, onBlurField }: EmpresaS
   const text = (campo: 'razao_social' | 'nome_fantasia' | 'cidade') => ({
     name: `empresa.${campo}`,
     label: EMPRESA_LABELS[campo],
+    maxLength: campo === 'cidade' ? undefined : MAX_NOME,
     error: err(campo),
     value: empresa[campo],
     onChange: (event: ChangeEvent<HTMLInputElement>) => onChange(campo, event.currentTarget.value),
