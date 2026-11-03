@@ -8,6 +8,9 @@ import type {
   FormaPagamento,
   GroupBy,
   InventoryItem,
+  InventoryMovement,
+  InventoryMovementInput,
+  InventoryMovementResult,
   InventoryReport,
   Me,
   OnboardingDraft,
@@ -563,12 +566,21 @@ interface Erp {
   payments: Payment[]
   statement: StatementEntry[]
   inventory: InventoryItem[]
+  /** Movimentações por item (`item_id`), da mais recente para a mais antiga. */
+  movements: Map<number, InventoryMovement[]>
   creditRequests: PortalCreditRequest[]
   simulations: Map<string, RegistroSimulacao>
   /** Simulação de cada proposta AGUARDANDO_CONTRATACAO, para o `confirm` executar. */
   aguardando: Map<number, RegistroSimulacao>
   rng: () => number
-  seq: { payable: number; payment: number; statement: number; credit: number; simulation: number }
+  seq: {
+    payable: number
+    payment: number
+    statement: number
+    credit: number
+    simulation: number
+    movement: number
+  }
 }
 
 function escalaAtual(): number {
@@ -597,6 +609,7 @@ function gerarErp(): Erp {
   const statement = gerarExtrato(base, saldo, vendas, lotes, payables)
   const payments = gerarPagamentos(payables, rng)
   const criado = addDias(base, -58)
+  const inventory = gerarEstoque(base, escala)
   return {
     dia: isoDate(base),
     escala,
@@ -606,7 +619,8 @@ function gerarErp(): Erp {
     payables,
     payments,
     statement,
-    inventory: gerarEstoque(base, escala),
+    inventory,
+    movements: movimentosIniciais(inventory),
     creditRequests: [
       {
         id: 801,
@@ -644,8 +658,53 @@ function gerarErp(): Erp {
       // Depois das propostas semeadas (801 e 802): ids repetidos duplicam a chave na tabela.
       credit: 803,
       simulation: 1,
+      movement: 101,
     },
   }
+}
+
+/**
+ * Histórico semeado: a última compra dos três primeiros itens (a que levou ao saldo de hoje) e
+ * uma contagem no primeiro. Os demais começam sem movimentação.
+ */
+function movimentosIniciais(itens: InventoryItem[]): Map<number, InventoryMovement[]> {
+  const mapa = new Map<number, InventoryMovement[]>()
+  const quando = (dias: number) => new Date(Date.now() - dias * 86_400_000).toISOString()
+  let id = 1
+  for (const item of itens.slice(0, 3)) {
+    const lista: InventoryMovement[] = []
+    // No primeiro item, uma contagem tirou 2 avariados depois da compra.
+    const antesDaContagem = item.id === 1 ? item.quantidade + 2 : item.quantidade
+    if (item.id === 1) {
+      lista.push({
+        id: id++,
+        item_id: item.id,
+        tipo: 'AJUSTE',
+        quantidade: item.quantidade,
+        quantidade_anterior: antesDaContagem,
+        quantidade_final: item.quantidade,
+        custo_unitario: null,
+        motivo: 'Contagem de fim de semana: 2 avariados',
+        created_by_nome: 'Júlia Santos',
+        created_at: quando(2),
+      })
+    }
+    const entrada = Math.max(1, Math.round(antesDaContagem * 0.6))
+    lista.push({
+      id: id++,
+      item_id: item.id,
+      tipo: 'ENTRADA',
+      quantidade: entrada,
+      quantidade_anterior: antesDaContagem - entrada,
+      quantidade_final: antesDaContagem,
+      custo_unitario: item.custo_unitario,
+      motivo: 'Compra do fornecedor',
+      created_by_nome: 'Marina Costa',
+      created_at: quando(6),
+    })
+    mapa.set(item.id, lista)
+  }
+  return mapa
 }
 
 /** Dados do ERP, regenerados se o dia ou a escala mudarem. */
@@ -1059,6 +1118,103 @@ export function estoque(): InventoryReport {
     abaixo_minimo: m.abaixoMinimo,
     cobertura_media_dias: Math.round(m.coberturaEstoque * 10) / 10,
   }
+}
+
+// ---------- movimentação de estoque ----------
+
+const TIPOS_MOVIMENTO = ['ENTRADA', 'SAIDA', 'AJUSTE']
+const MAX_MOVIMENTO = 1_000_000
+
+/** Indicadores calculados na hora, como no back: mínimo, cobertura e parado. */
+function recalcularItem(item: InventoryItem) {
+  item.abaixo_minimo = item.quantidade < item.minimo
+  item.parado = item.giro_dias > 90
+  item.cobertura_dias =
+    item.quantidade === 0
+      ? 0
+      : Math.round((item.giro_dias * item.quantidade) / Math.max(item.quantidade, item.minimo))
+}
+
+function validarMovimento(req: Partial<InventoryMovementInput>): Record<string, string> {
+  const campos: Record<string, string> = {}
+  const { tipo, quantidade, motivo, custo_unitario: custo } = req
+  if (!TIPOS_MOVIMENTO.includes(tipo ?? '')) campos.tipo = 'Use ENTRADA, SAIDA ou AJUSTE.'
+  if (typeof quantidade !== 'number' || !Number.isInteger(quantidade)) {
+    campos.quantidade = 'Informe uma quantidade inteira.'
+  } else if (tipo === 'AJUSTE' && quantidade < 0) {
+    campos.quantidade = 'A quantidade contada não pode ser negativa.'
+  } else if (tipo !== 'AJUSTE' && quantidade <= 0) {
+    campos.quantidade = 'Informe uma quantidade maior que zero.'
+  } else if (quantidade > MAX_MOVIMENTO) {
+    campos.quantidade = 'Use no máximo 1.000.000 por movimentação.'
+  }
+  if (motivo !== undefined && motivo !== null) {
+    if (typeof motivo !== 'string') campos.motivo = 'Motivo inválido.'
+    else if (motivo.length > 200) campos.motivo = 'Use até 200 caracteres.'
+  }
+  if (custo !== undefined && custo !== null) {
+    if (tipo !== 'ENTRADA') campos.custo_unitario = 'O custo só vale na entrada.'
+    else if (typeof custo !== 'number' || !(custo > 0)) {
+      campos.custo_unitario = 'Informe um custo maior que zero.'
+    }
+  }
+  return campos
+}
+
+export type MovimentarResultado = { tipo: 'ok'; resposta: InventoryMovementResult } | ErroApi
+
+/** `POST /me/inventory/{id}/movements`: valida, aplica e recalcula o item (e as pendências). */
+export function movimentarEstoque(
+  itemId: number,
+  req: Partial<InventoryMovementInput>,
+): MovimentarResultado {
+  const e = erp()
+  const campos = validarMovimento(req)
+  if (Object.keys(campos).length > 0) return validacao(campos)
+  const item = e.inventory.find((i) => i.id === itemId)
+  if (!item) return erro(404, 'ITEM_NAO_ENCONTRADO', 'Item de estoque não encontrado')
+  const tipo = req.tipo as InventoryMovement['tipo']
+  const quantidade = req.quantidade as number
+  const anterior = item.quantidade
+  if (tipo === 'SAIDA' && quantidade > anterior) {
+    return erro(422, 'ESTOQUE_INSUFICIENTE', `Estoque insuficiente: disponível ${anterior}`, {
+      disponivel: anterior,
+    })
+  }
+  const final =
+    tipo === 'ENTRADA'
+      ? anterior + quantidade
+      : tipo === 'SAIDA'
+        ? anterior - quantidade
+        : quantidade
+  const custo = tipo === 'ENTRADA' ? (req.custo_unitario ?? null) : null
+  if (custo !== null) {
+    // Custo médio ponderado: o que havia ao custo antigo + o que entrou ao custo novo.
+    item.custo_unitario = r2((anterior * item.custo_unitario + quantidade * custo) / final)
+  }
+  item.quantidade = final
+  recalcularItem(item)
+  const movimento: InventoryMovement = {
+    id: e.seq.movement++,
+    item_id: item.id,
+    tipo,
+    quantidade,
+    quantidade_anterior: anterior,
+    quantidade_final: final,
+    custo_unitario: custo,
+    motivo: req.motivo?.trim() || null,
+    created_by_nome: team.membroAtual().nome,
+    created_at: new Date().toISOString(),
+  }
+  e.movements.set(item.id, [movimento, ...(e.movements.get(item.id) ?? [])])
+  return { tipo: 'ok', resposta: { movimento: { ...movimento }, item: { ...item } } }
+}
+
+/** `GET /me/inventory/{id}/movements`; `null` = item inexistente ou de outra empresa (404). */
+export function movimentosEstoque(itemId: number): InventoryMovement[] | null {
+  const e = erp()
+  if (!e.inventory.some((i) => i.id === itemId)) return null
+  return (e.movements.get(itemId) ?? []).slice(0, 100).map((m) => ({ ...m }))
 }
 
 function lancar(e: Erp, descricao: string, tipo: StatementEntry['tipo'], valor: number) {
