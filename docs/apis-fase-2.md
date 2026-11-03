@@ -459,6 +459,8 @@ Onboarding. Erros comuns a todas:
 | `GET /me/payables?status=`              | `ver_financeiro`                       | Contas a pagar                                            |
 | `GET /me/statement?from=&to=`           | `ver_financeiro`                       | Extrato com saldo após cada lançamento                    |
 | `GET /me/inventory`                     | `ver_financeiro`                       | Estoque                                                   |
+| `POST /me/inventory/{id}/movements`     | `gerenciar_estoque`                    | Entrada, saída ou ajuste de um item (201)                 |
+| `GET /me/inventory/{id}/movements`      | `ver_financeiro`                       | Histórico do item (até 100, mais recente primeiro)        |
 | `GET /me/pendencias`                    | `ver_financeiro`                       | Pendências em ordem de urgência                           |
 | `POST /me/payments`                     | `pagar`                                | Paga ou agenda PIX, boleto ou TED                         |
 | `GET /me/payments`                      | `ver_financeiro`                       | Histórico de pagamentos                                   |
@@ -530,6 +532,61 @@ cobertura_media_dias}` (parado = giro acima de 90 dias).
 
 `tipo`: `CONTA_ATRASADA`, `SALDO_INSUFICIENTE`, `VENCE_HOJE`, `PROPOSTA_CREDITO`, `ESTOQUE_BAIXO`,
 `ESTOQUE_PARADO` (nessa ordem de urgência). Os ids são estáveis (ex.: `payable-12`, `inventory-low-7`).
+
+### Estoque
+
+`POST /me/inventory/{id}/movements` (`gerenciar_estoque`) registra uma entrada, uma saída ou um ajuste:
+
+```json
+{ "tipo": "ENTRADA", "quantidade": 18, "motivo": "NF 4512", "custo_unitario": 25.9 }
+```
+
+- `tipo`: `ENTRADA|SAIDA|AJUSTE`. Na `ENTRADA` e na `SAIDA`, `quantidade` é o que entra ou sai (inteiro > 0,
+  até 1.000.000). No `AJUSTE`, é a quantidade final contada (inteiro ≥ 0).
+- `motivo`: opcional, até 200 caracteres.
+- `custo_unitario`: opcional, só na `ENTRADA` (> 0). Atualiza o custo do item pela média ponderada
+  (`(saldo × custo atual + quantidade × custo_unitario) / saldo final`).
+
+Resposta 201, com o item já recalculado (mesmo formato de `GET /me/inventory` → `itens[]`):
+
+```json
+{
+  "movimento": {
+    "id": 101,
+    "item_id": 1,
+    "tipo": "ENTRADA",
+    "quantidade": 18,
+    "quantidade_anterior": 12,
+    "quantidade_final": 30,
+    "custo_unitario": 25.9,
+    "motivo": "NF 4512",
+    "created_by_nome": "Marina Costa",
+    "created_at": "2026-11-03T14:32:10Z"
+  },
+  "item": {
+    "id": 1,
+    "sku": "PANETONE-ART",
+    "quantidade": 30,
+    "minimo": 15,
+    "abaixo_minimo": false,
+    "...": "..."
+  }
+}
+```
+
+| Status | Corpo                                                                         | Quando                               |
+| ------ | ----------------------------------------------------------------------------- | ------------------------------------ |
+| 422    | `{"error":"ESTOQUE_INSUFICIENTE","message":"...","disponivel":12}`            | A `SAIDA` deixaria o saldo negativo  |
+| 404    | `{"error":"ITEM_NAO_ENCONTRADO","message":"..."}`                             | Item inexistente ou de outra empresa |
+| 400    | `{"error":"validation_failed","message":"...","campos":{"quantidade":"..."}}` | Corpo inválido (mensagem por campo)  |
+| 403    | `{"error":"SEM_PERMISSAO","permissao":"gerenciar_estoque"}`                   | Membro sem a permissão               |
+
+`GET /me/inventory/{id}/movements` (`ver_financeiro`) → `[movimento…]` no mesmo formato, do mais recente para o
+mais antigo (até 100); 404 `ITEM_NAO_ENCONTRADO` como acima.
+
+Os indicadores (`abaixo_minimo`, `valor_parado`, `valor_total`, `cobertura_*`) e as pendências `ESTOQUE_BAIXO` e
+`ESTOQUE_PARADO` são calculados na hora: a `ESTOQUE_BAIXO` some quando o item volta ao mínimo. No front, depois de
+um movimento, a aba Estoque invalida o estoque, as pendências e a visão geral (o selo do menu vem delas).
 
 ### Pagamentos
 

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion, useReducedMotion } from 'motion/react'
-import { PackageOpen, X } from 'lucide-react'
+import { ArrowLeftRight, History, PackageOpen, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -12,8 +12,10 @@ import { portalKeys, useAnalysis } from '../../layout/queries'
 import { isOnboardingPendente } from '../../lib/apiErrors'
 import { money, number, pct, relativeDay } from '../../lib/format'
 import type { InventoryItem, InventoryReport } from '../../types'
-import { ButtonLink } from '../../ui/Button'
+import { Button, ButtonLink } from '../../ui/Button'
 import { DataTable, type Column } from '../../ui/DataTable'
+import { useMembro } from '../../team/useMembro'
+import { GatedButton } from '../../ui/Gated'
 import { InsightBlock, type InsightOffer } from '../../ui/InsightBlock'
 import { Money } from '../../ui/Money'
 import { OnboardingPendingState } from '../../ui/OnboardingPending'
@@ -23,8 +25,9 @@ import { StatStrip } from '../../ui/StatStrip'
 import { EmptyState, ErrorState, PageHeader, Panel, PanelSkeleton } from '../../ui/Surface'
 
 import { custoReposicao, filtrar, porFaixaDeGiro, valorEmEstoque, type Filtro } from './inventory'
+import { inventoryKey } from './movement'
+import { MovementSheet, type Aba } from './MovementSheet'
 
-const inventoryKey = [...portalKeys.erp, 'inventory'] as const
 const offersKey = [...portalKeys.erp, 'credit', 'offers'] as const
 
 function dias(value: number): string {
@@ -41,7 +44,7 @@ function StatusPills({ item }: { item: InventoryItem }) {
   )
 }
 
-const columns: Column<InventoryItem>[] = [
+const baseColumns: Column<InventoryItem>[] = [
   {
     key: 'item',
     header: 'Item',
@@ -207,8 +210,81 @@ function ItemsPanel({ report }: { report: InventoryReport }) {
   const [params, setParams] = useSearchParams()
   const sku = params.get('sku')
   const destaque = sku ? report.itens.find((item) => item.sku === sku) : undefined
+  const podeMovimentar = useMembro().pode('gerenciar_estoque')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const rows = useMemo(() => filtrar(report.itens, filtro), [report.itens, filtro])
+  // `?sku=X&movimentar=1` (vindo de uma pendência) já abre o item na movimentação.
+  const [aberto, setAberto] = useState<{ item: InventoryItem; aba: Aba } | null>(() =>
+    destaque && params.get('movimentar') === '1' ? { item: destaque, aba: 'movimentar' } : null,
+  )
+  const [sheetOpen, setSheetOpen] = useState(aberto !== null)
+  // O item vivo (atualizado depois do movimento); o guardado só se ele sumir da lista.
+  const itemAberto = aberto
+    ? (report.itens.find((item) => item.id === aberto.item.id) ?? aberto.item)
+    : null
+
+  const abrir = (item: InventoryItem, aba: Aba) => {
+    setAberto({ item, aba })
+    setSheetOpen(true)
+  }
+  const fechar = () => {
+    setSheetOpen(false)
+    if (params.has('movimentar')) {
+      const next = new URLSearchParams(params)
+      next.delete('movimentar')
+      setParams(next, { replace: true })
+    }
+  }
+
+  const columns: Column<InventoryItem>[] = [
+    {
+      ...baseColumns[0],
+      cell: (item) => (
+        <span className="block min-w-[10rem]">
+          <button
+            type="button"
+            onClick={() => abrir(item, 'historico')}
+            className="text-left font-medium text-ink decoration-ink-faint underline-offset-4 hover:underline"
+          >
+            {item.nome}
+            <span className="sr-only">, ver histórico</span>
+          </button>
+          <span className="block text-xs text-ink-faint">{item.sku}</span>
+        </span>
+      ),
+    },
+    ...baseColumns.slice(1),
+    {
+      key: 'acoes',
+      header: 'Ações',
+      align: 'right',
+      cell: (item) => (
+        <span className="flex items-center justify-end gap-1">
+          <GatedButton
+            permissao="gerenciar_estoque"
+            variant="secondary"
+            size="sm"
+            icon={<ArrowLeftRight aria-hidden className="size-3.5" />}
+            aria-label={`Movimentar ${item.nome}`}
+            title={podeMovimentar ? 'Movimentar' : undefined}
+            onClick={() => abrir(item, 'movimentar')}
+            className="max-2xl:w-8 max-2xl:px-0 max-2xl:pointer-coarse:w-11"
+          >
+            <span className="hidden 2xl:inline">Movimentar</span>
+          </GatedButton>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<History aria-hidden className="size-4" />}
+            aria-label={`Histórico de ${item.nome}`}
+            title="Histórico"
+            onClick={() => abrir(item, 'historico')}
+            className="w-8 px-0! pointer-coarse:w-11"
+          />
+        </span>
+      ),
+    },
+  ]
   const parados = report.itens.filter((item) => item.parado).length
 
   const empty: Record<Filtro, { title: string; text: string }> = {
@@ -267,7 +343,7 @@ function ItemsPanel({ report }: { report: InventoryReport }) {
           caption="Itens de estoque com quantidade, mínimo, cobertura, giro e situação"
           columns={columns}
           rows={rows}
-          rowKey={(item) => item.sku}
+          rowKey={(item) => item.id}
           initialSort={{ key: 'valor', direction: 'desc' }}
           rowClassName={(item) => (item.sku === sku ? 'bg-accent-soft/60' : undefined)}
           empty={
@@ -277,6 +353,13 @@ function ItemsPanel({ report }: { report: InventoryReport }) {
           }
         />
       </motion.div>
+      <MovementSheet
+        open={sheetOpen}
+        item={itemAberto}
+        aba={aberto?.aba ?? 'movimentar'}
+        onAba={(aba) => setAberto((atual) => (atual ? { ...atual, aba } : atual))}
+        onClose={fechar}
+      />
     </Panel>
   )
 }

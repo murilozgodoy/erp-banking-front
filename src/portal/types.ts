@@ -214,6 +214,8 @@ export interface ErpApiError {
   mensagem?: string
   message?: string
   faltam?: number
+  /** `ESTOQUE_INSUFICIENTE`: quanto há do item. */
+  disponivel?: number
   /** `validation_failed`: mensagem por campo. */
   campos?: Record<string, string>
 }
@@ -472,6 +474,40 @@ export interface InventoryReport {
   valor_parado: number
   abaixo_minimo: number
   cobertura_media_dias: number
+}
+
+export type InventoryMovementType = 'ENTRADA' | 'SAIDA' | 'AJUSTE'
+
+/**
+ * `POST /me/inventory/{id}/movements` (`gerenciar_estoque`). Na ENTRADA e na SAIDA, `quantidade` é o
+ * que entra ou sai (inteiro > 0, até 1.000.000); no AJUSTE, é a quantidade final contada (≥ 0).
+ * `custo_unitario` só na ENTRADA (> 0): atualiza o custo médio ponderado.
+ */
+export interface InventoryMovementInput {
+  tipo: InventoryMovementType
+  quantidade: number
+  motivo?: string
+  custo_unitario?: number
+}
+
+export interface InventoryMovement {
+  id: number
+  item_id: number
+  tipo: InventoryMovementType
+  quantidade: number
+  quantidade_anterior: number
+  quantidade_final: number
+  custo_unitario: number | null
+  motivo: string | null
+  created_by_nome: string | null
+  /** Instant ISO. */
+  created_at: string
+}
+
+/** 201 do `POST /me/inventory/{id}/movements`: o movimento e o item já recalculado. */
+export interface InventoryMovementResult {
+  movimento: InventoryMovement
+  item: InventoryItem
 }
 
 export type PendenciaTipo =
