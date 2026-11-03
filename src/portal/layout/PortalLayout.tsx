@@ -26,7 +26,7 @@ function NavItems({ pendencias, onNavigate }: { pendencias?: number; onNavigate?
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                'group flex h-9 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150',
+                'group flex h-9 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150 pointer-coarse:h-11',
                 '[&_svg]:size-[18px] [&_svg]:shrink-0',
                 isActive
                   ? 'bg-rail-raised text-rail-ink [&_svg]:text-[#C6F24E]'
@@ -117,7 +117,7 @@ export function PortalLayout() {
         {isStaff && (
           <Link
             to="/"
-            className="flex h-9 items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink"
+            className="flex h-9 items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink pointer-coarse:h-11"
           >
             <ArrowLeftRight aria-hidden className="size-[18px]" />
             Ir para o backoffice
@@ -126,7 +126,7 @@ export function PortalLayout() {
         <button
           type="button"
           onClick={toggle}
-          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink"
+          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink pointer-coarse:h-11"
         >
           {theme === 'dark' ? (
             <Sun aria-hidden className="size-[18px]" />
@@ -138,7 +138,7 @@ export function PortalLayout() {
         <button
           type="button"
           onClick={signOut}
-          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink"
+          className="flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm text-rail-muted hover:bg-rail-raised/60 hover:text-rail-ink pointer-coarse:h-11"
         >
           <LogOut aria-hidden className="size-[18px]" />
           Sair
@@ -166,7 +166,7 @@ export function PortalLayout() {
           aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
-          className="grid size-9 place-items-center rounded-control text-rail-ink hover:bg-rail-raised"
+          className="grid size-9 place-items-center rounded-control text-rail-ink hover:bg-rail-raised pointer-coarse:size-11"
         >
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>

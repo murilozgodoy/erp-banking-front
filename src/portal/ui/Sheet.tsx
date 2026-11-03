@@ -102,7 +102,7 @@ export function Sheet({ open, onClose, title, description, children, footer }: S
                 type="button"
                 onClick={onClose}
                 aria-label="Fechar"
-                className="grid size-8 place-items-center rounded-control text-ink-muted hover:bg-sunken hover:text-ink"
+                className="grid size-8 place-items-center rounded-control text-ink-muted hover:bg-sunken hover:text-ink pointer-coarse:size-11"
               >
                 <X aria-hidden className="size-4" />
               </button>

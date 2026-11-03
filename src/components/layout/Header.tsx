@@ -30,12 +30,12 @@ export function Header() {
   return (
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-        <div className="flex items-center gap-8">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
           <Link to="/" aria-label="ErpIa, início" className="rounded-control">
             <ErpIaLogo className="[&>span]:text-lg" />
           </Link>
           {isAuthenticated && (
-            <nav aria-label="Principal" className="flex gap-4 text-sm">
+            <nav aria-label="Principal" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {links
                 .filter(
                   ({ permission, admin }) =>
