@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant F as Front
+    participant T as Transactions
+    participant S as Credit Score
+    participant MQ as RabbitMQ
+    F->>T: POST /credits
+    T->>S: GET score vigente (token relay, timeout + circuit breaker)
+    S-->>T: score 812 (BAIXO)
+    T->>T: decide APROVADO, grava, commit
+    T-)MQ: credit.decided (após o commit)
+    T-->>F: 201 APROVADO
+    MQ-)S: credit.decided
+    S->>S: grava em credit_decision_events (idempotente)
+    F->>S: GET /scores/decisions?customer_id=
+    S-->>F: decisão aparece na ficha 360°

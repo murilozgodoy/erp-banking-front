@@ -25,7 +25,8 @@ function toolLinks(): ToolLink[] {
   if (env.grafanaUrl) {
     links.push({
       label: 'Grafana',
-      description: 'Dashboards: visão geral, serviços, JVM, RabbitMQ, gateway, negócio e k6',
+      description:
+        'Dashboards (visão geral, serviços, JVM, RabbitMQ, negócio, k6) e Explore para consultar o Prometheus',
       href: env.grafanaUrl,
     })
   }

@@ -20,7 +20,7 @@ A infraestrutura fica no repositório
 | Front (Vercel)        | <https://erp-banking-front.vercel.app>                                                                                  |
 | API Gateway (EC2)     | `http://3.235.6.136:8080` (o front usa os rewrites `/api/*` da Vercel)                                                  |
 | Grafana (EC2)         | `http://3.235.6.136:8081`                                                                                               |
-| Prometheus (EC2)      | `http://3.235.6.136:8082`                                                                                               |
+| Prometheus (EC2)      | via Grafana → **Explore** (<http://3.235.6.136:8081/explore>) ou túnel SSH; a 8082 está bloqueada no Security Group     |
 | Swagger (via gateway) | `http://3.235.6.136:8080/transactions/swagger-ui/index.html` (público); `/onboarding/docs` e `/score/docs` exigem token |
 
 ## Arquitetura final
@@ -130,7 +130,8 @@ Endpoints de métricas (públicos, sem token, mas só alcançáveis pela rede in
 - Transactions: `GET /actuator/prometheus` e `GET /actuator/health` (Micrometer, tag
   `application=transactions-api`).
 
-O Prometheus fica publicado na 8082 sem login, mas com a **API de lifecycle desligada** (`/-/quit` e `/-/reload`
+Prometheus acessível pelo **Grafana (Explore)** ou por túnel SSH (`ssh -i ~/.ssh/erp-ec2.pem -L 9090:localhost:8082 ubuntu@3.235.6.136` → <http://localhost:9090>); a 8082 pública depende de liberação no Security Group. O Prometheus
+não tem login, mas está com a **API de lifecycle desligada** (`/-/quit` e `/-/reload`
 respondem 403; recarregar a config: `docker compose kill -s SIGHUP prometheus`). O receptor de remote write fica
 ligado para o k6.
 
@@ -176,7 +177,7 @@ O k6 envia as métricas dos testes de carga por remote write (`k6_*`).
 | ERP Banking — RabbitMQ               | Profundidade e consumidores por fila, publish/deliver/ack, conexões, memória     |
 | ERP Banking — Testes de carga (k6)   | VUs, req/s por status, p95/p99, p95 por endpoint, falhas e checks (por `testid`) |
 
-Alertas (`prometheus/alerts.yml`, visíveis em `/alerts` do Prometheus): serviço fora do ar, nginx fora do ar,
+Alertas (`prometheus/alerts.yml`, visíveis em `/alerts` do Prometheus, pelo túnel SSH): serviço fora do ar, nginx fora do ar,
 taxa de 5xx acima de 5%, p95 acima de 500 ms, fila acumulando mensagens, erro ao publicar evento e pico de tráfego
 no gateway.
 
@@ -262,9 +263,9 @@ Situação da `main` em 03/11/2026 (~15:10 UTC). Em todos os repositórios o CI 
 Passo a passo completo em `erp-banking-infra/docs/deploy-ec2.md`. Resumo:
 
 1. Instância EC2 (`t3.small` ou maior, Amazon Linux 2023 ou Ubuntu) com Elastic IP (`3.235.6.136`).
-2. Security Group: 8080, 8081 e 8082 abertas (gateway, Grafana e Prometheus publicados pelo compose; a Vercel
-   precisa alcançar a 8080), 22 só para o seu IP. Para restringir Grafana/Prometheus ao grupo, limite 8081/8082
-   aos IPs do grupo no Security Group. Nunca abrir 5432, 5672 ou 15672.
+2. Security Group: 8080 (gateway, a Vercel precisa alcançar) e 8081 (Grafana) abertas; 22 só para o seu IP. A
+   8082 (Prometheus) é publicada pelo compose, mas hoje está **bloqueada no Security Group**: use o Grafana
+   (Explore) ou o túnel SSH. Liberar a 8082 é opcional. Nunca abrir 5432, 5672 ou 15672.
 3. Na instância:
 
    ```bash
@@ -295,18 +296,18 @@ Projeto `gabrielrosa1s-projects/erp-banking-front`. O `vercel.json` deste reposi
 
 Variáveis de ambiente do projeto na Vercel (Production):
 
-| Variável                    | Valor                     |
-| --------------------------- | ------------------------- |
-| `VITE_ONBOARDING_API_URL`   | `/api/onboarding`         |
-| `VITE_SCORE_API_URL`        | `/api/score`              |
-| `VITE_TRANSACTIONS_API_URL` | `/api/transactions`       |
-| `VITE_GATEWAY_URL`          | `/api`                    |
-| `VITE_GRAFANA_URL`          | `http://3.235.6.136:8081` |
-| `VITE_PROMETHEUS_URL`       | `http://3.235.6.136:8082` |
-| `VITE_API_TIMEOUT_MS`       | `15000`                   |
-| `VITE_AUTH0_DOMAIN`         | domínio do tenant Auth0   |
-| `VITE_AUTH0_CLIENT_ID`      | Client ID da SPA          |
-| `VITE_AUTH0_AUDIENCE`       | `https://erp-banking-api` |
+| Variável                    | Valor                                                  |
+| --------------------------- | ------------------------------------------------------ |
+| `VITE_ONBOARDING_API_URL`   | `/api/onboarding`                                      |
+| `VITE_SCORE_API_URL`        | `/api/score`                                           |
+| `VITE_TRANSACTIONS_API_URL` | `/api/transactions`                                    |
+| `VITE_GATEWAY_URL`          | `/api`                                                 |
+| `VITE_GRAFANA_URL`          | `http://3.235.6.136:8081`                              |
+| `VITE_PROMETHEUS_URL`       | vazio (link escondido; 8082 fechada no Security Group) |
+| `VITE_API_TIMEOUT_MS`       | `15000`                                                |
+| `VITE_AUTH0_DOMAIN`         | domínio do tenant Auth0                                |
+| `VITE_AUTH0_CLIENT_ID`      | Client ID da SPA                                       |
+| `VITE_AUTH0_AUDIENCE`       | `https://erp-banking-api`                              |
 
 Deploy:
 

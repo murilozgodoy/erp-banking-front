@@ -20,7 +20,8 @@ Auth0 configurado (ver [docs/auth0.md](docs/auth0.md)).
 
 Front na Vercel: <https://erp-banking-front.vercel.app>, falando com o API Gateway na AWS EC2 (`3.235.6.136`,
 compose do [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra)). Na EC2 só ficam públicos o
-gateway (**8080**), o Grafana (**8081**) e o Prometheus (**8082**); as APIs ficam na rede interna. Arquitetura,
+gateway (**8080**) e o Grafana (**8081**); o Prometheus (**8082**) é acessado pelo Grafana (Explore) ou túnel SSH,
+pois a 8082 está bloqueada no Security Group; as APIs ficam na rede interna. Arquitetura,
 deploy e checklist da Etapa 4 em [docs/etapa-4.md](docs/etapa-4.md).
 
 ## Variáveis de ambiente
@@ -32,7 +33,7 @@ deploy e checklist da Etapa 4 em [docs/etapa-4.md](docs/etapa-4.md).
 | `VITE_TRANSACTIONS_API_URL` | `http://localhost:8080/transactions` | `/api/transactions`       | Transactions API                               |
 | `VITE_GATEWAY_URL`          | `http://localhost:8080`              | `/api`                    | Opcional: base do gateway (`/gateway/health`)  |
 | `VITE_GRAFANA_URL`          | `http://localhost:8081`              | `http://3.235.6.136:8081` | Opcional: link do Grafana                      |
-| `VITE_PROMETHEUS_URL`       | `http://localhost:8082`              | `http://3.235.6.136:8082` | Opcional: link do Prometheus                   |
+| `VITE_PROMETHEUS_URL`       | `http://localhost:8082`              | vazio (link escondido)    | Opcional: link do Prometheus                   |
 | `VITE_API_TIMEOUT_MS`       | `10000`                              | `15000`                   | Timeout das requisições                        |
 | `VITE_AUTH0_DOMAIN`         | —                                    | —                         | Domínio do tenant Auth0                        |
 | `VITE_AUTH0_CLIENT_ID`      | —                                    | —                         | Client ID da Application SPA                   |

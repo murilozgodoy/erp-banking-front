@@ -17,7 +17,8 @@ API Gateway, e um frontend React:
 
 As portas da tabela são as de cada serviço rodando sozinho (dev sem gateway). No Docker Compose do
 [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra) as APIs ficam só na rede interna e a EC2
-publica **8080 = API Gateway**, **8081 = Grafana** e **8082 = Prometheus** (o RabbitMQ Management só por túnel SSH).
+publica **8080 = API Gateway**, **8081 = Grafana** e **8082 = Prometheus** (bloqueada no Security Group: Prometheus pelo Grafana Explore ou túnel
+SSH; o RabbitMQ Management também só por túnel SSH).
 
 ```
                          ┌──► /onboarding   → Onboarding API ◄──── Credit Score API ◄──── Transactions API
