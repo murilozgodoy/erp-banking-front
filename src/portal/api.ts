@@ -15,6 +15,9 @@ import type {
   CreditOffer,
   CreditRequestInput,
   GroupBy,
+  InventoryMovement,
+  InventoryMovementInput,
+  InventoryMovementResult,
   InventoryReport,
   InviteRequest,
   InviteResponse,
@@ -127,6 +130,12 @@ function transactionsPortal(http: AxiosInstance) {
     statement: (query: Period = {}) =>
       data<StatementEntry[]>(http.get('/me/statement', { params: params(query) })),
     inventory: () => data<InventoryReport>(http.get('/me/inventory')),
+    /** Entrada, saída ou ajuste de um item (`gerenciar_estoque`). */
+    moveInventory: (id: number, input: InventoryMovementInput) =>
+      data<InventoryMovementResult>(http.post(`/me/inventory/${id}/movements`, input)),
+    /** Histórico do item, do mais recente para o mais antigo (até 100). */
+    inventoryMovements: (id: number) =>
+      data<InventoryMovement[]>(http.get(`/me/inventory/${id}/movements`)),
     pendencias: () => data<Pendencia[]>(http.get('/me/pendencias')),
     simulate: (simulation: SimulationRequest) =>
       data<Simulation>(http.post('/me/credit/simulations', simulation)),

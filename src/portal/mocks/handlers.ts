@@ -3,6 +3,7 @@ import { delay, http, HttpResponse, type HttpHandler } from 'msw'
 import { env } from '@/config/env'
 
 import type {
+  InventoryMovementInput,
   InviteRequest,
   OnboardingPayload,
   PaymentRequest,
@@ -303,6 +304,30 @@ function transactionsHandlers(base: string): HttpHandler[] {
     http.get(
       `${base}/me/inventory`,
       protegido(() => HttpResponse.json(db.estoque())),
+    ),
+    http.post(
+      `${base}/me/inventory/:id/movements`,
+      protegido(async (request, params) => {
+        const resultado = db.movimentarEstoque(
+          Number(params.id),
+          await corpo<InventoryMovementInput>(request),
+        )
+        return resultado.tipo === 'ok'
+          ? HttpResponse.json(resultado.resposta, { status: 201 })
+          : respostaErro(resultado)
+      }, 'gerenciar_estoque'),
+    ),
+    http.get(
+      `${base}/me/inventory/:id/movements`,
+      protegido((_, params) => {
+        const lista = db.movimentosEstoque(Number(params.id))
+        return lista
+          ? HttpResponse.json(lista)
+          : HttpResponse.json(
+              { error: 'ITEM_NAO_ENCONTRADO', message: 'Item de estoque não encontrado' },
+              { status: 404 },
+            )
+      }),
     ),
     http.get(
       `${base}/me/pendencias`,

@@ -19,7 +19,9 @@ import {
   localDay,
   PAPEIS_OFERECIDOS,
   papelBloqueado,
-  semLimitePermitido,
+  ATOR_DONO,
+  podeSemLimite as podeSemLimiteDe,
+  type Ator,
   teamFailure,
   toInvite,
   toPatch,
@@ -41,12 +43,21 @@ interface MemberSheetProps {
   onClose: () => void
   /** Pode conceder esta permissão (DONO concede tudo; os demais, só o que têm). */
   grantable: (permissao: Permissao) => boolean
+  /** Quem convida/edita: limita papéis (hierarquia) e o limite de pagamento. */
+  ator?: Ator
   /** Mensagem para o anúncio da página depois de editar, suspender ou remover. */
   onDone: (message: string) => void
 }
 
 /** Convidar ou editar alguém da equipe, num painel lateral. */
-export function MemberSheet({ open, target, onClose, grantable, onDone }: MemberSheetProps) {
+export function MemberSheet({
+  open,
+  target,
+  onClose,
+  grantable,
+  ator = ATOR_DONO,
+  onDone,
+}: MemberSheetProps) {
   const member = target.mode === 'edit' ? target.member : null
   const [form, setForm] = useState<MemberForm>(() =>
     member ? formFromMember(member) : emptyForm(),
@@ -78,7 +89,7 @@ export function MemberSheet({ open, target, onClose, grantable, onDone }: Member
   }
 
   const choosePapel = (papel: Exclude<Papel, 'DONO'>) => {
-    setForm((current) => applyPreset(current, papel, grantable))
+    setForm((current) => applyPreset(current, papel, grantable, ator))
     setErrors((current) => ({
       ...current,
       papel: undefined,
@@ -108,7 +119,7 @@ export function MemberSheet({ open, target, onClose, grantable, onDone }: Member
   const submit = (event: FormEvent) => {
     event.preventDefault()
     setFailure(null)
-    const found = validate(form, target.mode)
+    const found = validate(form, target.mode, ator)
     setErrors(found)
     if (Object.keys(found).length) {
       focusFirst(found)
@@ -116,14 +127,14 @@ export function MemberSheet({ open, target, onClose, grantable, onDone }: Member
     }
     if (member) {
       update.mutate(
-        { id: member.id, patch: toPatch(form) },
+        { id: member.id, patch: toPatch(form, ator) },
         {
           onSuccess: (saved) => onDone(`Acesso de ${saved.nome} atualizado.`),
           onError: fail,
         },
       )
     } else {
-      invite.mutate(toInvite(form), { onSuccess: setCreated, onError: fail })
+      invite.mutate(toInvite(form, ator), { onSuccess: setCreated, onError: fail })
     }
   }
 
@@ -207,6 +218,7 @@ export function MemberSheet({ open, target, onClose, grantable, onDone }: Member
             value={form.papel}
             error={errors.papel}
             grantable={grantable}
+            ator={ator}
             onChange={choosePapel}
             changedFrom={member && member.papel !== form.papel ? member.papel : null}
           />
@@ -220,7 +232,7 @@ export function MemberSheet({ open, target, onClose, grantable, onDone }: Member
             />
           )}
 
-          {form.papel && <LimitField form={form} error={errors.limite} set={set} />}
+          {form.papel && <LimitField form={form} error={errors.limite} set={set} ator={ator} />}
         </form>
       )}
       {member && !created && (
@@ -241,12 +253,14 @@ function RoleCards({
   value,
   error,
   grantable,
+  ator,
   onChange,
   changedFrom,
 }: {
   value: MemberForm['papel']
   error?: string
   grantable: (p: Permissao) => boolean
+  ator: Ator
   onChange: (papel: Exclude<Papel, 'DONO'>) => void
   changedFrom: Papel | null
 }) {
@@ -263,10 +277,11 @@ function RoleCards({
       </legend>
       <p className="mt-0.5 text-xs text-ink-muted">
         O papel liga as permissões padrão. Você ajusta uma a uma logo abaixo.
+        {ator.papel !== 'DONO' && ' Você só convida e gerencia papéis abaixo do seu.'}
       </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {PAPEIS_OFERECIDOS.map((papel, index) => {
-          const locked = papelBloqueado(papel, grantable)
+          const locked = papelBloqueado(papel, grantable, ator)
           const checked = value === papel
           return (
             <label
@@ -447,15 +462,21 @@ function LimitField({
   form,
   error,
   set,
+  ator,
 }: {
   form: MemberForm
+  ator: Ator
   error?: string
   set: <K extends keyof MemberForm>(key: K, value: MemberForm[K]) => void
 }) {
   const id = useId()
   const pagar = form.permissoes.includes('pagar')
-  const podeSemLimite = semLimitePermitido(form.papel)
-  const hint = 'Acima do limite, o pagamento fica aguardando aprovação de quem pode aprovar.'
+  const podeSemLimite = podeSemLimiteDe(form.papel, ator)
+  const teto = ator.papel === 'DONO' ? null : ator.limite
+  const hint =
+    teto === null
+      ? 'Acima do limite, o pagamento fica aguardando aprovação de quem pode aprovar.'
+      : `Até ${money(teto)}, o seu próprio limite. Acima disso, o pagamento fica aguardando aprovação.`
   return (
     <section aria-labelledby={`${id}-title`} className="space-y-3">
       <h3 id={`${id}-title`} className="text-sm font-medium text-ink">

@@ -2,7 +2,7 @@ import { isAxiosError } from 'axios'
 
 import { errorMessage } from '@/lib/errors'
 
-import { daysFromToday, isoDay } from '../../lib/format'
+import { daysFromToday, isoDay, money } from '../../lib/format'
 import { PAPEIS, PERMISSAO_INFO, PERMISSOES, semPermissaoTexto } from '../../team/permissions'
 import type {
   InviteRequest,
@@ -25,6 +25,35 @@ export const PAPEIS_OFERECIDOS: Exclude<Papel, 'DONO'>[] = [
 /** Só DONO e ADMIN podem pagar sem limite. */
 export function semLimitePermitido(papel: Papel | null): boolean {
   return papel === 'DONO' || papel === 'ADMIN'
+}
+
+/** Quem está convidando/editando: papel e o próprio limite (`null` = sem limite). */
+export interface Ator {
+  papel: Papel
+  limite: number | null
+}
+
+/** Acesso total (membro ausente na API antiga conta como DONO). */
+export const ATOR_DONO: Ator = { papel: 'DONO', limite: null }
+
+/** DONO > ADMIN > FINANCEIRO > OPERADOR > LEITURA. */
+const NIVEL: Record<Papel, number> = { DONO: 0, ADMIN: 1, FINANCEIRO: 2, OPERADOR: 3, LEITURA: 4 }
+
+/**
+ * Bloqueio de escalada (onboarding #20): fora o DONO, só se gerencia e convida papéis
+ * estritamente abaixo do próprio (ADMIN não mexe em outro ADMIN).
+ */
+export function gerencia(ator: Ator, alvo: Papel): boolean {
+  return ator.papel === 'DONO' || NIVEL[alvo] > NIVEL[ator.papel]
+}
+
+/** Quem tem limite só concede até o próprio limite, e nunca "sem limite". */
+function limiteDoAtor(ator: Ator): number | null {
+  return ator.papel === 'DONO' ? null : ator.limite
+}
+
+export function podeSemLimite(papel: Papel | null, ator: Ator): boolean {
+  return semLimitePermitido(papel) && limiteDoAtor(ator) === null
 }
 
 export interface MemberForm {
@@ -66,21 +95,25 @@ export function applyPreset(
   form: MemberForm,
   papel: Exclude<Papel, 'DONO'>,
   grantable: (p: Permissao) => boolean,
+  ator: Ator = ATOR_DONO,
 ): MemberForm {
   const preset = PAPEIS[papel].permissoes
   const permissoes = PERMISSOES.filter((p) =>
     grantable(p) ? preset.includes(p) : form.permissoes.includes(p),
   )
-  const semLimite = semLimitePermitido(papel)
-  return { ...form, papel, permissoes, semLimite, limite: semLimite ? null : form.limite }
+  const semLimite = podeSemLimite(papel, ator)
+  // Quem tem limite já começa com o próprio limite preenchido (é o máximo que pode conceder).
+  const limite = semLimite ? null : (form.limite ?? limiteDoAtor(ator))
+  return { ...form, papel, permissoes, semLimite, limite }
 }
 
 /** O papel só pode ser escolhido por quem pode conceder todas as permissões do preset. */
 export function papelBloqueado(
   papel: Exclude<Papel, 'DONO'>,
   grantable: (p: Permissao) => boolean,
+  ator: Ator = ATOR_DONO,
 ): boolean {
-  return !PAPEIS[papel].permissoes.every(grantable)
+  return !gerencia(ator, papel) || !PAPEIS[papel].permissoes.every(grantable)
 }
 
 /** O campo de limite: oculto sem `pagar`; obrigatório fora de DONO/ADMIN. */
@@ -90,7 +123,11 @@ export function limiteObrigatorio(form: MemberForm): boolean {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function validate(form: MemberForm, mode: 'invite' | 'edit'): FormErrors {
+export function validate(
+  form: MemberForm,
+  mode: 'invite' | 'edit',
+  ator: Ator = ATOR_DONO,
+): FormErrors {
   const errors: FormErrors = {}
   if (mode === 'invite') {
     if (!form.nome.trim()) errors.nome = 'Informe o nome da pessoa.'
@@ -104,33 +141,41 @@ export function validate(form: MemberForm, mode: 'invite' | 'edit'): FormErrors 
   }
   if (form.permissoes.includes('pagar')) {
     const vazio = form.limite === null
-    if (vazio && !(form.semLimite && semLimitePermitido(form.papel))) {
+    const teto = limiteDoAtor(ator)
+    if (vazio && !(form.semLimite && podeSemLimite(form.papel, ator))) {
       errors.limite = 'Defina até quanto esta pessoa paga sem aprovação.'
     } else if (!vazio && !(form.limite! > 0)) {
       errors.limite = 'O limite precisa ser maior que zero.'
+    } else if (!vazio && teto !== null && form.limite! > teto) {
+      errors.limite = `Você concede no máximo ${money(teto)}, o seu próprio limite.`
     }
   }
   return errors
 }
 
-function limiteDoForm(form: MemberForm): number | null {
-  if (!form.permissoes.includes('pagar')) return null
-  if (form.semLimite && semLimitePermitido(form.papel)) return null
+function limiteDoForm(form: MemberForm, ator: Ator): number | null {
+  // Quem tem limite manda sempre um valor (omitir = sem limite, que o back recusa).
+  if (!form.permissoes.includes('pagar')) return limiteDoAtor(ator)
+  if (form.semLimite && podeSemLimite(form.papel, ator)) return null
   return form.limite
 }
 
-export function toInvite(form: MemberForm): InviteRequest {
+export function toInvite(form: MemberForm, ator: Ator = ATOR_DONO): InviteRequest {
   return {
     nome: form.nome.trim(),
     email: form.email.trim().toLowerCase(),
     papel: form.papel!,
     permissoes: form.permissoes,
-    limite_pagamento: limiteDoForm(form),
+    limite_pagamento: limiteDoForm(form, ator),
   }
 }
 
-export function toPatch(form: MemberForm): TeamMemberPatch {
-  return { papel: form.papel!, permissoes: form.permissoes, limite_pagamento: limiteDoForm(form) }
+export function toPatch(form: MemberForm, ator: Ator = ATOR_DONO): TeamMemberPatch {
+  return {
+    papel: form.papel!,
+    permissoes: form.permissoes,
+    limite_pagamento: limiteDoForm(form, ator),
+  }
 }
 
 /** Erro da API em texto claro e, no 422, por campo. */
@@ -164,7 +209,18 @@ export function teamFailure(error: unknown): TeamFailure {
   }
   let message = errorMessage(error)
   if (body?.campos && Object.keys(fields).length) message = 'Revise os campos destacados.'
-  if (body?.error === 'SEM_PERMISSAO' && body.permissao && PERMISSOES.includes(body.permissao)) {
+  const regra = body?.permissao as string | undefined
+  if (body?.error === 'SEM_PERMISSAO' && regra === 'hierarquia') {
+    message = 'Você só gerencia e convida papéis abaixo do seu.'
+    fields.papel = message
+  } else if (body?.error === 'SEM_PERMISSAO' && regra === 'limite_pagamento') {
+    message = 'O limite de pagamento não pode passar do seu próprio limite.'
+    fields.limite = message
+  } else if (
+    body?.error === 'SEM_PERMISSAO' &&
+    body.permissao &&
+    PERMISSOES.includes(body.permissao)
+  ) {
     message = `Você só concede o que também pode fazer, e não pode ${PERMISSAO_INFO[body.permissao].acao}. ${semPermissaoTexto(body.permissao)}`
   }
   return { code: body?.error, message, fields }
