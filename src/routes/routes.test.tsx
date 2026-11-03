@@ -24,6 +24,7 @@ describe('router', () => {
         'contas',
         'contas/:id',
         'creditos',
+        'monitoramento',
       ]),
     )
   })

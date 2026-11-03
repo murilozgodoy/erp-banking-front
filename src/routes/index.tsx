@@ -11,6 +11,7 @@ import { CustomersPage } from '@/pages/customers/CustomersPage'
 import { NewCustomerPage } from '@/pages/customers/NewCustomerPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
+import { MonitoringPage } from '@/pages/MonitoringPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
               { path: 'contas/:id', element: <AccountDetailPage /> },
               { path: 'creditos', element: <CreditsPage /> },
               { path: 'perfil', element: <ProfilePage /> },
+              { path: 'monitoramento', element: <MonitoringPage /> },
             ],
           },
           { path: '*', element: <NotFoundPage /> },

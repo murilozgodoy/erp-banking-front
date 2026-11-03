@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { ALL_PERMISSIONS } from '@/auth/permissions'
 import { auth0State } from '@/test/auth0'
 import { renderPage } from '@/test/render'
 
@@ -19,6 +20,7 @@ describe('MainLayout / Header', () => {
 
     expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: 'Monitoramento' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Maria Souza' })).toHaveAttribute('href', '/perfil')
 
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }))
@@ -36,5 +38,15 @@ describe('MainLayout / Header', () => {
     expect(screen.getByRole('link', { name: 'ERP Banking' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument()
+  })
+
+  it('admin vê o link de monitoramento', async () => {
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ALL_PERMISSIONS }))
+    renderPage(<MainLayout />)
+
+    expect(await screen.findByRole('link', { name: 'Monitoramento' })).toHaveAttribute(
+      'href',
+      '/monitoramento',
+    )
   })
 })

@@ -7,16 +7,17 @@ import { Button } from '@/components/ui/Button'
 import { usePermissions } from '@/hooks/usePermissions'
 
 /** Itens do menu; os que têm `permission` só aparecem para quem pode acessá-los. */
-const links: { to: string; label: string; permission?: Permission }[] = [
+const links: { to: string; label: string; permission?: Permission; admin?: boolean }[] = [
   { to: '/', label: 'Início' },
   { to: '/clientes', label: 'Clientes', permission: 'read:customers' },
   { to: '/contas', label: 'Contas', permission: 'read:accounts' },
   { to: '/creditos', label: 'Crédito', permission: 'read:credits' },
+  { to: '/monitoramento', label: 'Monitoramento', admin: true },
 ]
 
 export function Header() {
   const { isAuthenticated, user, logout } = useAuth0()
-  const { can } = usePermissions()
+  const { can, isAdmin } = usePermissions()
   const queryClient = useQueryClient()
 
   const signOut = () => {
@@ -34,7 +35,10 @@ export function Header() {
           {isAuthenticated && (
             <nav aria-label="Principal" className="flex gap-4 text-sm">
               {links
-                .filter(({ permission }) => !permission || can(permission))
+                .filter(
+                  ({ permission, admin }) =>
+                    (!permission || can(permission)) && (!admin || isAdmin),
+                )
                 .map(({ to, label }) => (
                   <NavLink
                     key={to}
