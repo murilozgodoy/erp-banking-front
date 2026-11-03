@@ -574,3 +574,30 @@ section.dense .ia h3 {
 section.dense .cols.c3 {
   gap: 18px;
 }
+
+/* Tabela compacta (revisão de segurança). */
+section.compact h2 {
+  margin-bottom: 18px;
+}
+section.compact .kpi {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+section.compact .kpi .v {
+  font-size: 38px;
+}
+section.compact .cols {
+  gap: 32px;
+  margin-top: 14px;
+}
+section.compact table {
+  font-size: 15px;
+}
+section.compact table th,
+section.compact table td {
+  padding: 6px 10px 6px 0;
+  line-height: 1.3;
+}
+section.compact table th {
+  font-size: 13px;
+}
