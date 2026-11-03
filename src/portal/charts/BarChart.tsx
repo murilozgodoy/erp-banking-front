@@ -59,7 +59,10 @@ export function BarChart({
     return { x, y, ticks: y.ticks(4), labelEvery: Math.max(1, Math.ceil(data.length / fit)) }
   }, [data, width, height])
 
-  const bw = Math.max(2, x.bandwidth())
+  // Poucas categorias: a barra não passa de 56 px e fica centralizada na faixa.
+  const band = Math.max(2, x.bandwidth())
+  const bw = Math.min(band, 56)
+  const inset = (band - bw) / 2
   const radius = Math.min(4, bw / 2)
   const hovered = hover !== null ? data[hover] : null
 
@@ -91,7 +94,7 @@ export function BarChart({
           {data.map((d, i) => {
             const top = y(Math.max(0, d.value))
             const h = Math.max(0, y(0) - top)
-            const bx = x(d.key) ?? 0
+            const bx = (x(d.key) ?? 0) + inset
             const r = Math.min(radius, h)
             const path = `M${bx},${y(0)} V${top + r} Q${bx},${top} ${bx + r},${top} H${bx + bw - r} Q${bx + bw},${top} ${bx + bw},${top + r} V${y(0)} Z`
             return (
@@ -133,7 +136,7 @@ export function BarChart({
             role="status"
             className="pointer-events-none absolute top-1 z-10 rounded-control border border-line bg-surface px-3 py-2 text-xs shadow-overlay"
             style={{
-              left: Math.min(Math.max((x(hovered.key) ?? 0) + bw + 8, 0), width - 170),
+              left: Math.min(Math.max((x(hovered.key) ?? 0) + inset + bw + 8, 0), width - 170),
             }}
           >
             <p className="font-medium text-ink">{hovered.label}</p>
