@@ -482,3 +482,53 @@ export interface OnboardingPendenteError {
   error: 'ONBOARDING_PENDENTE'
   status: OnboardingStatus
 }
+
+// ---------- Assistente ErpIa (seção 9, Score API) ----------
+
+export interface AssistantMessage {
+  role: 'user' | 'assistant'
+  /** Até 2.000 caracteres. */
+  content: string
+}
+
+/** Corpo de `POST /me/assistant/messages`: até 20 mensagens e a tela atual. */
+export interface AssistantRequest {
+  messages: AssistantMessage[]
+  /** Tela atual (ex. `/app/recebiveis`), para contextualizar a resposta. */
+  rota?: string
+}
+
+export type FonteTipo =
+  | 'analise'
+  | 'overview'
+  | 'vendas'
+  | 'recebiveis'
+  | 'pagamentos'
+  | 'estoque'
+  | 'pendencias'
+  | 'credito'
+
+/** Dado consultado para responder. */
+export interface Fonte {
+  tipo: FonteTipo
+  label: string
+}
+
+/** Atalho para uma tela do portal (`rota` interna, ex. `/app/credito?produto=...`). */
+export interface Acao {
+  label: string
+  rota: string
+}
+
+export interface AssistantResponse {
+  /** Markdown simples: parágrafos, listas e negrito. */
+  resposta: string
+  /** 2 a 4 próximas perguntas. */
+  sugestoes: string[]
+  fontes: Fonte[]
+  acoes: Acao[]
+}
+
+/** Erros do assistente: 503 sem chave da IA, 429 limite por minuto, 409 onboarding pendente. */
+export type AssistantErrorCode =
+  'ASSISTENTE_INDISPONIVEL' | 'LIMITE_ASSISTENTE' | 'ONBOARDING_PENDENTE'
