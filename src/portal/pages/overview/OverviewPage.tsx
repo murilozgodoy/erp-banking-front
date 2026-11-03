@@ -1,16 +1,11 @@
 import { isAxiosError } from 'axios'
 import { ArrowRight, Hourglass, RotateCw } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
 
 import { Faisca, Marca } from '@/components/brand/Logo'
 import { errorMessage } from '@/lib/errors'
 import { useAnalysis, useMe, useOverview } from '../../layout/queries'
-import { money } from '../../lib/format'
-import { useMediaQuery } from '../../lib/useMediaQuery'
 import { Button, ButtonLink } from '../../ui/Button'
-import { Delta } from '../../ui/Delta'
-import { StatStrip, type Stat } from '../../ui/StatStrip'
 import {
   EmptyState,
   ErrorState,
@@ -22,8 +17,10 @@ import {
 import type { BusinessAnalysis, Overview } from '../../types'
 
 import { CashPanel } from './CashPanel'
-import { OpportunitiesPanel } from './OpportunitiesPanel'
-import { ReadingPanel } from './ReadingPanel'
+import { KpiBand } from './KpiBand'
+import { LeituraCard } from './LeituraCard'
+import { OtherOpportunities } from './OtherOpportunities'
+import { mainOffer } from './cashflow'
 import { ScorePanel } from './ScorePanel'
 
 const todayFormat = new Intl.DateTimeFormat('pt-BR', {
@@ -133,8 +130,9 @@ function Loaded({
   refreshing: boolean
 }) {
   const ready = analysisSlot === 'ready' && analysis
-  const wide = useMediaQuery('(min-width: 1280px)')
   const oportunidades = ready ? analysis.oportunidades : []
+  const principal = ready ? mainOffer(overview.fluxo_caixa, oportunidades) : null
+  const outras = oportunidades.filter((o) => o.tipo !== principal?.oportunidade.tipo)
 
   const analysisFallback = (label: string): ReactNode => {
     if (analysisSlot === 'loading') return <PanelSkeleton rows={6} label={label} />
@@ -149,127 +147,37 @@ function Loaded({
     return <Analyzing onRefresh={retryAnalysis} refreshing={refreshing} />
   }
 
-  const reading = ready ? (
-    <ReadingPanel analysis={analysis} />
-  ) : (
-    analysisFallback('Carregando a leitura da ErpIa')
-  )
-  const opportunities =
-    ready || analysisSlot === 'loading' ? (
-      ready ? (
-        <OpportunitiesPanel oportunidades={oportunidades} />
-      ) : (
-        <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
-      )
-    ) : null
-  const cash = (
-    <CashPanel
-      saldo={overview.saldo}
-      fluxo={overview.fluxo_caixa}
-      oportunidades={oportunidades}
-      analysisPending={analysisSlot === 'loading'}
-    />
-  )
-  const kpis = (
-    <section aria-label="Indicadores dos últimos 30 dias">
-      <StatStrip stats={kpiStats(overview)} columns={wide ? 'three' : 'auto'} />
-    </section>
-  )
-  const score = ready ? (
-    <ScorePanel analysis={analysis} />
-  ) : analysisSlot === 'analyzing' ? null : (
-    analysisFallback('Carregando o score e a saúde do negócio')
-  )
-
-  // Desktop (≥ 1280 px): à esquerda caixa e indicadores; à direita leitura e ofertas (fixas no
-  // scroll); o score ocupa a largura toda embaixo. Telas menores: Leitura → Caixa → Indicadores → Oportunidades → Score.
-  if (wide) {
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-12 items-start gap-4">
-          <div className="col-span-7 space-y-4">
-            {cash}
-            {kpis}
-          </div>
-          <aside
-            aria-label="Leitura e crédito"
-            className="sticky top-[4.5rem] col-span-5 space-y-4"
-          >
-            {reading}
-            {opportunities}
-          </aside>
+  // Ordem no DOM = ordem no mobile: indicadores, Leitura, caixa, outras ofertas, score. No xl a
+  // linha principal vira 2/3 + 1/3 com as duas colunas da mesma altura (o caixa vem antes).
+  return (
+    <>
+      <KpiBand
+        overview={overview}
+        analysis={ready ? analysis : undefined}
+        analysisPending={analysisSlot === 'loading'}
+      />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col xl:order-2">
+          {ready ? (
+            <LeituraCard analysis={analysis} offer={principal} className="h-full" />
+          ) : (
+            analysisFallback('Carregando a leitura da ErpIa')
+          )}
         </div>
-        {score}
+        <CashPanel
+          className="min-w-0 xl:order-1"
+          saldo={overview.saldo}
+          fluxo={overview.fluxo_caixa}
+          oportunidades={[]}
+        />
       </div>
-    )
-  }
-  return (
-    <div className="space-y-4">
-      {reading}
-      {cash}
-      {kpis}
-      {opportunities}
-      {score}
-    </div>
-  )
-}
-
-function kpiStats(o: Overview): Stat[] {
-  const atrasado = o.atrasados_total > 0
-  return [
-    {
-      label: 'Receita 30 dias',
-      value: money(o.receita_30d),
-      detail:
-        o.receita_30d_variacao_pct === null ? (
-          'Sem base de comparação'
-        ) : (
-          <Delta value={o.receita_30d_variacao_pct} context="vs. 30 dias anteriores" />
-        ),
-    },
-    {
-      label: 'Ticket médio',
-      value: money(o.ticket_medio_30d),
-      detail: 'por venda, 30 dias',
-    },
-    {
-      label: 'Recebíveis 90 dias',
-      value: money(o.recebiveis_90d),
-      detail: <StatLink to="/app/recebiveis">Ver agenda</StatLink>,
-    },
-    {
-      label: 'A pagar 30 dias',
-      value: money(o.a_pagar_30d),
-      detail: <StatLink to="/app/pagamentos">Ver contas</StatLink>,
-    },
-    {
-      label: 'Em atraso',
-      value: (
-        <span className={atrasado ? 'text-negative' : undefined}>{money(o.atrasados_total)}</span>
-      ),
-      detail: atrasado ? (
-        <StatLink to="/app/pendencias">Resolver em Pendências</StatLink>
-      ) : (
-        'Nenhuma conta em atraso'
-      ),
-    },
-    {
-      label: 'Estoque',
-      value: money(o.estoque_valor),
-      detail: <StatLink to="/app/estoque">a preço de custo</StatLink>,
-    },
-  ]
-}
-
-function StatLink({ to, children }: { to: string; children: ReactNode }) {
-  return (
-    <Link
-      to={to}
-      className="inline-flex items-center gap-1 rounded-sm font-medium text-accent underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none"
-    >
-      {children}
-      <ArrowRight aria-hidden className="size-3" />
-    </Link>
+      {ready && <OtherOpportunities oportunidades={outras} />}
+      {ready ? (
+        <ScorePanel analysis={analysis} />
+      ) : analysisSlot === 'analyzing' ? null : (
+        analysisFallback('Carregando o score e a saúde do negócio')
+      )}
+    </>
   )
 }
 
@@ -319,61 +227,37 @@ function Analyzing({ onRefresh, refreshing }: { onRefresh: () => void; refreshin
 
 /** Esqueleto no mesmo desenho da página carregada (gráfico 8 + ofertas 4, faixa, score). */
 function OverviewSkeleton() {
-  const wide = useMediaQuery('(min-width: 1280px)')
-  const reading = <PanelSkeleton rows={4} label="Carregando a leitura da ErpIa" />
-  const cash = (
-    <div
-      role="status"
-      aria-label="Carregando o caixa projetado"
-      className="rounded-panel border border-line bg-surface p-5 shadow-raised"
-    >
-      <Skeleton className="h-4 w-48" />
-      <Skeleton className="mt-2 h-3 w-72 max-w-full" />
-      <Skeleton className="mt-6 h-3 w-20" />
-      <Skeleton className="mt-2 h-9 w-56" />
-      <Skeleton className="mt-6 h-[280px] w-full" />
-    </div>
-  )
-  const kpis = (
-    <StatStrip
-      loading
-      columns={wide ? 'three' : 'auto'}
-      stats={[
-        'Receita 30 dias',
-        'Ticket médio',
-        'Recebíveis 90 dias',
-        'A pagar 30 dias',
-        'Em atraso',
-        'Estoque',
-      ].map((label) => ({ label, value: null }))}
-    />
-  )
-  const opportunities = <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
-  const score = <PanelSkeleton rows={6} label="Carregando o score e a saúde do negócio" />
-  if (wide) {
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-12 items-start gap-4">
-          <div className="col-span-7 space-y-4">
-            {cash}
-            {kpis}
-          </div>
-          <div className="col-span-5 space-y-4">
-            {reading}
-            {opportunities}
-          </div>
-        </div>
-        {score}
-      </div>
-    )
-  }
   return (
-    <div className="space-y-4">
-      {reading}
-      {cash}
-      {kpis}
-      {opportunities}
-      {score}
-    </div>
+    <>
+      <div
+        role="status"
+        aria-label="Carregando os indicadores"
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line lg:grid-cols-4"
+      >
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="bg-surface px-4 py-3.5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="mt-2 h-5 w-28" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="xl:order-2">
+          <PanelSkeleton rows={7} label="Carregando a leitura da ErpIa" />
+        </div>
+        <div
+          role="status"
+          aria-label="Carregando o caixa projetado"
+          className="rounded-panel border border-line bg-surface p-5 shadow-raised xl:order-1"
+        >
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="mt-2 h-3 w-72 max-w-full" />
+          <Skeleton className="mt-6 h-3 w-20" />
+          <Skeleton className="mt-2 h-9 w-56" />
+          <Skeleton className="mt-6 h-[280px] w-full" />
+        </div>
+      </div>
+      <PanelSkeleton rows={6} label="Carregando o score e a saúde do negócio" />
+    </>
   )
 }

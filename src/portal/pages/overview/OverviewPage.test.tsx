@@ -135,25 +135,13 @@ describe('Visão geral', () => {
 
   const render = () => renderPortal(<OverviewPage />)
 
-  it('mostra saudação, leitura da ErpIa, caixa com o vale e a ponte de crédito', async () => {
+  it('mostra saudação, caixa com o vale e a Leitura da ErpIa com a oportunidade principal', async () => {
+    const user = userEvent.setup()
     render()
     const nome = db.me().empresa!.nome_fantasia
     expect(
       await screen.findByRole('heading', { level: 1, name: new RegExp(nome) }),
     ).toBeInTheDocument()
-    // Leitura da ErpIa: card próprio com o resumo, os sinais e a origem da análise.
-    const leitura = await screen.findByRole('region', { name: /Leitura da ErpIa/ })
-    expect(within(leitura).getByText(/Padaria com receita acima da média/)).toBeInTheDocument()
-    expect(within(leitura).getAllByText('Ponto forte:').length).toBeGreaterThan(0)
-    expect(within(leitura).getByText('Atenção:')).toBeInTheDocument()
-    expect(within(leitura).getAllByRole('listitem').length).toBeLessThanOrEqual(3)
-    expect(
-      within(leitura).getByText(/^Atualizada em \d{2}\/\d{2} às \d{2}:\d{2} · regras \+ IA$/),
-    ).toBeInTheDocument()
-    // O resumo saiu do cabeçalho.
-    expect(screen.getByRole('heading', { level: 1 }).parentElement).not.toHaveTextContent(
-      /Padaria com receita/,
-    )
 
     const caixa = await screen.findByRole('region', { name: 'Caixa projetado — 60 dias' })
     expect(within(caixa).getByText('Saldo hoje')).toBeInTheDocument()
@@ -161,22 +149,34 @@ describe('Visão geral', () => {
     expect(
       within(caixa).getByRole('img', { name: 'Caixa projetado nos próximos 60 dias' }),
     ).toBeInTheDocument()
-
     const fluxo = db.overview().fluxo_caixa
     const [vale] = findVales(fluxo)
-    expect(vale).toBeDefined()
     const range = valeRange(vale)
     expect(within(caixa).getByText(new RegExp(`Vale de caixa ${range}`))).toBeInTheDocument()
 
-    const valor = amountToCover(lowestPoint(fluxo)!.valor)
-    const frase = `Antecipar ${shortMoney(valor)} cobre o vale ${range}`
+    // Leitura da ErpIa: resumo, sinais no "Ler análise completa" e a oferta que cobre o vale.
+    const leitura = await screen.findByRole('region', { name: /Leitura da ErpIa/ })
+    expect(within(leitura).getByText(/Padaria com receita acima da média/)).toBeInTheDocument()
+    // 2 sinais sempre visíveis; o expandido mostra o resto.
+    expect(within(leitura).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(leitura).getByText('Ponto forte:')).toBeInTheDocument()
+    expect(within(leitura).getByText('Atenção:')).toBeInTheDocument()
+    await user.click(within(leitura).getByRole('button', { name: 'Ler análise completa' }))
+    expect(within(leitura).getAllByRole('listitem').length).toBeGreaterThan(2)
     expect(
-      await within(caixa).findByText((_, el) => el?.tagName === 'P' && el.textContent === frase),
+      within(leitura).getByText(/^Atualizada em \d{2}\/\d{2} às \d{2}:\d{2} · regras \+ IA$/),
     ).toBeInTheDocument()
-    expect(within(caixa).getByRole('link', { name: /Simular antecipação de/ })).toHaveAttribute(
-      'href',
-      `/app/credito?produto=ANTECIPACAO_RECEBIVEIS&valor=${valor}`,
-    )
+
+    const valor = amountToCover(lowestPoint(fluxo)!.valor)
+    expect(
+      within(leitura).getByText(
+        `Seu caixa fica negativo ${range}. Antecipar ${shortMoney(valor)} cobre o vale.`,
+      ),
+    ).toBeInTheDocument()
+    expect(within(leitura).getByText('Pré-aprovado')).toBeInTheDocument()
+    expect(
+      within(leitura).getByRole('link', { name: 'Simular antecipação de recebíveis' }),
+    ).toHaveAttribute('href', `/app/credito?produto=ANTECIPACAO_RECEBIVEIS&valor=${valor}`)
   })
 
   it('mostra entradas e saídas do dia no tooltip do gráfico', async () => {
@@ -189,21 +189,25 @@ describe('Visão geral', () => {
     expect(tooltip.closest('[role="status"]')).toHaveTextContent(/Saídas/)
   })
 
-  it('lista indicadores com links para as áreas', async () => {
+  it('mostra os indicadores principais e os operacionais com links', async () => {
     render()
-    const strip = await screen.findByRole('region', { name: 'Indicadores dos últimos 30 dias' })
+    const band = await screen.findByRole('region', { name: 'Indicadores da empresa' })
     for (const label of [
       'Receita 30 dias',
-      'Ticket médio',
+      'Margem estimada',
+      'Prazo médio de recebimento',
+      'Ciclo de caixa',
       'Recebíveis 90 dias',
       'A pagar 30 dias',
       'Em atraso',
       'Estoque',
     ]) {
-      expect(within(strip).getByText(label)).toBeInTheDocument()
+      expect(within(band).getByText(label)).toBeInTheDocument()
     }
-    expect(within(strip).getByText('vs. 30 dias anteriores')).toBeInTheDocument()
-    expect(within(strip).getByRole('link', { name: /Resolver em Pendências/ })).toHaveAttribute(
+    expect(within(band).getByText('no mês')).toBeInTheDocument()
+    expect(await within(band).findByText(/^meta: \d+ dias$/)).toBeInTheDocument()
+    expect(within(band).getByText(/^segmento: /)).toBeInTheDocument()
+    expect(within(band).getByRole('link', { name: /Resolver/ })).toHaveAttribute(
       'href',
       '/app/pendencias',
     )
@@ -214,21 +218,17 @@ describe('Visão geral', () => {
     )
   })
 
-  it('ranqueia as oportunidades de crédito e expande a lista', async () => {
-    const user = userEvent.setup()
+  it('lista as outras oportunidades, sem repetir a principal', async () => {
     render()
-    const painel = await screen.findByRole('region', { name: /Oportunidades de crédito/ })
-    const lista = await within(painel).findByRole('list')
-    expect(within(lista).getAllByRole('listitem')).toHaveLength(2)
-    expect(within(painel).getByText(/Mais indicada/)).toBeInTheDocument()
+    const painel = await screen.findByRole('region', { name: /Outras oportunidades/ })
+    const itens = within(painel).getAllByRole('listitem')
+    expect(itens).toHaveLength(db.analiseAtual()!.oportunidades.length - 1)
     expect(
-      within(painel).getByRole('link', { name: /Simular antecipação de recebíveis/ }),
-    ).toHaveAttribute('href', expect.stringMatching(/produto=ANTECIPACAO_RECEBIVEIS&valor=\d+/))
-    await user.click(within(painel).getByRole('button', { name: /Ver mais 3 ofertas/ }))
-    expect(within(lista).getAllByRole('listitem')).toHaveLength(5)
-    expect(within(painel).getByRole('button', { name: 'Mostrar menos' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
+      within(painel).queryByRole('link', { name: 'Simular antecipação de recebíveis' }),
+    ).not.toBeInTheDocument()
+    expect(within(painel).getByRole('link', { name: 'Simular capital de giro' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/produto=CAPITAL_DE_GIRO&valor=\d+/),
     )
   })
 
@@ -270,9 +270,8 @@ describe('Visão geral', () => {
     render()
     expect(await screen.findByText('Seu caixa cobre os próximos 60 dias')).toBeInTheDocument()
     expect(screen.queryByText(/^Vale de caixa (de|em|a partir)/)).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Simular antecipação de R/ })).not.toBeInTheDocument()
-    expect(screen.getByText('Nenhuma conta em atraso')).toBeInTheDocument()
-    expect(screen.getByText('Sem base de comparação')).toBeInTheDocument()
+    expect(screen.getByText('nenhuma conta em atraso')).toBeInTheDocument()
+    expect(screen.getByText('sem base de comparação')).toBeInTheDocument()
     expect(screen.getByText('Nenhuma pendência hoje')).toBeInTheDocument()
   })
 
