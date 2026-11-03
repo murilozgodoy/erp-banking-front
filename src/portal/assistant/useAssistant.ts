@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { errorMessage } from '@/lib/errors'
+import { errorMessage, retryAfterSeconds } from '@/lib/errors'
 
 import { usePortalApi } from '../api'
 import type { Acao, AssistantMessage, AssistantRequest, AssistantResponse, Fonte } from '../types'
@@ -10,6 +10,7 @@ import type { Acao, AssistantMessage, AssistantRequest, AssistantResponse, Fonte
 /** Limites do contrato (seção 9). */
 export const MAX_MESSAGES = 20
 export const MAX_CHARS = 2000
+export const MAX_ROTA = 300
 
 export type ChatEntry =
   | { id: string; role: 'user'; content: string }
@@ -24,7 +25,7 @@ export type ChatEntry =
 
 export type AssistantFailure =
   | { kind: 'indisponivel' }
-  | { kind: 'limite' }
+  | { kind: 'limite'; retryAfter?: number }
   | { kind: 'onboarding' }
   | { kind: 'falha'; message: string }
 
@@ -81,7 +82,7 @@ export function toApiMessages(entries: ChatEntry[], question: string): Assistant
 export function classify(error: unknown): AssistantFailure {
   const status = isAxiosError(error) ? error.response?.status : undefined
   if (status === 503) return { kind: 'indisponivel' }
-  if (status === 429) return { kind: 'limite' }
+  if (status === 429) return { kind: 'limite', retryAfter: retryAfterSeconds(error) }
   if (status === 409) return { kind: 'onboarding' }
   return { kind: 'falha', message: errorMessage(error) }
 }
@@ -98,6 +99,8 @@ export interface AssistantChat {
   pendingQuestion: string | null
   pending: boolean
   failure: AssistantFailure | null
+  /** 429 com `Retry-After`: instante (ms) até quando o envio fica bloqueado. */
+  blockedUntil: number | null
   /** Id da resposta que acabou de chegar (para o micro-momento de conclusão). */
   freshId: string | null
   send: (question: string) => void
@@ -117,6 +120,7 @@ export function useAssistant({ sub, rota }: { sub?: string; rota: string }): Ass
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const [failure, setFailure] = useState<AssistantFailure | null>(null)
   const [freshId, setFreshId] = useState<string | null>(null)
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null)
   // Troca de usuário: recarrega o histórico da nova chave (ajuste durante o render).
   if (state.key !== key) setState({ key, entries: load(key) })
   const entries = state.entries
@@ -133,12 +137,13 @@ export function useAssistant({ sub, rota }: { sub?: string; rota: string }): Ass
     (raw: string) => {
       const question = raw.trim().slice(0, MAX_CHARS)
       if (!question || mutation.isPending) return
+      if (blockedUntil !== null && Date.now() < blockedUntil) return
       const run = generation.current
       setPendingQuestion(question)
       setFailure(null)
       setFreshId(null)
       mutation.mutate(
-        { messages: toApiMessages(entries, question), rota },
+        { messages: toApiMessages(entries, question), rota: rota.slice(0, MAX_ROTA) },
         {
           onSuccess: (response: AssistantResponse) => {
             if (run !== generation.current) return
@@ -163,12 +168,16 @@ export function useAssistant({ sub, rota }: { sub?: string; rota: string }): Ass
           },
           onError: (error) => {
             if (run !== generation.current) return
-            setFailure(classify(error))
+            const failed = classify(error)
+            setFailure(failed)
+            if (failed.kind === 'limite' && failed.retryAfter) {
+              setBlockedUntil(Date.now() + failed.retryAfter * 1000)
+            }
           },
         },
       )
     },
-    [entries, mutation, rota],
+    [blockedUntil, entries, mutation, rota],
   )
 
   const retry = useCallback(() => {
@@ -182,6 +191,7 @@ export function useAssistant({ sub, rota }: { sub?: string; rota: string }): Ass
     setPendingQuestion(null)
     setFailure(null)
     setFreshId(null)
+    setBlockedUntil(null)
   }, [mutation])
 
   return {
@@ -189,6 +199,7 @@ export function useAssistant({ sub, rota }: { sub?: string; rota: string }): Ass
     pendingQuestion,
     pending: mutation.isPending,
     failure,
+    blockedUntil,
     freshId,
     send,
     retry,

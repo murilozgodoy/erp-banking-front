@@ -4,6 +4,7 @@ import { dayMonth, money, pct } from '../lib/format'
 import { screenFor } from '../assistant/suggestions'
 import type { AssistantRequest, AssistantResponse, ProdutoCredito } from '../types'
 import { PRODUTO_LABEL, simulatorHref } from '../ui/credit'
+import { RESPOSTA_RECUSA } from './assistantFixtures'
 import * as db from './db'
 
 /**
@@ -253,6 +254,8 @@ function credito(): AssistantResponse {
   }
 }
 
+const FORA_DO_ESCOPO = /bitcoin|cripto|bolsa de valores|investir em|piada|ignore (as|suas) instruc/
+
 const RESPOSTAS: Record<Topico, () => AssistantResponse> = {
   caixa,
   recebiveis,
@@ -266,6 +269,8 @@ const RESPOSTAS: Record<Topico, () => AssistantResponse> = {
 /** Resposta do mock para a conversa (a última mensagem é a pergunta). */
 export function responder(request: AssistantRequest): AssistantResponse {
   const pergunta = request.messages[request.messages.length - 1]?.content ?? ''
+  // Fora do escopo (investimentos, outros assuntos, injection): recusa educada, como o back.
+  if (FORA_DO_ESCOPO.test(normalizar(pergunta))) return RESPOSTA_RECUSA
   return RESPOSTAS[topico(pergunta, request.rota)]()
 }
 
@@ -296,6 +301,9 @@ export function assistantHandlers(base: string): HttpHandler[] {
       } catch {
         return invalido('Corpo inválido.')
       }
+      if (typeof body?.rota === 'string' && body.rota.length > 300) {
+        return invalido('rota tem até 300 caracteres.')
+      }
       const messages = Array.isArray(body?.messages) ? body.messages : []
       if (!messages.length || messages.length > MAX_MESSAGES) {
         return invalido(`Envie de 1 a ${MAX_MESSAGES} mensagens.`)
@@ -312,7 +320,12 @@ export function assistantHandlers(base: string): HttpHandler[] {
       }
       const pergunta = messages[messages.length - 1].content
       const marcador = MARCADORES.find(([marca]) => pergunta.includes(marca))
-      if (marcador) return HttpResponse.json(marcador[2], { status: marcador[1] })
+      if (marcador) {
+        return HttpResponse.json(marcador[2], {
+          status: marcador[1],
+          headers: marcador[1] === 429 ? { 'Retry-After': '20' } : undefined,
+        })
+      }
       return HttpResponse.json(
         responder({ messages, rota: typeof body.rota === 'string' ? body.rota : undefined }),
       )

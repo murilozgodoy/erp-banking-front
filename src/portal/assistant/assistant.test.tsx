@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { auth0State } from '@/test/auth0'
 
+import { RESPOSTA_RECEBIVEIS, RESPOSTA_RECUSA } from '../mocks/assistantFixtures'
 import { renderPortal, useMockApi } from '../test/portal'
 import type { AssistantRequest, AssistantResponse } from '../types'
 import { InsightBlock } from '../ui/InsightBlock'
@@ -201,16 +202,62 @@ describe('Assistente ErpIa', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
-  it.each([
-    ['[503]', 'O assistente está indisponível no momento'],
-    ['[429]', 'Você atingiu o limite de 10 perguntas por minuto. Tente de novo em instantes.'],
-  ])('erro %s com mensagem clara', async (marker, message) => {
+  it('503 com mensagem clara e nova tentativa', async () => {
     const user = userEvent.setup()
     renderAssistant()
     await user.click(launcher())
-    await user.type(composer(), `Teste [${marker}{Enter}`)
-    expect(await screen.findByRole('alert')).toHaveTextContent(message)
-    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeInTheDocument()
+    await user.type(composer(), 'Teste [[503]{Enter}')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'O assistente está indisponível no momento',
+    )
+    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeEnabled()
+  })
+
+  it('429 com Retry-After: mostra a espera e bloqueia o envio até lá', async () => {
+    const user = userEvent.setup()
+    renderAssistant()
+    await user.click(launcher())
+    await user.type(composer(), 'Teste [[429]{Enter}')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Você atingiu o limite de 10 perguntas por minuto. Tente de novo em 20 s.',
+    )
+    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeDisabled()
+    await user.type(composer(), 'Outra')
+    expect(screen.getByRole('button', { name: 'Enviar pergunta' })).toBeDisabled()
+    // "Nova conversa" zera o bloqueio local (o servidor ainda decide).
+    await user.click(screen.getByRole('button', { name: 'Nova conversa' }))
+    expect(screen.getByRole('button', { name: 'Enviar pergunta' })).toBeEnabled()
+  })
+
+  it('429 sem Retry-After pede para tentar em instantes', async () => {
+    server.use(
+      http.post(URL, () => HttpResponse.json({ error: 'LIMITE_ASSISTENTE' }, { status: 429 })),
+    )
+    const user = userEvent.setup()
+    renderAssistant()
+    await user.click(launcher())
+    await user.type(composer(), 'Teste{Enter}')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Você atingiu o limite de 10 perguntas por minuto. Tente de novo em instantes.',
+    )
+    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeEnabled()
+  })
+
+  it('mostra as respostas reais do back, inclusive a recusa sem fontes', async () => {
+    answerWith(RESPOSTA_RECUSA)
+    const user = userEvent.setup()
+    renderAssistant()
+    await user.click(launcher())
+    await user.type(composer(), 'Me conte uma piada{Enter}')
+    expect(await screen.findByText(/Não consigo ajudar com esse pedido/)).toBeInTheDocument()
+    expect(screen.queryByText('Baseado em:')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: RESPOSTA_RECUSA.sugestoes[0] })).toBeInTheDocument()
+
+    answerWith(RESPOSTA_RECEBIVEIS)
+    await user.click(screen.getByRole('button', { name: RESPOSTA_RECUSA.sugestoes[0] }))
+    expect(await screen.findByText('Agenda de recebíveis')).toBeInTheDocument()
+    expect(screen.getByText('negativo a partir de 19/11/2026').tagName).toBe('STRONG')
+    expect(screen.getByRole('button', { name: 'Ver recebíveis' })).toBeInTheDocument()
   })
 
   it('409 leva ao status do cadastro', async () => {

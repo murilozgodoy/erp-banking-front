@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { useMockApi } from '../test/portal'
 import { responder } from './assistant'
+import { RESPOSTA_RECUSA } from './assistantFixtures'
 import { setMockStatus } from './db'
 
 const URL = 'http://score.test/me/assistant/messages'
@@ -36,6 +37,10 @@ describe('mock do assistente', () => {
     for (const acao of resposta.acoes) expect(acao.rota.startsWith('/app')).toBe(true)
   })
 
+  it('recusa o que está fora do escopo', () => {
+    expect(pergunta('Devo investir em bitcoin?')).toBe(RESPOSTA_RECUSA)
+  })
+
   it('sem palavra-chave, usa a tela', () => {
     expect(pergunta('Oi', '/app/estoque').fontes[0].tipo).toBe('estoque')
     expect(pergunta('Oi').fontes[0].tipo).toBe('overview')
@@ -53,6 +58,11 @@ describe('mock do assistente', () => {
     const body = (await ok.json()) as Record<string, unknown>
     expect(Object.keys(body).sort()).toEqual(['acoes', 'fontes', 'resposta', 'sugestoes'])
     expect((await post({ messages: [{ role: 'user', content: '[500]' }] })).status).toBe(500)
+    expect(
+      (await post({ messages: [{ role: 'user', content: 'Oi' }], rota: 'x'.repeat(301) })).status,
+    ).toBe(422)
+    const limite = await post({ messages: [{ role: 'user', content: '[429]' }] })
+    expect(limite.headers.get('Retry-After')).toBe('20')
   })
 
   it('409 com o onboarding pendente', async () => {

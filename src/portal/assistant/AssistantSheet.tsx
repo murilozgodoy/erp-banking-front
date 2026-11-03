@@ -30,6 +30,17 @@ const DISCLAIMER =
   'Respostas geradas por IA com base nos dados da sua empresa. Confira antes de decidir.'
 
 /** Só rotas internas do portal viram botão (a resposta da IA é tratada como dado). */
+/** Segundos que faltam até `until` (atualiza a cada segundo); 0 quando já passou. */
+function useSecondsLeft(until: number | null): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (until === null) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [until])
+  return until === null ? 0 : Math.max(0, Math.ceil((until - now) / 1000))
+}
+
 function isPortalRoute(rota: string) {
   return rota === '/app' || /^\/app[/?#]/.test(rota)
 }
@@ -363,10 +374,17 @@ function Thinking() {
 }
 
 function FailureNotice({ failure, onRetry }: { failure: AssistantFailure; onRetry: () => void }) {
-  const { close } = useAssistantContext()
+  const { close, chat } = useAssistantContext()
+  const wait = useSecondsLeft(chat.blockedUntil)
   let message: string
   let action: ReactNode = (
-    <Button variant="secondary" size="sm" className="mt-2.5 max-sm:h-11" onClick={onRetry}>
+    <Button
+      variant="secondary"
+      size="sm"
+      className="mt-2.5 max-sm:h-11"
+      onClick={onRetry}
+      disabled={wait > 0}
+    >
       Tentar de novo
     </Button>
   )
@@ -375,7 +393,9 @@ function FailureNotice({ failure, onRetry }: { failure: AssistantFailure; onRetr
       message = 'O assistente está indisponível no momento. Tente de novo em alguns minutos.'
       break
     case 'limite':
-      message = 'Você atingiu o limite de 10 perguntas por minuto. Tente de novo em instantes.'
+      message = `Você atingiu o limite de 10 perguntas por minuto. Tente de novo em ${
+        wait > 0 ? `${wait} s` : 'instantes'
+      }.`
       break
     case 'onboarding':
       message = 'O assistente fica disponível depois que o cadastro da empresa for aprovado.'
@@ -422,7 +442,8 @@ function Composer({ inputRef }: { inputRef: RefObject<HTMLTextAreaElement | null
     if (input?.value) input.setSelectionRange(input.value.length, input.value.length)
   }, [inputRef])
   const near = text.length >= COUNTER_FROM
-  const canSend = text.trim().length > 0 && !chat.pending
+  const blocked = useSecondsLeft(chat.blockedUntil) > 0
+  const canSend = text.trim().length > 0 && !chat.pending && !blocked
 
   const submit = () => {
     if (!canSend) return
