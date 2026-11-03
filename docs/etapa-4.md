@@ -100,12 +100,12 @@ Exemplo: `GET /score/scores/customers/1/latest` → `credit-score-api:8082/score
 - Falha ao publicar **nunca** quebra a requisição HTTP: o erro é logado e contado em
   `events_published_total{result="error"}`. O Transactions publica depois do commit da transação no banco.
 
-| Routing key                  | Produtor     | Fila / consumidor                                | Efeito                                       |
-| ---------------------------- | ------------ | ------------------------------------------------ | -------------------------------------------- |
-| `credit.decided`             | Transactions | `credit-score.credit-decided` → Score            | grava em `credit_decision_events`            |
-| `customer.anamnesis_updated` | Onboarding   | `credit-score.anamnesis-updated` → Score         | marca o score como desatualizado             |
-| `transaction.created`        | Transactions | — (visível no RabbitMQ e no Grafana)             | —                                            |
-| `customer.created`           | Onboarding   | `transactions.customer-created` (fila declarada) | sem consumidor no Transactions nesta entrega |
+| Routing key                  | Produtor     | Fila / consumidor                              | Efeito                                                                                |
+| ---------------------------- | ------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `credit.decided`             | Transactions | `credit-score.credit-decided` → Score          | grava em `credit_decision_events`                                                     |
+| `customer.anamnesis_updated` | Onboarding   | `credit-score.anamnesis-updated` → Score       | marca o score como desatualizado                                                      |
+| `transaction.created`        | Transactions | — (visível no RabbitMQ e no Grafana)           | —                                                                                     |
+| `customer.created`           | Onboarding   | `transactions.customer-created` → Transactions | abre conta corrente com saldo zero (`AUTO_OPEN_ACCOUNT=true` no compose; idempotente) |
 
 ### Tabelas novas no schema `credit_score`
 
@@ -197,6 +197,22 @@ No Windows: `.\run.ps1 smoke` (mesmos cenários e variáveis). Cada execução g
 ficam nessa pasta, e o README de `load-tests/` tem a tabela-resumo a preencher. Durante o teste, o dashboard **k6**
 do Grafana (filtrado pelo `testid` impresso pelo runner) mostra a execução ao vivo.
 
+## Testes de carga — resultados
+
+> Execução contra o gateway na EC2 (`http://3.235.6.136:8080`). Números preenchidos a partir dos relatórios em
+> `erp-banking-infra/load-tests/results/<cenario>-summary.md`.
+
+| Cenário      | Data | VUs / taxa | Requisições | req/s | p(95) | p(99) | Erro HTTP | 429 | Thresholds |
+| ------------ | ---- | ---------- | ----------- | ----- | ----- | ----- | --------- | --- | ---------- |
+| `smoke`      | —    | 2          | —           | —     | —     | —     | —         | —   | —          |
+| `load`       | —    | 0 → 30     | —           | —     | —     | —     | —         | —   | —          |
+| `stress`     | —    | 0 → 120    | —           | —     | —     | —     | —         | —   | —          |
+| `spike`      | —    | 5 → 150    | —           | —     | —     | —     | —         | —   | —          |
+| `rate-limit` | —    | 100 req/s  | —           | —     | —     | —     | —         | —   | —          |
+
+**Análise:** _(a preencher com os resultados: gargalo observado, comportamento do rate limit, uso de CPU/memória
+da EC2 no Grafana e o que mudaria para escalar.)_
+
 ## Deploy
 
 ### Back-end na EC2
@@ -272,7 +288,7 @@ URLs**, **Allowed Logout URLs** e **Allowed Web Origins** (passo manual no paine
 | Score desatualizado         | Aviso na ficha quando `GET /scores/customers/{id}/status` indica que a anamnese mudou depois da última avaliação                                                                                                                      |
 | `/monitoramento`            | Só para `admin` (as 8 permissões): health dos 3 serviços e do gateway (`/gateway/health`) com latência, atualizado a cada 10 s, e links para Grafana, Prometheus e Swagger                                                            |
 | Erros e retentativas        | Mensagens amigáveis para 429, 503, 504 e timeout. Consultas retentam até 2 vezes (inclusive 429); escritas só retentam o 429, uma vez. O `Retry-After` do gateway é respeitado até 10 s; sem ele, backoff exponencial (1 s, 2 s, ...) |
-| Painel inicial              | Indicadores do sistema na home (em desenvolvimento paralelo a esta documentação)                                                                                                                                                      |
+| Painel inicial              | Indicadores na home: clientes (e quantos têm anamnese), contas (ativas e saldo total) e pedidos de crédito por decisão, cada um conforme a permissão de leitura                                                                       |
 | Variáveis novas (opcionais) | `VITE_GATEWAY_URL`, `VITE_GRAFANA_URL`, `VITE_PROMETHEUS_URL`; vazias = o item correspondente não aparece                                                                                                                             |
 | Deploy                      | `vercel.json` com rewrites, fallback SPA e headers de segurança                                                                                                                                                                       |
 
@@ -290,6 +306,8 @@ URLs**, **Allowed Logout URLs** e **Allowed Web Origins** (passo manual no paine
 - [x] Documentação: este arquivo, [apis.md](apis.md), [ambiente-dev.md](ambiente-dev.md) e READMEs
 
 ## Como demonstrar
+
+Roteiro completo, passo a passo e com as URLs reais: [demo-etapa-4.md](demo-etapa-4.md). Resumo:
 
 1. Abrir <https://erp-banking-front.vercel.app> e entrar com um usuário `admin`.
 2. **Monitoramento:** os 3 serviços e o gateway `UP`, com latência; abrir o Grafana pelo link.
