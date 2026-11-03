@@ -13,10 +13,12 @@ import { errorMessage } from '@/lib/errors'
 
 export function ProfilePage() {
   const { user, getAccessTokenSilently } = useAuth0()
-  const { permissions, isLoading, error, can } = usePermissions()
+  const { permissions, isLoading, error, can, isAdmin } = usePermissions()
   const [copied, setCopied] = useState(false)
 
-  // Só em desenvolvimento: facilita testar as APIs (Swagger, smoke test) com o próprio token.
+  // Em desenvolvimento ou para admin: facilita testar as APIs (Swagger, smoke test, k6) com o próprio token.
+  const showToken = import.meta.env.DEV || isAdmin
+
   const copyToken = async () => {
     await navigator.clipboard.writeText((await getAccessTokenSilently()) ?? '')
     setCopied(true)
@@ -74,14 +76,20 @@ export function ProfilePage() {
         )}
       </Card>
 
-      {import.meta.env.DEV && (
+      {showToken && (
         <Card
-          title="Desenvolvimento"
-          description="Access token para chamar as APIs pelo Swagger ou pelo smoke test"
+          title="Access token"
+          description="Para chamar as APIs pelo Swagger, pelo smoke test ou pelo k6"
         >
-          <Button variant="secondary" onClick={copyToken}>
-            {copied ? 'Token copiado!' : 'Copiar access token'}
-          </Button>
+          <div className="space-y-3">
+            <Alert tone="warning">
+              Não compartilhe: o token dá acesso às APIs com as suas permissões. Ele expira; copie
+              de novo se as chamadas voltarem 401.
+            </Alert>
+            <Button variant="secondary" onClick={copyToken}>
+              {copied ? 'Token copiado!' : 'Copiar access token'}
+            </Button>
+          </div>
         </Card>
       )}
     </section>
