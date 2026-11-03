@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { ArrowLeft, ArrowRight, MessageSquareText, Send } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, MessageSquareText, Send } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Navigate, useNavigate } from 'react-router'
@@ -10,6 +10,7 @@ import { errorMessage } from '@/lib/errors'
 import { usePortalApi } from '../../api'
 import { fullDate } from '../../lib/format'
 import { portalKeys } from '../../layout/queries'
+import { useMembro } from '../../team/useMembro'
 import { Button } from '../../ui/Button'
 import { ErrorState, PageHeader, Skeleton } from '../../ui/Surface'
 import type {
@@ -174,6 +175,27 @@ function ReprovadoNote({
   )
 }
 
+/** Quem não é o dono vê o cadastro, mas não edita (o `PUT /me/onboarding` dá 403, seção 11). */
+function ReadOnlyNote() {
+  return (
+    <section
+      aria-labelledby="somente-leitura-titulo"
+      className="mb-6 flex gap-3 rounded-panel border border-line bg-sunken p-4 sm:p-5"
+    >
+      <Eye aria-hidden className="mt-0.5 size-5 shrink-0 text-ink-muted" />
+      <div className="min-w-0 space-y-1">
+        <h2 id="somente-leitura-titulo" className="text-sm font-semibold text-ink">
+          Só o dono da empresa edita o cadastro
+        </h2>
+        <p className="text-sm text-ink-muted">
+          Você pode navegar pelos passos e conferir os dados, mas não alterar nem enviar. Se algo
+          precisa mudar, peça ao dono da empresa.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 /** Avisa o pai quando o passo terminou de entrar (foco depois da transição). */
 function StepFrame({ onEntered, children }: { onEntered: () => void; children: ReactNode }) {
   useEffect(() => {
@@ -200,6 +222,9 @@ function Wizard({ templates, draft }: WizardProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const reduce = useReducedMotion()
+  const { membro } = useMembro()
+  // Sem `membro` (API antiga) vale acesso total, como no resto do portal.
+  const readOnly = membro !== null && membro.papel !== 'DONO'
 
   const [state, setState] = useState(() => initialState(templates, draft))
   const [step, setStep] = useState(() => {
@@ -235,8 +260,8 @@ function Wizard({ templates, draft }: WizardProps) {
   // Toda mudança agenda o rascunho; o estado vindo do servidor não é salvo de volta.
   const loaded = useRef(state)
   useEffect(() => {
-    if (state !== loaded.current) schedule(state)
-  }, [state, schedule])
+    if (state !== loaded.current && !readOnly) schedule(state)
+  }, [state, schedule, readOnly])
 
   const focusKey = useCallback(
     (key: string) => {
@@ -312,6 +337,10 @@ function Wizard({ templates, draft }: WizardProps) {
   }
 
   function next() {
+    if (readOnly) {
+      if (step < LAST_STEP) goTo(step + 1)
+      return
+    }
     const stepErrors = validateStep(step, state, template)
     const keys = orderedErrors(stepErrors, template)
     if (keys.length > 0) {
@@ -333,6 +362,7 @@ function Wizard({ templates, draft }: WizardProps) {
   }
 
   async function submit() {
+    if (readOnly) return
     setSubmitError(null)
     const found = validateAll(state, template)
     if (Object.keys(found).length > 0) {
@@ -388,8 +418,13 @@ function Wizard({ templates, draft }: WizardProps) {
     }),
   }
 
-  const primaryLabel =
-    step === LAST_STEP ? 'Enviar para análise' : returnToReview ? 'Voltar à revisão' : 'Continuar'
+  const primaryLabel = readOnly
+    ? 'Próximo passo'
+    : step === LAST_STEP
+      ? 'Enviar para análise'
+      : returnToReview
+        ? 'Voltar à revisão'
+        : 'Continuar'
 
   return (
     <>
@@ -397,11 +432,12 @@ function Wizard({ templates, draft }: WizardProps) {
       {(draft.onboarding_status === 'REPROVADO' || Boolean(draft.review_comment?.trim())) && (
         <ReprovadoNote comment={draft.review_comment} reviewedAt={draft.reviewed_at} />
       )}
+      {readOnly && <ReadOnlyNote />}
       <div className="grid gap-6 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-10">
         <aside className="lg:pt-2">
           <StepProgress
             current={step}
-            reachable={reachable}
+            reachable={readOnly ? LAST_STEP : reachable}
             completed={completed}
             onGo={(target) => goTo(target)}
           />
@@ -435,54 +471,56 @@ function Wizard({ templates, draft }: WizardProps) {
                 exit="exit"
               >
                 <StepFrame onEntered={onEntered}>
-                  <h2
-                    id="passo-titulo"
-                    ref={headingRef}
-                    tabIndex={-1}
-                    className="mb-5 text-lg font-semibold tracking-[-0.01em] text-ink outline-none"
-                  >
-                    {STEPS[step].titulo}
-                  </h2>
-                  {step === 0 && (
-                    <EmpresaStep
-                      empresa={state.empresa}
-                      errors={errors}
-                      onChange={setEmpresa}
-                      onBlurField={blurEmpresa}
-                    />
-                  )}
-                  {step === 1 && (
-                    <SegmentoStep
-                      templates={templates}
-                      value={state.segmento}
-                      error={errors.segmento}
-                      onChange={setSegmento}
-                    />
-                  )}
-                  {step === 2 &&
-                    (template ? (
-                      <PerguntasStep
-                        template={template}
-                        respostas={state.respostas}
+                  <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
+                    <h2
+                      id="passo-titulo"
+                      ref={headingRef}
+                      tabIndex={-1}
+                      className="mb-5 text-lg font-semibold tracking-[-0.01em] text-ink outline-none"
+                    >
+                      {STEPS[step].titulo}
+                    </h2>
+                    {step === 0 && (
+                      <EmpresaStep
+                        empresa={state.empresa}
                         errors={errors}
-                        onChange={setResposta}
+                        onChange={setEmpresa}
+                        onBlurField={blurEmpresa}
                       />
-                    ) : (
-                      <p className="text-sm text-ink-muted">
-                        Escolha o segmento no passo anterior para ver as perguntas.
-                      </p>
-                    ))}
-                  {step === LAST_STEP && (
-                    <RevisaoStep
-                      state={state}
-                      template={template}
-                      errors={errors}
-                      onEdit={edit}
-                      onObservacoes={(observacoes) =>
-                        setState((atual) => ({ ...atual, observacoes }))
-                      }
-                    />
-                  )}
+                    )}
+                    {step === 1 && (
+                      <SegmentoStep
+                        templates={templates}
+                        value={state.segmento}
+                        error={errors.segmento}
+                        onChange={setSegmento}
+                      />
+                    )}
+                    {step === 2 &&
+                      (template ? (
+                        <PerguntasStep
+                          template={template}
+                          respostas={state.respostas}
+                          errors={errors}
+                          onChange={setResposta}
+                        />
+                      ) : (
+                        <p className="text-sm text-ink-muted">
+                          Escolha o segmento no passo anterior para ver as perguntas.
+                        </p>
+                      ))}
+                    {step === LAST_STEP && (
+                      <RevisaoStep
+                        state={state}
+                        template={template}
+                        errors={errors}
+                        onEdit={edit}
+                        onObservacoes={(observacoes) =>
+                          setState((atual) => ({ ...atual, observacoes }))
+                        }
+                      />
+                    )}
+                  </fieldset>
                 </StepFrame>
               </motion.div>
             </AnimatePresence>
@@ -496,7 +534,11 @@ function Wizard({ templates, draft }: WizardProps) {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line px-4 py-4 sm:px-8">
-            <SaveIndicator status={autosave.status} onRetry={() => void autosave.retry()} />
+            {readOnly ? (
+              <p className="text-sm text-ink-muted">Somente leitura</p>
+            ) : (
+              <SaveIndicator status={autosave.status} onRetry={() => void autosave.retry()} />
+            )}
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
               {step > 0 && (
                 <Button
@@ -508,14 +550,16 @@ function Wizard({ templates, draft }: WizardProps) {
                   Voltar
                 </Button>
               )}
-              <Button
-                type="submit"
-                loading={submitting}
-                icon={step === LAST_STEP ? <Send aria-hidden className="size-4" /> : undefined}
-              >
-                {primaryLabel}
-                {step < LAST_STEP && <ArrowRight aria-hidden className="size-4" />}
-              </Button>
+              {!(readOnly && step === LAST_STEP) && (
+                <Button
+                  type="submit"
+                  loading={submitting}
+                  icon={step === LAST_STEP ? <Send aria-hidden className="size-4" /> : undefined}
+                >
+                  {primaryLabel}
+                  {step < LAST_STEP && <ArrowRight aria-hidden className="size-4" />}
+                </Button>
+              )}
             </div>
           </div>
         </form>

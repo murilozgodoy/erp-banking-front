@@ -5,7 +5,7 @@ import { Faisca, Marca } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
 
 import { pct } from '../../lib/format'
-import { ButtonLink } from '../../ui/Button'
+import { GatedButtonLink } from '../../ui/Gated'
 import { PRODUTO_LABEL, simulatorHref } from '../../ui/credit'
 import { Money } from '../../ui/Money'
 import type { BusinessAnalysis } from '../../types'
@@ -156,14 +156,15 @@ export function LeituraCard({
                   {prazo(offer.oportunidade.prazo_max_meses)}
                 </p>
               </div>
-              <ButtonLink
+              <GatedButtonLink
+                permissao="pedir_credito"
                 to={simulatorHref(offer.oportunidade.tipo, offer.valor)}
                 variant="primary"
                 size="sm"
                 aria-label={`Simular ${PRODUTO_LABEL[offer.oportunidade.tipo].toLowerCase()}`}
               >
                 Simular
-              </ButtonLink>
+              </GatedButtonLink>
             </div>
           </div>
         </div>
