@@ -17,15 +17,16 @@ API Gateway, e um frontend React:
 
 As portas da tabela são as de cada serviço rodando sozinho (dev sem gateway). No Docker Compose do
 [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra) as APIs ficam só na rede interna e a EC2
-publica **8080 = API Gateway**, **8081 = Grafana** e **8082 = Prometheus**.
+publica **8080 = API Gateway**, **8081 = Grafana** e **8082 = Prometheus** (o RabbitMQ Management só por túnel SSH).
 
 ```
                          ┌──► /onboarding   → Onboarding API ◄──── Credit Score API ◄──── Transactions API
 Frontend ──► API Gateway ┼──► /score        → Credit Score API     (token relay)          (token relay)
  (Auth0)     (nginx)     └──► /transactions → Transactions API
 
-Eventos (RabbitMQ, exchange erp.events): Transactions → Score (credit.decided), Onboarding → Score (customer.anamnesis_updated)
-Métricas: Prometheus coleta os 3 serviços, o gateway e o RabbitMQ; Grafana mostra os dashboards
+Eventos (RabbitMQ, exchange erp.events): Transactions → Score (credit.decided), Onboarding → Score (customer.anamnesis_updated),
+                                          Onboarding → Transactions (customer.created) e transaction.created (sem consumidor obrigatório)
+Métricas: Prometheus coleta os 3 serviços, o gateway (nginx-exporter) e o RabbitMQ; Grafana mostra os dashboards
 ```
 
 - **Autenticação/autorização:** Auth0 (OAuth 2.0 + JWT). O front obtém o access token; as APIs
