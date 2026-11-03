@@ -52,7 +52,6 @@ export function SegmentoStep({ templates, value, onChange, error }: SegmentoStep
 
   const option = (template: OnboardingTemplate, variant: 'main' | 'other') => {
     const checked = template.segmento === value
-    const perguntas = camposDe(template).length
     return (
       <label
         key={template.segmento}
@@ -87,9 +86,6 @@ export function SegmentoStep({ templates, value, onChange, error }: SegmentoStep
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-ink">{template.nome}</span>
           <span className="block text-sm text-ink-muted">{template.descricao}</span>
-        </span>
-        <span className="tabular hidden shrink-0 text-xs text-ink-faint sm:block">
-          {perguntas} perguntas
         </span>
         <span
           aria-hidden

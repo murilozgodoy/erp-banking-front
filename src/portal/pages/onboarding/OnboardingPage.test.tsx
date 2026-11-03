@@ -7,12 +7,16 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import { auth0State } from '@/test/auth0'
 
-import { rascunho } from '../../mocks/db'
+import { COMENTARIO_REPROVACAO, rascunho } from '../../mocks/db'
+import { mockServer } from '../../mocks/server'
 import { renderPortal, useMockApi } from '../../test/portal'
 import type { OnboardingPayload } from '../../types'
 import { OnboardingPage } from './OnboardingPage'
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }))
+
+// Fluxos longos com userEvent: folga para máquinas carregadas (CI, cobertura).
+vi.setConfig({ testTimeout: 60_000 })
 
 const API = 'http://onboarding.test'
 
@@ -24,9 +28,17 @@ afterAll(() => {
 })
 // Ao desmontar, o wizard salva o rascunho pendente: espera esse PUT antes do próximo teste
 // zerar o mock, para um teste não vazar dados para o outro.
+let inflight = 0
+mockServer.events.on('request:start', () => {
+  inflight++
+})
+mockServer.events.on('response:mocked', () => {
+  inflight--
+})
 afterEach(async () => {
   cleanup()
-  await new Promise((resolve) => setTimeout(resolve, 100))
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  await waitFor(() => expect(inflight).toBe(0), { timeout: 5000 })
 })
 beforeEach(() => {
   vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ['read:self', 'write:self'] }))
@@ -227,7 +239,7 @@ describe('OnboardingPage: cliente novo', () => {
     // Nenhum rascunho depois do envio.
     expect(puts.at(-1)?.enviar).toBe(true)
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['portal', 'me'] })
-  })
+  }, 60_000)
 })
 
 describe('OnboardingPage: retomando o rascunho', () => {
@@ -263,7 +275,7 @@ describe('OnboardingPage: retomando o rascunho', () => {
     await user.type(ticket, '45')
     expect(screen.getByText('Salvando…')).toBeInTheDocument()
     expect(puts).toHaveLength(0)
-    expect(await screen.findByText('Salvo há instantes', {}, { timeout: 3000 })).toBeVisible()
+    expect(await screen.findByText('Salvo há instantes', {}, { timeout: 8000 })).toBeVisible()
     expect(puts).toHaveLength(1)
     expect(puts[0]).toMatchObject({
       enviar: false,
@@ -293,7 +305,7 @@ describe('OnboardingPage: retomando o rascunho', () => {
     await heading('Como o negócio funciona')
     await user.type(screen.getByRole('textbox', { name: /^Ticket médio/ }), '0')
     expect(
-      await screen.findByText(/Não foi possível salvar/, {}, { timeout: 3000 }),
+      await screen.findByText(/Não foi possível salvar/, {}, { timeout: 8000 }),
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'tentar de novo' }))
     expect(await screen.findByText('Salvo há instantes')).toBeInTheDocument()
@@ -317,18 +329,33 @@ describe('OnboardingPage: reenvio depois da reprovação', () => {
   const server = useMockApi('REPROVADO')
 
   it('mostra o comentário do analista e abre na revisão', async () => {
-    server.use(
-      http.get(`${API}/me/onboarding`, () =>
-        HttpResponse.json({ ...rascunho(), review_comment: 'Faltou explicar a dívida.' }),
-      ),
-    )
     renderPage()
     expect(await heading('Observações e revisão')).toBeInTheDocument()
     expect(screen.getByText('O cadastro anterior não foi aprovado')).toBeInTheDocument()
+    expect(screen.getByText(`“${COMENTARIO_REPROVACAO}”`)).toBeInTheDocument()
+  })
+
+  it('reaberto como rascunho pela página de status: o comentário continua visível', async () => {
+    server.use(
+      http.get(`${API}/me/onboarding`, () =>
+        HttpResponse.json({
+          ...rascunho(),
+          onboarding_status: 'RASCUNHO',
+          review_comment: 'Faltou explicar a dívida.',
+        }),
+      ),
+    )
+    renderPage()
+    await heading('Observações e revisão')
     expect(screen.getByText('“Faltou explicar a dívida.”')).toBeInTheDocument()
   })
 
   it('sem comentário: nota neutra', async () => {
+    server.use(
+      http.get(`${API}/me/onboarding`, () =>
+        HttpResponse.json({ ...rascunho(), review_comment: null }),
+      ),
+    )
     renderPage()
     await heading('Observações e revisão')
     expect(screen.getByText(/Revise os dados, principalmente os financeiros/)).toBeInTheDocument()

@@ -387,7 +387,10 @@ function Wizard({ templates, draft }: WizardProps) {
 
   return (
     <>
-      {draft.onboarding_status === 'REPROVADO' && <ReprovadoNote comment={draft.review_comment} />}
+      {/* A página de status reabre a reprovação como RASCUNHO: o comentário também conta. */}
+      {(draft.onboarding_status === 'REPROVADO' || Boolean(draft.review_comment?.trim())) && (
+        <ReprovadoNote comment={draft.review_comment} />
+      )}
       <div className="grid gap-6 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-10">
         <aside className="lg:pt-2">
           <StepProgress
