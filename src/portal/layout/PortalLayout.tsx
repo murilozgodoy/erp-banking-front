@@ -8,9 +8,8 @@ import { ErpIaLogo } from '@/components/brand/Logo'
 import { usePermissions } from '@/hooks/usePermissions'
 import { cn } from '@/lib/cn'
 
-import { formatCnpj, money } from '../lib/format'
+import { formatCnpj } from '../lib/format'
 import { SkipLink } from '../ui/SkipLink'
-import { Skeleton } from '../ui/Surface'
 
 import { PORTAL_NAV } from './nav'
 import { useMe, useOverview } from './queries'
@@ -175,20 +174,6 @@ export function PortalLayout() {
       {menuOpen && <div className="fixed inset-0 top-14 z-20 bg-rail lg:hidden">{rail}</div>}
 
       <div className="min-w-0">
-        <div className="flex h-14 items-center justify-end gap-4 border-b border-line bg-paper px-4 sm:px-8 lg:sticky lg:top-0 lg:z-10">
-          <p className="flex items-baseline gap-2 text-sm text-ink-muted">
-            Saldo disponível
-            {overview.isPending ? (
-              <Skeleton className="h-4 w-24 self-center" />
-            ) : overview.data ? (
-              <span className="tabular text-base font-semibold text-ink">
-                {money(overview.data.saldo)}
-              </span>
-            ) : (
-              <span className="text-ink-faint">—</span>
-            )}
-          </p>
-        </div>
         <main
           id="conteudo"
           tabIndex={-1}

@@ -77,13 +77,14 @@ describe('portal: porta, shell e roteamento', () => {
   describe('cliente aprovado', () => {
     const server = useMockApi('APROVADO')
 
-    it('abre o portal com rail, saldo e pendências; onboarding redireciona', async () => {
+    it('abre o portal com rail e pendências, sem barra de saldo; onboarding redireciona', async () => {
       vi.mocked(useAuth0).mockReturnValue(cliente())
       renderApp('/app/onboarding')
       expect(await screen.findByTestId('where')).toHaveTextContent('/app')
       expect(screen.getAllByRole('link', { name: 'Vendas' }).length).toBeGreaterThan(0)
       expect(await screen.findAllByText(/^Aurora/)).not.toHaveLength(0)
-      expect(await screen.findByText('Saldo disponível')).toBeInTheDocument()
+      // Sem barra de saldo no topo: a página começa direto pelo conteúdo.
+      expect(screen.queryByText('Saldo disponível')).not.toBeInTheDocument()
       expect(await screen.findByText(/pendências/)).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: 'Ir para o backoffice' })).not.toBeInTheDocument()
     })
