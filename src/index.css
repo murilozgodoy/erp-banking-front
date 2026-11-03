@@ -232,3 +232,26 @@
   background-size: 200% 100%;
   animation: erpia-shimmer 1.4s linear infinite;
 }
+
+/*
+ * Superfície sempre escura dentro de uma página clara (o painel da ErpIa no hero da landing):
+ * os utilitários de token passam a usar a paleta escura só nesse trecho, em qualquer tema.
+ */
+@utility surface-dark {
+  color-scheme: dark;
+  --color-surface: #121714;
+  --color-sunken: #070908;
+  --color-line: #222a25;
+  --color-line-strong: #313b34;
+  --color-ink: #ecf0ea;
+  --color-ink-muted: #a2aba4;
+  --color-ink-faint: #87908a;
+  --color-accent: #3fc995;
+  --color-credit: #c6f24e;
+  --color-credit-ink: #d7f78a;
+  --color-credit-soft: #1f2a0b;
+  --color-credit-line: #3e5214;
+  --color-negative: #ff8b76;
+  --color-negative-soft: #3a1612;
+  --color-warning: #f2b25c;
+}

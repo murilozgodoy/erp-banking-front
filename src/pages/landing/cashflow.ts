@@ -38,3 +38,25 @@ export function smoothPath(points: [number, number][]): string {
   }
   return path
 }
+
+/**
+ * O mesmo caixa depois de antecipar R$ 42 mil de recebíveis antes do vale: o dia 18 fica em
+ * +R$ 10,2 mil e, a partir do dia 30, as 3 parcelas (R$ 14,5 mil cada, 1,29% a.m.) saem do caixa.
+ * Mesmos dias de `CASHFLOW`, para a curva poder fazer o morph de uma para a outra.
+ */
+export const CASHFLOW_ANTECIPADO: [day: number, value: number][] = [
+  [0, 38],
+  [5, 30],
+  [10, 13],
+  [14, 16],
+  [18, 10.2],
+  [22, 18],
+  [26, 38],
+  [30, 39.5],
+  [35, 47.5],
+  [40, 44.5],
+  [45, 44],
+  [50, 53],
+  [55, 64],
+  [60, 61.5],
+]

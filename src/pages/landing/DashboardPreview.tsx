@@ -132,11 +132,12 @@ export function DashboardPreview() {
                   >
                     −R$ 31,8 mil em 21/11
                   </span>
-                  {/* O momento de entrada: a curva é revelada da esquerda para a direita. */}
+                  {/* Ao entrar na tela, a curva é revelada da esquerda para a direita. */}
                   <m.span
                     className="absolute -inset-1 origin-right bg-surface"
                     initial={{ scaleX: 1 }}
-                    animate={{ scaleX: 0 }}
+                    whileInView={{ scaleX: 0 }}
+                    viewport={{ once: true, amount: 0.6 }}
                     transition={{ duration: 1.4, ease, delay: 0.25 }}
                   />
                 </div>
@@ -150,7 +151,8 @@ export function DashboardPreview() {
               <m.div
                 className="flex flex-col rounded-control border border-credit-line bg-credit-soft p-4"
                 initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.6 }}
                 transition={{ duration: 0.8, ease, delay: 1.15 }}
               >
                 <p className="flex items-center gap-1.5 text-sm font-medium text-credit-ink">

@@ -24,6 +24,9 @@ export default mergeConfig(
         VITE_AUTH0_DOMAIN: 'test.auth0.com',
         VITE_AUTH0_CLIENT_ID: 'test-client-id',
         VITE_AUTH0_AUDIENCE: 'https://erp-banking-api',
+        // Um .env local de dev (mocks/login simulado) não pode vazar para os testes.
+        VITE_USE_MOCKS: 'false',
+        VITE_MOCK_AUTH: 'false',
       },
       coverage: {
         provider: 'v8',

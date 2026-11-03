@@ -44,7 +44,7 @@ interface TimeSeriesChartProps {
   className?: string
 }
 
-const M = { top: 12, right: 12, bottom: 26, left: 56 }
+const M = { top: 12, right: 12, bottom: 26, left: 68 }
 
 /**
  * Série temporal (linha/área) com um eixo só, grade recessiva, crosshair + tooltip no hover

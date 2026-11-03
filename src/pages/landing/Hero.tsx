@@ -1,6 +1,7 @@
 import { ErpIaLogo } from '@/components/brand/Logo'
 
 import { DashboardPreview } from './DashboardPreview'
+import { HeroThinking } from './HeroThinking'
 import { ArrowRightIcon } from './icons'
 import { container, primaryButton, secondaryButton } from './styles'
 import { useLandingAuth } from './useLandingAuth'
@@ -56,20 +57,22 @@ export function Hero() {
   const { login, signup } = useLandingAuth()
   return (
     <section id="topo" aria-labelledby="hero-title" className="relative">
-      <div className={`${container} pt-12 sm:pt-20`}>
-        <h1
-          id="hero-title"
-          className="max-w-[17ch] text-[clamp(2.375rem,1.3rem+4.6vw,4.875rem)] leading-[1.02] font-semibold tracking-[-0.035em] text-ink"
-        >
-          O ERP que lê sua operação e encontra o crédito certo.
-        </h1>
-        <div className="mt-8 grid gap-8 md:grid-cols-12 md:items-end">
-          <p className="max-w-[54ch] text-lg leading-relaxed text-ink-muted md:col-span-7">
+      <div
+        className={`${container} grid gap-12 pt-12 sm:pt-20 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:items-center lg:gap-14`}
+      >
+        <div>
+          <h1
+            id="hero-title"
+            className="max-w-[16ch] text-[clamp(2.25rem,1.35rem+3.4vw,4rem)] leading-[1.04] font-semibold tracking-[-0.034em] text-ink"
+          >
+            O ERP que lê sua operação e encontra o crédito certo.
+          </h1>
+          <p className="mt-6 max-w-[54ch] text-lg leading-relaxed text-ink-muted">
             Vendas, recebíveis, estoque e contas a pagar no mesmo sistema, com conta PJ, PIX e
             boletos embutidos. A ErpIa acompanha esses números todo dia e mostra, em cada tela, qual
             crédito resolve o que vem pela frente e quanto ele custa.
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row md:col-span-5 md:justify-end">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={signup} className={primaryButton}>
               Criar conta grátis
               <ArrowRightIcon />
@@ -78,13 +81,15 @@ export function Hero() {
               Entrar
             </button>
           </div>
+          <p className="mt-4 text-sm text-ink-faint">
+            Cadastro em cerca de 3 minutos. Sem cartão de crédito.
+          </p>
         </div>
-        <p className="mt-5 text-sm text-ink-faint md:text-right">
-          Cadastro em cerca de 3 minutos. Sem cartão de crédito.
-        </p>
+
+        <HeroThinking className="w-full max-w-xl justify-self-center lg:max-w-none" />
       </div>
 
-      <div className="relative mt-12 sm:mt-16">
+      <div className="relative mt-16 sm:mt-24">
         <div aria-hidden className="absolute inset-x-0 top-[38%] bottom-0 bg-rail" />
         <div className={`${container} relative pb-14 sm:pb-20`}>
           <DashboardPreview />
