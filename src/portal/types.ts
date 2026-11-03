@@ -532,7 +532,11 @@ export interface CreditOffer {
 export type CreditRequestInput =
   { simulation_id: string } | { produto: ProdutoCredito; valor: number; prazo_meses: number }
 
-/** `CreditResponseDto` do Transactions (camelCase, igual ao `GET /credits`). */
+/**
+ * `CreditResponseDto` do Transactions (camelCase, igual ao `GET /credits`).
+ * Exceção intencional: `/me/credit/requests` e `/confirm` são as únicas rotas `/me` em camelCase
+ * (o resto do portal é snake_case). Ver docs/apis-fase-2.md.
+ */
 export interface PortalCreditRequest {
   id: number
   customerId: number
