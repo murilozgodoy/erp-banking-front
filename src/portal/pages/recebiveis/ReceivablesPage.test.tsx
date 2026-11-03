@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react'
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { configure, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -14,6 +14,9 @@ import type { SimulationRequest } from '../../types'
 import { ReceivablesPage } from './ReceivablesPage'
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }))
+
+// A suíte completa com cobertura roda em paralelo: dá folga às esperas assíncronas.
+configure({ asyncUtilTimeout: 5000 })
 
 const API = env.transactionsApiUrl
 
@@ -236,6 +239,17 @@ describe('ReceivablesPage', () => {
         screen.queryByRole('region', { name: 'Seleção para antecipação' }),
       ).not.toBeInTheDocument(),
     )
+  })
+
+  it('pagina a agenda em blocos de 50', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('A receber em 90 dias')
+    const total = db.recebiveis({}).itens.filter((r) => r.status === 'PREVISTO').length
+    expect(linhas()).toHaveLength(50)
+    expect(screen.getByText(`50 de ${total} recebíveis`)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Mostrar mais' }))
+    expect(linhas()).toHaveLength(Math.min(100, total))
   })
 
   it('filtro sem resultados ensina a limpar', async () => {

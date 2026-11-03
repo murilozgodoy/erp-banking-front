@@ -78,7 +78,17 @@ export function isAuth0SessionError(error: unknown): boolean {
  */
 function apiDetail(data: unknown): string | undefined {
   if (typeof data !== 'object' || data === null) return undefined
-  const { detail, error } = data as { detail?: unknown; error?: unknown }
+  const { detail, error, message, mensagem } = data as {
+    detail?: unknown
+    error?: unknown
+    message?: unknown
+    mensagem?: unknown
+  }
+  // APIs do portal: `{ error: CODIGO, message | mensagem }` — a frase vale mais que o código.
+  const sentence = [mensagem, message].find(
+    (value): value is string => typeof value === 'string' && value.trim() !== '',
+  )
+  if (sentence) return sentence
 
   if (typeof detail === 'string') {
     return GATEWAY_DETAILS.has(detail) ? undefined : translate(detail)
@@ -91,8 +101,28 @@ function apiDetail(data: unknown): string | undefined {
       })
       .join('; ')
   }
-  if (typeof error === 'string' && error !== 'validation_failed') return error
+  if (typeof error === 'string' && error !== 'validation_failed') {
+    return ERROR_CODES[error] ?? (/^[A-Z_]+$/.test(error) ? undefined : error)
+  }
   return undefined
+}
+
+/** Códigos das APIs do portal sem frase no corpo. */
+const ERROR_CODES: Record<string, string> = {
+  ONBOARDING_PENDENTE: 'O cadastro da empresa ainda não foi aprovado.',
+  ONBOARDING_INDISPONIVEL: 'O serviço de cadastro está indisponível. Tente novamente em instantes.',
+  ONBOARDING_NAO_INICIADO: 'O cadastro da empresa ainda não foi iniciado.',
+  ANALISE_NAO_ENCONTRADA: 'A análise da empresa ainda não está disponível.',
+  SALDO_INSUFICIENTE: 'Saldo insuficiente para este pagamento.',
+  CONTA_JA_PAGA: 'Esta conta já foi paga.',
+  CONTA_JA_AGENDADA: 'Esta conta já tem um pagamento agendado.',
+  VALOR_DIVERGENTE: 'O valor precisa ser igual ao da conta a pagar.',
+  CONTA_A_PAGAR_NAO_ENCONTRADA: 'Conta a pagar não encontrada.',
+  RECEBIVEL_NAO_ENCONTRADO: 'Recebível não encontrado.',
+  RECEBIVEL_INDISPONIVEL: 'Um dos recebíveis já foi antecipado ou recebido. Selecione de novo.',
+  SIMULACAO_NAO_ENCONTRADA: 'Simulação não encontrada. Simule de novo.',
+  SIMULACAO_JA_UTILIZADA: 'Esta simulação já foi contratada.',
+  SIMULACAO_EXPIRADA: 'A simulação expirou. Simule de novo para ver as condições atuais.',
 }
 
 function translate(detail: string): string {

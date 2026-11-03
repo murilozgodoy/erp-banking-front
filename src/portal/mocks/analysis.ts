@@ -217,7 +217,7 @@ function insights(m: MetricasNegocio, base: Date): Insight[] {
     {
       area: 'estoque',
       titulo: 'Dinheiro parado na prateleira',
-      texto: `${mil(m.estoqueParado)} parados em itens com giro acima de 120 dias, enquanto ${m.abaixoMinimo} itens de fim de ano estão abaixo do mínimo.`,
+      texto: `${mil(m.estoqueParado)} parados em itens com giro acima de 90 dias, enquanto ${m.abaixoMinimo} itens de fim de ano estão abaixo do mínimo.`,
       severidade: 'atencao',
     },
   )

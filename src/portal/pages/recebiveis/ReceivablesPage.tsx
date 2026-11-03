@@ -21,6 +21,7 @@ import { Button } from '../../ui/Button'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { SelectField } from '../../ui/Field'
 import { InsightBlock } from '../../ui/InsightBlock'
+import { OnboardingPendingState } from '../../ui/OnboardingPending'
 import { Money } from '../../ui/Money'
 import { Pill, type Tone } from '../../ui/Pill'
 import { Segmented } from '../../ui/Segmented'
@@ -28,7 +29,6 @@ import { StatStrip } from '../../ui/StatStrip'
 import { EmptyState, ErrorState, Panel, PanelSkeleton, PageHeader } from '../../ui/Surface'
 
 import { creditErrorMessage, creditKeys, isOnboardingPendente, useOffers } from '../credito/credit'
-import { OnboardingPending } from '../credito/OnboardingPending'
 import { AnticipationSheet } from './AnticipationSheet'
 
 const STATUS: Record<ReceivableStatus, { label: string; filtro: string; tone: Tone }> = {
@@ -36,6 +36,9 @@ const STATUS: Record<ReceivableStatus, { label: string; filtro: string; tone: To
   RECEBIDO: { label: 'Recebido', filtro: 'Recebidos', tone: 'positive' },
   ANTECIPADO: { label: 'Antecipado', filtro: 'Antecipados', tone: 'accent' },
 }
+
+/** Linhas por página da tabela: a agenda de 90 dias passa de 200 itens. */
+const PAGINA = 50
 
 const STATUS_OPTIONS = (Object.keys(STATUS) as ReceivableStatus[]).map((value) => ({
   value,
@@ -55,7 +58,6 @@ const columns: Column<Receivable>[] = [
   {
     key: 'vencimento',
     header: 'Vencimento',
-    sort: (r) => r.vencimento,
     cell: (r) => (
       <span className="flex flex-col">
         <span className="tabular">{dayMonth(r.vencimento)}</span>
@@ -63,20 +65,18 @@ const columns: Column<Receivable>[] = [
       </span>
     ),
   },
-  { key: 'adquirente', header: 'Adquirente', sort: (r) => r.adquirente, cell: (r) => r.adquirente },
+  { key: 'adquirente', header: 'Adquirente', cell: (r) => r.adquirente },
   {
     key: 'bruto',
     header: 'Bruto',
     align: 'right',
     hideBelow: 'sm',
-    sort: (r) => r.valor_bruto,
     cell: (r) => <span className="text-ink-muted">{money(r.valor_bruto)}</span>,
   },
   {
     key: 'liquido',
     header: 'Líquido',
     align: 'right',
-    sort: (r) => r.valor_liquido,
     cell: (r) => <span className="font-medium">{money(r.valor_liquido)}</span>,
   },
   {
@@ -112,6 +112,10 @@ export function ReceivablesPage() {
   const [status, setStatus] = useState<ReceivableStatus>('PREVISTO')
   const [adquirente, setAdquirente] = useState('')
   const [semana, setSemana] = useState('')
+  // Paginação volta ao início quando os filtros mudam.
+  const filtro = `${status}|${adquirente}|${semana}`
+  const [pagina, setPagina] = useState({ filtro, limite: PAGINA })
+  const limite = pagina.filtro === filtro ? pagina.limite : PAGINA
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
   const [sheet, setSheet] = useState({ open: false, key: 0 })
   const tableRef = useRef<HTMLDivElement>(null)
@@ -121,12 +125,14 @@ export function ReceivablesPage() {
   const adquirentes = useMemo(() => [...new Set(itens.map((r) => r.adquirente))].sort(), [itens])
   const rows = useMemo(
     () =>
-      itens.filter(
-        (r) =>
-          r.status === status &&
-          (!adquirente || r.adquirente === adquirente) &&
-          (!semana || (r.vencimento >= semana && r.vencimento <= fimDaSemana(semana))),
-      ),
+      itens
+        .filter(
+          (r) =>
+            r.status === status &&
+            (!adquirente || r.adquirente === adquirente) &&
+            (!semana || (r.vencimento >= semana && r.vencimento <= fimDaSemana(semana))),
+        )
+        .sort((a, b) => a.vencimento.localeCompare(b.vencimento) || a.id - b.id),
     [itens, status, adquirente, semana],
   )
   // Só PREVISTO pode ser antecipado; itens que mudaram de status saem da seleção.
@@ -163,7 +169,7 @@ export function ReceivablesPage() {
   if (report.isPending) body = <ReceivablesSkeleton />
   else if (report.isError) {
     body = isOnboardingPendente(report.error) ? (
-      <OnboardingPending area="A agenda de recebíveis" />
+      <OnboardingPendingState area="A agenda de recebíveis" />
     ) : (
       <ErrorState
         message={creditErrorMessage(report.error)}
@@ -295,9 +301,8 @@ export function ReceivablesPage() {
               <DataTable
                 caption="Recebíveis"
                 columns={columns}
-                rows={rows}
+                rows={rows.slice(0, limite)}
                 rowKey={(r) => r.id}
-                initialSort={{ key: 'vencimento', direction: 'asc' }}
                 selection={{
                   selected,
                   onToggle: (key) => toggle(Number(key)),
@@ -326,6 +331,20 @@ export function ReceivablesPage() {
                   </EmptyState>
                 }
               />
+              {rows.length > limite && (
+                <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
+                  <p className="tabular text-xs text-ink-muted">
+                    {limite} de {rows.length} recebíveis
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPagina({ filtro, limite: limite + PAGINA })}
+                  >
+                    Mostrar mais
+                  </Button>
+                </div>
+              )}
             </div>
           </Panel>
         </div>

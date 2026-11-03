@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react'
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { configure, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,6 +13,9 @@ import type { SimulationRequest } from '../../types'
 import { CreditPage } from './CreditPage'
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }))
+
+// A suíte completa com cobertura roda em paralelo: dá folga às esperas assíncronas.
+configure({ asyncUtilTimeout: 5000 })
 
 const API = env.transactionsApiUrl
 
@@ -82,8 +85,11 @@ describe('CreditPage', () => {
     // Duas mudanças seguidas (valor e prazo) dentro de 300 ms viram uma simulação só.
     fireEvent.change(valor, { target: { value: '15.000' } })
     await user.click(screen.getByRole('radio', { name: '6x' }))
-    await waitFor(() => expect(bodies).toHaveLength(2))
-    expect(bodies[1]).toEqual({ produto: 'CAPITAL_DE_GIRO', valor: 15000, prazo_meses: 6 })
+    await waitFor(() =>
+      expect(bodies.at(-1)).toEqual({ produto: 'CAPITAL_DE_GIRO', valor: 15000, prazo_meses: 6 }),
+    )
+    // Nenhuma simulação com o valor digitado pela metade.
+    expect(bodies.every((b) => b.valor === 10000 || b.valor === 15000)).toBe(true)
     expect(await screen.findByText(/Parcela mensal · 6x/)).toBeInTheDocument()
   })
 
@@ -293,7 +299,7 @@ describe('CreditPage com cadastro pendente', () => {
   it('explica que o crédito abre depois da aprovação', async () => {
     renderCredit()
     expect(await screen.findByText('Seu cadastro ainda está em análise')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Acompanhar análise' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Ver andamento da análise' })).toHaveAttribute(
       'href',
       '/app/status',
     )

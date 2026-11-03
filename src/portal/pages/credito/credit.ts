@@ -106,10 +106,7 @@ export function errorCode(error: unknown): string | null {
   return corpoErro(error)?.error ?? null
 }
 
-/** 409 enquanto o cadastro não foi aprovado. */
-export function isOnboardingPendente(error: unknown): boolean {
-  return errorCode(error) === 'ONBOARDING_PENDENTE'
-}
+export { isOnboardingPendente } from '../../lib/apiErrors'
 
 /** Mensagem das rotas de crédito: problema + o que fazer. */
 export function creditErrorMessage(error: unknown): string {

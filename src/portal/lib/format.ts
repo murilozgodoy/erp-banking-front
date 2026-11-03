@@ -52,7 +52,8 @@ const longDate = new Intl.DateTimeFormat('pt-BR', {
 
 /** "18 de nov." → "18 nov" */
 export function dayMonth(value: string): string {
-  return shortDate.format(parseDay(value)).replace(/\.| de/g, '')
+  // " de " com espaços dos dois lados: "dez" começa com "de" (03 de dez. → 03 dez).
+  return shortDate.format(parseDay(value)).replace(/ de /g, ' ').replace(/\./g, '')
 }
 
 export function fullDate(value: string): string {

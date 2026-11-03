@@ -14,6 +14,7 @@ import { PRODUTO_LABEL } from '../../ui/credit'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { MoneyField } from '../../ui/Field'
 import { InsightBlock } from '../../ui/InsightBlock'
+import { OnboardingPendingState } from '../../ui/OnboardingPending'
 import { Segmented } from '../../ui/Segmented'
 import { EmptyState, ErrorState, Panel, PageHeader, Skeleton } from '../../ui/Surface'
 
@@ -30,7 +31,6 @@ import {
   useOffers,
   useSimulation,
 } from './credit'
-import { OnboardingPending } from './OnboardingPending'
 import { SimulationResult } from './SimulationResult'
 
 /** Valor inicial: metade do limite, arredondada a R$ 1 mil. */
@@ -95,18 +95,20 @@ function Limits({
                 {active && <span className="size-2 rounded-full bg-accent" />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-ink">
-                  {PRODUTO_LABEL[offer.produto]}
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm font-medium text-ink">
+                    {PRODUTO_LABEL[offer.produto]}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 self-center">
+                    <Faisca label="Pré-aprovado pela ErpIa" />
+                    <span className="tabular text-sm font-semibold text-ink">
+                      {money(offer.limite)}
+                    </span>
+                  </span>
                 </span>
                 <span className="tabular block text-xs text-ink-muted">
                   a partir de {pct(offer.taxa_mensal_a_partir, 2)} a.m. · até{' '}
                   {offer.prazo_max_meses} meses
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-1">
-                <Faisca label="Pré-aprovado pela ErpIa" />
-                <span className="tabular text-sm font-semibold text-ink">
-                  {money(offer.limite)}
                 </span>
               </span>
             </button>
@@ -379,7 +381,7 @@ export function CreditPage() {
   if (offers.isPending) body = <CreditSkeleton />
   else if (offers.isError) {
     body = isOnboardingPendente(offers.error) ? (
-      <OnboardingPending area="O crédito" />
+      <OnboardingPendingState area="O crédito" />
     ) : (
       <ErrorState
         message={creditErrorMessage(offers.error)}
