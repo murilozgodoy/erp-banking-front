@@ -9,13 +9,7 @@ test('cliente novo preenche o cadastro em 4 passos e cai na análise', async ({ 
   await expect(page).toHaveURL(/\/app\/onboarding/)
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
-  // O wizard (PR #40) ainda pode não estar na main: até lá a página é um esboço só com o título.
-  const progresso = page.getByRole('navigation', { name: 'Progresso do cadastro' })
-  const temWizard = await progresso
-    .waitFor({ timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false)
-  test.skip(!temWizard, 'Wizard de onboarding ainda não está na main (PR #40).')
+  await expect(page.getByRole('navigation', { name: 'Progresso do cadastro' })).toBeVisible()
 
   const passo = page.locator('#passo-titulo')
   const continuar = page.getByRole('button', { name: 'Continuar' })
