@@ -15,13 +15,13 @@ A infraestrutura fica no repositório
 
 ## Produção
 
-| O quê                 | URL                                                                    |
-| --------------------- | ---------------------------------------------------------------------- |
-| Front (Vercel)        | <https://erp-banking-front.vercel.app>                                 |
-| API Gateway (EC2)     | `http://3.235.6.136:8080` (o front usa os rewrites `/api/*` da Vercel) |
-| Grafana (EC2)         | `http://3.235.6.136:8081`                                              |
-| Prometheus (EC2)      | `http://3.235.6.136:8082`                                              |
-| Swagger (via gateway) | `http://3.235.6.136:8080/onboarding/docs`, `/score/docs`               |
+| O quê                 | URL                                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| Front (Vercel)        | <https://erp-banking-front.vercel.app>                                                          |
+| API Gateway (EC2)     | `http://3.235.6.136:8080` (o front usa os rewrites `/api/*` da Vercel)                          |
+| Grafana (EC2)         | `http://3.235.6.136:8081`                                                                       |
+| Prometheus (EC2)      | `http://3.235.6.136:8082`                                                                       |
+| Swagger (via gateway) | `http://3.235.6.136:8080/onboarding/docs`, `/score/docs`, `/transactions/swagger-ui/index.html` |
 
 ## Arquitetura final
 
@@ -42,9 +42,10 @@ flowchart LR
         O -->|customer.*| MQ{{RabbitMQ<br/>exchange erp.events}}
         T -->|credit.decided<br/>transaction.created| MQ
         MQ -->|filas credit-score.*| S
-        P[Prometheus :8082] -.scrape.-> O & S & T & NX[nginx-exporter] & MQ
+        MQ -->|fila transactions.customer-created| T
+        P[Prometheus :9090<br/>pub. 8082] -.scrape.-> O & S & T & NX[nginx-exporter] & MQ
         NX -.stub_status.-> G
-        GR[Grafana :8081] --> P
+        GR[Grafana :3000<br/>pub. 8081] --> P
     end
 ```
 
@@ -67,20 +68,21 @@ não precisa de resposta imediata passa a ir por **eventos** no RabbitMQ.
 
 Configuração em `erp-banking-infra/gateway/` (nginx 1.27).
 
-| Prefixo público     | Destino                     | Observação                   |
-| ------------------- | --------------------------- | ---------------------------- |
-| `/onboarding/...`   | `onboarding-api:8081/...`   | prefixo removido (strip)     |
-| `/score/...`        | `credit-score-api:8082/...` | prefixo removido             |
-| `/transactions/...` | `transactions-api:8080/...` | prefixo removido             |
-| `/gateway/health`   | o próprio nginx             | 200 `{"status":"UP"}`        |
-| qualquer outra      | —                           | 404 `{"detail":"Not Found"}` |
+| Prefixo público     | Destino                     | Observação                                      |
+| ------------------- | --------------------------- | ----------------------------------------------- |
+| `/onboarding/...`   | `onboarding-api:8081/...`   | prefixo removido (strip)                        |
+| `/score/...`        | `credit-score-api:8082/...` | prefixo removido                                |
+| `/transactions/...` | `transactions-api:8080/...` | prefixo removido                                |
+| `/gateway/health`   | o próprio nginx             | 200 `{"status":"UP"}`                           |
+| qualquer outra      | —                           | 404 `{"detail":"Not Found","request_id":"..."}` |
 
 Exemplo: `GET /score/scores/customers/1/latest` → `credit-score-api:8082/scores/customers/1/latest`.
 
 - **Rate limit por IP:** 50 req/s com burst de 100 (`nodelay`). Atrás da Vercel o IP considerado é o primeiro do
   `X-Forwarded-For`. Em excesso: **429** `{"detail":"Too Many Requests","request_id":"..."}` com `Retry-After: 1`.
 - **Serviço fora do ar:** 502/503/504 do upstream viram **503** `{"detail":"Service Unavailable","request_id":"..."}`.
-  Corpo acima de 2 MB: 413.
+  Corpo acima de 2 MB: 413. Além do gateway, o Transactions responde **503** em `POST /credits` quando o Score
+  está fora (timeout + retry + circuit breaker na chamada ao Score).
 - **Headers:** `X-Request-ID` reaproveitado do cliente ou gerado, repassado ao serviço e devolvido na resposta;
   `X-Forwarded-For/Proto/Host/Port/Prefix` e `X-Real-IP` para os serviços.
 - **Timeouts:** conexão 5 s, leitura/envio 30 s.
@@ -149,7 +151,13 @@ O k6 envia as métricas dos testes de carga por remote write (`k6_*`).
 | `score_evaluations_total{strategy,faixa_risco}`              | Score                    |
 | `customers_created_total`                                    | Onboarding               |
 | `events_published_total{routing_key,result}`                 | Transactions, Onboarding |
-| `events_consumed_total{routing_key,result}`                  | Score                    |
+| `events_consumed_total{routing_key,result}`                  | Score, Transactions      |
+
+**Métricas HTTP** (usadas nos dashboards de latência e erro):
+
+- Python: `http_requests_total{handler,method,status}`, `http_request_duration_seconds` e
+  `http_request_duration_highr_seconds` (histograma de alta resolução).
+- Java: `http_server_requests_seconds` (histograma, com `uri`, `method`, `status`).
 
 **Dashboards** provisionados no Grafana (pasta "ERP Banking", `erp-banking-infra/grafana/dashboards/`):
 
@@ -220,8 +228,9 @@ da EC2 no Grafana e o que mudaria para escalar.)_
 Passo a passo completo em `erp-banking-infra/docs/deploy-ec2.md`. Resumo:
 
 1. Instância EC2 (`t3.small` ou maior, Amazon Linux 2023 ou Ubuntu) com Elastic IP (`3.235.6.136`).
-2. Security Group: 8080 aberta para a internet (a Vercel precisa alcançar), 8081/8082 para o grupo, 22 só para o
-   seu IP. Nunca abrir 5432, 5672 ou 15672.
+2. Security Group: 8080, 8081 e 8082 abertas (gateway, Grafana e Prometheus publicados pelo compose; a Vercel
+   precisa alcançar a 8080), 22 só para o seu IP. Para restringir Grafana/Prometheus ao grupo, limite 8081/8082
+   aos IPs do grupo no Security Group. Nunca abrir 5432, 5672 ou 15672.
 3. Na instância:
 
    ```bash
