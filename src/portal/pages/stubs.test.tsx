@@ -6,7 +6,6 @@ import { AnalisesPage } from '@/pages/analises/AnalisesPage'
 import { CreditPage } from './credito/CreditPage'
 import { InventoryPage } from './estoque/InventoryPage'
 import { OnboardingPage } from './onboarding/OnboardingPage'
-import { OverviewPage } from './overview/OverviewPage'
 import { PaymentsPage } from './pagamentos/PaymentsPage'
 import { PendenciasPage } from './pendencias/PendenciasPage'
 import { ReceivablesPage } from './recebiveis/ReceivablesPage'
@@ -16,7 +15,6 @@ import { SalesPage } from './vendas/SalesPage'
 // Esqueleto das abas: cada agente substitui a sua página e este teste pela suíte real.
 describe('páginas do portal (esqueleto)', () => {
   it.each([
-    [OverviewPage, 'Visão geral'],
     [SalesPage, 'Vendas'],
     [ReceivablesPage, 'Recebíveis'],
     [PaymentsPage, 'Pagamentos'],
