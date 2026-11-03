@@ -13,12 +13,13 @@ const links: { to: string; label: string; permission?: Permission; admin?: boole
   { to: '/clientes', label: 'Clientes', permission: 'read:customers' },
   { to: '/contas', label: 'Contas', permission: 'read:accounts' },
   { to: '/creditos', label: 'Crédito', permission: 'read:credits' },
+  { to: '/analises', label: 'Fila de análise', permission: 'review:onboarding' },
   { to: '/monitoramento', label: 'Monitoramento', admin: true },
 ]
 
 export function Header() {
   const { isAuthenticated, user, logout } = useAuth0()
-  const { can, isAdmin } = usePermissions()
+  const { can, isAdmin, canUsePortal } = usePermissions()
   const queryClient = useQueryClient()
 
   const signOut = () => {
@@ -57,6 +58,22 @@ export function Header() {
         </div>
         {isAuthenticated && (
           <div className="flex items-center gap-3">
+            {canUsePortal && (
+              <nav
+                aria-label="Área"
+                className="flex rounded-control border border-line bg-sunken p-0.5 text-xs font-medium"
+              >
+                <span
+                  aria-current="page"
+                  className="rounded-[5px] bg-surface px-2.5 py-1 text-ink shadow-sm"
+                >
+                  Backoffice
+                </span>
+                <Link to="/app" className="rounded-[5px] px-2.5 py-1 text-ink-muted hover:text-ink">
+                  Portal
+                </Link>
+              </nav>
+            )}
             <Link to="/perfil" className="flex items-center gap-2 text-sm text-ink hover:text-ink">
               {user?.picture && (
                 <img src={user.picture} alt="" className="size-8 rounded-full border" />

@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import { ALL_PERMISSIONS } from '@/auth/permissions'
+import { BACKOFFICE_PERMISSIONS } from '@/auth/permissions'
 import { auth0State } from '@/test/auth0'
 import { renderPage } from '@/test/render'
 
@@ -41,7 +41,7 @@ describe('MainLayout / Header', () => {
   })
 
   it('admin vê o link de monitoramento', async () => {
-    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ALL_PERMISSIONS }))
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: BACKOFFICE_PERMISSIONS }))
     renderPage(<MainLayout />)
 
     expect(await screen.findByRole('link', { name: 'Monitoramento' })).toHaveAttribute(
