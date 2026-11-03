@@ -255,3 +255,42 @@
   --color-negative-soft: #3a1612;
   --color-warning: #f2b25c;
 }
+
+/*
+ * Máscara do fundo do hero (HeroBackdrop): some perto do cabeçalho e da borda de baixo, fica
+ * quieta atrás do texto e mais presente em volta do painel. No celular o texto vem em cima e o
+ * painel embaixo; no desktop, texto à esquerda e painel à direita. O claro fica mais quieto atrás
+ * do texto porque o ink-faint sobre o paper já está perto do limite AA (pior caso, as quatro
+ * faixas sobrepostas: 4,5:1 no claro e 5,2:1 no escuro).
+ */
+.hero-backdrop-mask {
+  --hero-quiet: 0.08;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / var(--hero-quiet)) 12%,
+    rgb(0 0 0 / var(--hero-quiet)) 46%,
+    #000 68%,
+    #000 84%,
+    transparent 100%
+  );
+}
+
+[data-theme='dark'] .hero-backdrop-mask {
+  --hero-quiet: 0.35;
+}
+
+@media (width >= 64rem) {
+  .hero-backdrop-mask {
+    mask-image:
+      linear-gradient(to bottom, transparent 0%, #000 22%, #000 72%, transparent 100%),
+      linear-gradient(
+        to right,
+        rgb(0 0 0 / var(--hero-quiet)) 0%,
+        rgb(0 0 0 / var(--hero-quiet)) 40%,
+        #000 64%,
+        #000 100%
+      );
+    mask-composite: intersect;
+  }
+}
