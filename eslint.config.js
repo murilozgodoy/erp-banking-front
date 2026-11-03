@@ -7,7 +7,7 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage']),
+  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -29,6 +29,11 @@ export default defineConfig([
     // Helpers e testes não passam pelo Fast Refresh.
     files: ['src/test/**', '**/*.test.{ts,tsx}'],
     rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    // Playwright roda em Node (process.env) e não usa React.
+    files: ['e2e/**', 'playwright.config.ts'],
+    languageOptions: { globals: globals.node },
   },
   // Deve ser o último: desliga regras de estilo que conflitam com o Prettier.
   prettier,
