@@ -107,8 +107,10 @@ function transactionsPortal(http: AxiosInstance) {
     pay: (payment: PaymentRequest) => data<PaymentResponse>(http.post('/me/payments', payment)),
     payments: () => data<Payment[]>(http.get('/me/payments')),
     pendingPayments: () => data<Payment[]>(http.get('/me/payments/pending')),
-    approvePayment: (id: number) => data<Payment>(http.post(`/me/payments/${id}/approve`)),
-    rejectPayment: (id: number) => data<Payment>(http.post(`/me/payments/${id}/reject`)),
+    /** Aprovar debita (ou agenda) e responde como o `POST /me/payments`, com comprovante. */
+    approvePayment: (id: number) => data<PaymentResponse>(http.post(`/me/payments/${id}/approve`)),
+    rejectPayment: (id: number, motivo?: string) =>
+      data<Payment>(http.post(`/me/payments/${id}/reject`, motivo ? { motivo } : {})),
     statement: (query: Period = {}) =>
       data<StatementEntry[]>(http.get('/me/statement', { params: params(query) })),
     inventory: () => data<InventoryReport>(http.get('/me/inventory')),
@@ -119,6 +121,9 @@ function transactionsPortal(http: AxiosInstance) {
     requestCredit: (input: CreditRequestInput) =>
       data<PortalCreditRequest>(http.post('/me/credit/requests', input)),
     creditRequests: () => data<PortalCreditRequest[]>(http.get('/me/credit/requests')),
+    /** Contrata uma proposta AGUARDANDO_CONTRATACAO (`contratar_credito`). */
+    confirmCreditRequest: (id: number) =>
+      data<PortalCreditRequest>(http.post(`/me/credit/requests/${id}/confirm`)),
   }
 }
 

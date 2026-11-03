@@ -1,6 +1,13 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import type { InviteResponse, Me, Payment, PaymentResponse, TeamMember } from '../types'
+import type {
+  InviteResponse,
+  Me,
+  Payment,
+  PaymentResponse,
+  PortalCreditRequest,
+  TeamMember,
+} from '../types'
 import { resetMockDb } from './db'
 import { mockServer } from './server'
 import { setMembroLogado } from './team'
@@ -106,9 +113,18 @@ describe('mocks da equipe (seção 11)', () => {
     const pendentes = await chamar<Payment[]>(`${T}/me/payments/pending`)
     expect(pendentes.data).toHaveLength(1)
     expect(pendentes.data[0].created_by_nome).toBe('Júlia Santos')
-    const aprovado = await chamar<Payment>(`${T}/me/payments/${pago.data.id}/approve`, 'POST')
-    expect(aprovado.data).toMatchObject({ status: 'EFETIVADO', approved_by: 'Rafael Lima' })
-    expect((await chamar(`${T}/me/payments/${pago.data.id}/reject`, 'POST')).status).toBe(404)
+    const aprovado = await chamar<PaymentResponse>(
+      `${T}/me/payments/${pago.data.id}/approve`,
+      'POST',
+    )
+    expect(aprovado.data.status).toBe('EFETIVADO')
+    expect(aprovado.data.comprovante.valor).toBe(5000)
+    const historico = await chamar<Payment[]>(`${T}/me/payments`)
+    expect(historico.data.find((p) => p.id === pago.data.id)).toMatchObject({
+      approved_by_nome: 'Rafael Lima',
+    })
+    expect((await chamar(`${T}/me/payments/${pago.data.id}/reject`, 'POST')).status).toBe(422)
+    expect((await chamar(`${T}/me/payments/999999/approve`, 'POST')).status).toBe(404)
 
     const meu = await chamar<PaymentResponse>(`${T}/me/payments`, 'POST', {
       tipo: 'PIX',
@@ -118,10 +134,59 @@ describe('mocks da equipe (seção 11)', () => {
     expect(meu.data.status).toBe('PENDENTE_APROVACAO')
     expect(await chamar(`${T}/me/payments/${meu.data.id}/approve`, 'POST')).toMatchObject({
       status: 403,
-      data: { error: 'PROPRIO_AUTOR' },
+      data: { error: 'SEM_PERMISSAO', motivo: 'AUTOR' },
     })
     setMembroLogado('DONO')
-    const rejeitado = await chamar<Payment>(`${T}/me/payments/${meu.data.id}/reject`, 'POST')
-    expect(rejeitado.data.status).toBe('REJEITADO')
+    const rejeitado = await chamar<Payment>(`${T}/me/payments/${meu.data.id}/reject`, 'POST', {
+      motivo: 'Fornecedor errado',
+    })
+    expect(rejeitado.data).toMatchObject({
+      status: 'REJEITADO',
+      rejected_by_nome: 'Marina Costa',
+      motivo_rejeicao: 'Fornecedor errado',
+    })
+  })
+
+  it('não aceita um segundo pagamento para a conta que já espera aprovação', async () => {
+    setMembroLogado('OPERADOR')
+    const conta = (
+      await chamar<{ itens: { id: number; valor: number; status: string }[] }>(`${T}/me/payables`)
+    ).data.itens.find((c) => c.status === 'ABERTO' && c.valor > 2000 && c.valor < 10_000)!
+    const pedido = { tipo: 'TED', valor: conta.valor, destinatario: 'X', payable_id: conta.id }
+    expect((await chamar<PaymentResponse>(`${T}/me/payments`, 'POST', pedido)).data.status).toBe(
+      'PENDENTE_APROVACAO',
+    )
+    expect(await chamar(`${T}/me/payments`, 'POST', pedido)).toMatchObject({
+      status: 422,
+      data: { error: 'PAGAMENTO_PENDENTE' },
+    })
+  })
+
+  it('quem só pede crédito deixa a proposta aguardando; quem contrata confirma', async () => {
+    setMembroLogado('FINANCEIRO')
+    const sim = await chamar<{ id: string }>(`${T}/me/credit/simulations`, 'POST', {
+      produto: 'CAPITAL_DE_GIRO',
+      valor: 5000,
+      prazo_meses: 6,
+    })
+    const proposta = await chamar<PortalCreditRequest>(`${T}/me/credit/requests`, 'POST', {
+      simulation_id: sim.data.id,
+    })
+    expect(proposta.data).toMatchObject({
+      status: 'AGUARDANDO_CONTRATACAO',
+      createdByNome: 'Rafael Lima',
+    })
+    const url = `${T}/me/credit/requests/${proposta.data.id}/confirm`
+    expect(await chamar(url, 'POST')).toMatchObject({
+      status: 403,
+      data: { error: 'SEM_PERMISSAO', permissao: 'contratar_credito' },
+    })
+    setMembroLogado('DONO')
+    expect((await chamar<PortalCreditRequest>(url, 'POST')).data.status).toBe('APROVADO')
+    expect(await chamar(url, 'POST')).toMatchObject({
+      status: 422,
+      data: { error: 'PEDIDO_NAO_AGUARDANDO_CONTRATACAO' },
+    })
+    expect((await chamar(`${T}/me/credit/requests/9999/confirm`, 'POST')).status).toBe(404)
   })
 })

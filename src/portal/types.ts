@@ -420,7 +420,11 @@ export interface Payment {
   criado_em: string
   /** Auditoria (seção 11). */
   created_by_nome?: string | null
-  approved_by?: string | null
+  approved_by_nome?: string | null
+  approved_at?: string | null
+  rejected_by_nome?: string | null
+  rejected_at?: string | null
+  motivo_rejeicao?: string | null
 }
 
 /** 422 do `POST /me/payments`. */

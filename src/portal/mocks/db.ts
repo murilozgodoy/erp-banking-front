@@ -563,6 +563,8 @@ interface Erp {
   inventory: InventoryItem[]
   creditRequests: PortalCreditRequest[]
   simulations: Map<string, RegistroSimulacao>
+  /** Simulação de cada proposta AGUARDANDO_CONTRATACAO, para o `confirm` executar. */
+  aguardando: Map<number, RegistroSimulacao>
   rng: () => number
   seq: { payable: number; payment: number; statement: number; credit: number; simulation: number }
 }
@@ -631,6 +633,7 @@ function gerarErp(): Erp {
       },
     ],
     simulations: new Map(),
+    aguardando: new Map(),
     rng,
     seq: {
       payable: 6001,
@@ -1209,6 +1212,12 @@ export function pagar(req: Partial<PaymentRequest>): PagarResultado {
   if (conta?.status === 'AGENDADO') {
     return erro(422, 'CONTA_JA_AGENDADA', 'Esta conta já tem um pagamento agendado.')
   }
+  if (
+    conta &&
+    e.payments.some((p) => p.payable_id === conta.id && p.status === 'PENDENTE_APROVACAO')
+  ) {
+    return erro(422, 'PAGAMENTO_PENDENTE', 'Esta conta já tem um pagamento aguardando aprovação.')
+  }
   if (conta && r2(req.valor as number) !== conta.valor) {
     return erro(422, 'VALOR_DIVERGENTE', 'O valor informado difere do valor da conta.')
   }
@@ -1489,17 +1498,41 @@ export function solicitarCredito(input: Partial<SolicitacaoInput>): SolicitarRes
     createdByNome: team.membroAtual().nome,
   }
   e.creditRequests.push(request)
-  if (status === 'APROVADO') {
-    lancar(
-      e,
-      `Crédito liberado — ${NOME_PRODUTO[simulation.produto]}`,
-      'CREDIT',
-      simulation.valor_liquido,
+  if (status === 'APROVADO') liberarCredito(e, atual)
+  if (status === 'AGUARDANDO_CONTRATACAO') e.aguardando.set(request.id, atual)
+  return { tipo: 'ok', request }
+}
+
+function liberarCredito(e: Erp, { simulation, receivableIds }: RegistroSimulacao) {
+  lancar(
+    e,
+    `Crédito liberado — ${NOME_PRODUTO[simulation.produto]}`,
+    'CREDIT',
+    simulation.valor_liquido,
+  )
+  if (simulation.produto === 'ANTECIPACAO_RECEBIVEIS') {
+    antecipar(e, simulation.valor_solicitado, receivableIds)
+  } else lancarParcelas(e, simulation)
+}
+
+/** `POST /me/credit/requests/{id}/confirm` (contratar_credito): contrata a proposta pendente. */
+export function confirmarCredito(id: number): SolicitarResultado {
+  const e = erp()
+  const request = e.creditRequests.find((r) => r.id === id)
+  if (!request) return erro(404, 'PEDIDO_NAO_ENCONTRADO', 'Proposta não encontrada.')
+  const registro = e.aguardando.get(id)
+  if (request.status !== 'AGUARDANDO_CONTRATACAO' || !registro) {
+    return erro(
+      422,
+      'PEDIDO_NAO_AGUARDANDO_CONTRATACAO',
+      'Esta proposta não está aguardando contratação.',
     )
-    if (simulation.produto === 'ANTECIPACAO_RECEBIVEIS') {
-      antecipar(e, simulation.valor_solicitado, atual.receivableIds)
-    } else lancarParcelas(e, simulation)
   }
+  e.aguardando.delete(id)
+  request.status = 'APROVADO'
+  request.motivo = MOTIVOS.APROVADO
+  request.valorAprovado = request.valorSolicitado
+  liberarCredito(e, registro)
   return { tipo: 'ok', request }
 }
 
@@ -1516,19 +1549,36 @@ export function pagamentosPendentes(): Payment[] {
 export function decidirPagamento(
   id: number,
   decisao: 'approve' | 'reject',
-): { tipo: 'ok'; pagamento: Payment } | ErroApi {
+  motivo?: string | null,
+): { tipo: 'ok'; pagamento: Payment; resposta?: PaymentResponse } | ErroApi {
   const e = erp()
   const pagamento = e.payments.find((p) => p.id === id)
-  if (!pagamento || pagamento.status !== 'PENDENTE_APROVACAO') {
-    return erro(404, 'PAGAMENTO_NAO_ENCONTRADO', 'Não há pagamento pendente com este id.')
+  if (!pagamento) {
+    return erro(404, 'PAGAMENTO_NAO_ENCONTRADO', 'Pagamento não encontrado.')
+  }
+  if (pagamento.status !== 'PENDENTE_APROVACAO') {
+    return erro(422, 'PAGAMENTO_NAO_PENDENTE', 'Este pagamento não está aguardando aprovação.')
   }
   const aprovador = team.membroAtual()
+  // O autor não aprova nem rejeita o próprio pagamento (contrato final da Sessão B).
   if (pagamento.created_by_nome === aprovador.nome) {
-    return erro(403, 'PROPRIO_AUTOR', 'Quem fez o pagamento não pode aprová-lo.')
+    return {
+      tipo: 'erro',
+      http: 403,
+      body: {
+        error: 'SEM_PERMISSAO',
+        permissao: 'aprovar_pagamentos',
+        motivo: 'AUTOR',
+        message: 'Quem fez o pagamento não pode aprová-lo nem rejeitá-lo.',
+      },
+    }
   }
+  const agora = new Date().toISOString()
   if (decisao === 'reject') {
     pagamento.status = 'REJEITADO'
-    pagamento.approved_by = aprovador.nome
+    pagamento.rejected_by_nome = aprovador.nome
+    pagamento.rejected_at = agora
+    pagamento.motivo_rejeicao = motivo?.trim() || null
     return { tipo: 'ok', pagamento }
   }
   if (!pagamento.agendado_para && pagamento.valor > e.saldo) {
@@ -1548,6 +1598,24 @@ export function decidirPagamento(
     if (!pagamento.agendado_para) conta.pago_em = e.dia
   }
   pagamento.autenticacao = autenticacao(e.rng)
-  pagamento.approved_by = aprovador.nome
-  return { tipo: 'ok', pagamento }
+  pagamento.approved_by_nome = aprovador.nome
+  pagamento.approved_at = agora
+  const resposta: PaymentResponse = {
+    id: pagamento.id,
+    status: pagamento.status === 'AGENDADO' ? 'AGENDADO' : 'EFETIVADO',
+    autenticacao: pagamento.autenticacao,
+    saldo_apos: e.saldo,
+    comprovante: {
+      tipo: pagamento.tipo,
+      valor: pagamento.valor,
+      destinatario: pagamento.destinatario,
+      descricao: pagamento.descricao,
+      data_hora: agora,
+      agendado_para: pagamento.agendado_para,
+      autenticacao: pagamento.autenticacao,
+      conta_origem: { ...CONTA },
+      codigo_barras: pagamento.codigo_barras,
+    },
+  }
+  return { tipo: 'ok', pagamento, resposta }
 }
