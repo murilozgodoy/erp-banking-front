@@ -9,7 +9,7 @@ export interface Share {
   pct: number
 }
 
-const SERIES = [1, 2, 3, 4, 5].map((n) => `var(--color-series-${n})`)
+const SERIES = [1, 2, 3, 4, 5].map((n) => `var(--erpia-series-${n})`)
 
 /**
  * Composição em uma barra horizontal (no lugar de pizza/donut), com 2 px de respiro entre os
