@@ -327,4 +327,32 @@ describe('Sheet', () => {
       </Sheet>,
     )
   })
+
+  it('um novo onClose do pai não tira o foco do campo; Esc usa o mais recente e o foco volta ao gatilho', async () => {
+    const first = vi.fn()
+    const latest = vi.fn()
+    const user = userEvent.setup()
+    const ui = (open: boolean, onClose: () => void) => (
+      <>
+        <button>Abrir</button>
+        <Sheet open={open} onClose={onClose} title="Antecipar">
+          <input aria-label="Valor" />
+          <input aria-label="Prazo" />
+        </Sheet>
+      </>
+    )
+    const { rerender } = render(ui(false, first))
+    screen.getByRole('button', { name: 'Abrir' }).focus()
+    rerender(ui(true, first))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Valor' })).toHaveFocus())
+    await user.click(screen.getByRole('textbox', { name: 'Prazo' }))
+    rerender(ui(true, latest))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    expect(screen.getByRole('textbox', { name: 'Prazo' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(latest).toHaveBeenCalledTimes(1)
+    expect(first).not.toHaveBeenCalled()
+    rerender(ui(false, latest))
+    expect(screen.getByRole('button', { name: 'Abrir' })).toHaveFocus()
+  })
 })

@@ -57,6 +57,10 @@ describe('portal: porta, shell e roteamento', () => {
       renderApp('/app/vendas')
       expect(await screen.findByTestId('where')).toHaveTextContent('/app/onboarding')
       expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Pular para o conteúdo' })).toHaveAttribute(
+        'href',
+        '#conteudo',
+      )
     })
   })
 
@@ -98,6 +102,23 @@ describe('portal: porta, shell e roteamento', () => {
         'true',
       )
       await user.click(screen.getAllByRole('button', { name: /Sair/ })[0])
+    })
+
+    it('o primeiro Tab mostra o atalho para o conteúdo; Esc fecha o menu e devolve o foco', async () => {
+      vi.mocked(useAuth0).mockReturnValue(cliente())
+      renderApp('/app')
+      const user = userEvent.setup()
+      await screen.findByTestId('where')
+      await user.tab()
+      const skip = screen.getByRole('link', { name: 'Pular para o conteúdo' })
+      expect(skip).toHaveFocus()
+      expect(skip).toHaveAttribute('href', '#conteudo')
+      expect(document.getElementById('conteudo')?.tagName).toBe('MAIN')
+      await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
+      await user.keyboard('{Escape}')
+      const toggle = screen.getByRole('button', { name: 'Abrir menu' })
+      expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      expect(toggle).toHaveFocus()
     })
 
     it('admin vê o atalho para o backoffice', async () => {

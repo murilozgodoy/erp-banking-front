@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { X } from 'lucide-react'
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 interface SheetProps {
@@ -20,12 +20,18 @@ export function Sheet({ open, onClose, title, description, children, footer }: S
   const reduce = useReducedMotion()
   const titleId = useId()
   const panel = useRef<HTMLDivElement>(null)
+  // `onClose` costuma vir inline: guardado em ref, um novo render do pai não refaz o efeito
+  // (que devolveria o foco ao gatilho e o puxaria de volta para o primeiro campo).
+  const closeRef = useRef(onClose)
+  useLayoutEffect(() => {
+    closeRef.current = onClose
+  })
 
   useEffect(() => {
     if (!open) return
     const previous = document.activeElement as HTMLElement | null
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') closeRef.current()
       if (event.key !== 'Tab' || !panel.current) return
       const focusables = panel.current.querySelectorAll<HTMLElement>(
         'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])',
@@ -57,7 +63,7 @@ export function Sheet({ open, onClose, title, description, children, footer }: S
       document.body.style.overflow = overflow
       previous?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   return createPortal(
     <AnimatePresence>

@@ -5,6 +5,8 @@ import { Outlet } from 'react-router'
 
 import { ErpIaLogo } from '@/components/brand/Logo'
 
+import { SkipLink } from '../ui/SkipLink'
+
 import { useTheme } from './useTheme'
 
 /** Layout enxuto do onboarding e da análise: só a marca e a saída, sem a navegação do ERP. */
@@ -14,6 +16,7 @@ export function FocusLayout() {
   const { theme, toggle } = useTheme()
   return (
     <div className="min-h-dvh bg-paper text-ink">
+      <SkipLink />
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <ErpIaLogo />
@@ -40,7 +43,11 @@ export function FocusLayout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+      <main
+        id="conteudo"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-5xl px-4 py-8 outline-none sm:px-6 sm:py-12"
+      >
         <Outlet />
       </main>
     </div>
