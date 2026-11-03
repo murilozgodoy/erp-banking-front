@@ -30,7 +30,7 @@ export function ErpIaMark({ className, tone = 'light', title }: MarkProps) {
 
 /**
  * "I" com serifas, do tamanho da altura de caixa do texto em volta (em `em`), apoiado na linha de
- * base. Só o logo usa: no resto da interface o nome continua sendo texto.
+ * base. Usado pelo logo e por `Marca` (o nome em texto corrido).
  */
 function SerifI() {
   return (
@@ -42,6 +42,23 @@ function SerifI() {
     >
       <path d={SERIF_I_PATH} />
     </svg>
+  )
+}
+
+/**
+ * O nome "ErpIa" em texto corrido, com o mesmo I serifado do logo (na Instrument Sans o I é uma
+ * haste só e o nome lê "Erpla"). Herda cor, tamanho e peso do texto em volta; leitores de tela
+ * leem "ErpIa". Em `title`, `meta` e `aria-label` use o texto puro.
+ */
+export function Marca({ className }: { className?: string }) {
+  return (
+    <span className={cn('whitespace-nowrap', className)}>
+      <span aria-hidden>
+        Erp
+        <SerifI />a
+      </span>
+      <span className="sr-only">ErpIa</span>
+    </span>
   )
 }
 
