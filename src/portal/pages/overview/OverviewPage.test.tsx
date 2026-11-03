@@ -219,12 +219,12 @@ describe('Visão geral', () => {
     render()
     const painel = await screen.findByRole('region', { name: /Oportunidades de crédito/ })
     const lista = await within(painel).findByRole('list')
-    expect(within(lista).getAllByRole('listitem')).toHaveLength(3)
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(2)
     expect(within(painel).getByText(/Mais indicada/)).toBeInTheDocument()
     expect(
       within(painel).getByRole('link', { name: /Simular antecipação de recebíveis/ }),
     ).toHaveAttribute('href', expect.stringMatching(/produto=ANTECIPACAO_RECEBIVEIS&valor=\d+/))
-    await user.click(within(painel).getByRole('button', { name: /Ver mais 2 ofertas/ }))
+    await user.click(within(painel).getByRole('button', { name: /Ver mais 3 ofertas/ }))
     expect(within(lista).getAllByRole('listitem')).toHaveLength(5)
     expect(within(painel).getByRole('button', { name: 'Mostrar menos' })).toHaveAttribute(
       'aria-expanded',

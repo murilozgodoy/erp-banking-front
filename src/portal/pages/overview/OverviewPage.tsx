@@ -7,6 +7,7 @@ import { Faisca, Marca } from '@/components/brand/Logo'
 import { errorMessage } from '@/lib/errors'
 import { useAnalysis, useMe, useOverview } from '../../layout/queries'
 import { money } from '../../lib/format'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import { Button, ButtonLink } from '../../ui/Button'
 import { Delta } from '../../ui/Delta'
 import { StatStrip, type Stat } from '../../ui/StatStrip'
@@ -58,7 +59,7 @@ export function OverviewPage() {
   const emAnalise = analysis.data?.status === 'EM_ANALISE'
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title={nome ? `${greeting(now)}, ${nome}` : greeting(now)}
         description={
@@ -132,6 +133,7 @@ function Loaded({
   refreshing: boolean
 }) {
   const ready = analysisSlot === 'ready' && analysis
+  const wide = useMediaQuery('(min-width: 1280px)')
   const oportunidades = ready ? analysis.oportunidades : []
 
   const analysisFallback = (label: string): ReactNode => {
@@ -147,46 +149,68 @@ function Loaded({
     return <Analyzing onRefresh={retryAnalysis} refreshing={refreshing} />
   }
 
-  return (
-    <>
-      {/* Ordem no DOM = ordem no mobile (Leitura, Caixa, Oportunidades); no xl o caixa ocupa
-          8 colunas e as duas linhas, e a coluna direita empilha Leitura e Oportunidades. */}
-      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
-        <div className="xl:col-span-4 xl:col-start-9 xl:row-start-1">
-          {ready ? (
-            <ReadingPanel analysis={analysis} />
-          ) : (
-            analysisFallback('Carregando a leitura da ErpIa')
-          )}
-        </div>
-        <CashPanel
-          className="xl:col-span-8 xl:col-start-1 xl:row-span-2 xl:row-start-1"
-          saldo={overview.saldo}
-          fluxo={overview.fluxo_caixa}
-          oportunidades={oportunidades}
-          analysisPending={analysisSlot === 'loading'}
-        />
-        {(ready || analysisSlot === 'loading') && (
-          <div className="xl:col-span-4 xl:col-start-9 xl:row-start-2">
-            {ready ? (
-              <OpportunitiesPanel oportunidades={oportunidades} />
-            ) : (
-              <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
-            )}
+  const reading = ready ? (
+    <ReadingPanel analysis={analysis} />
+  ) : (
+    analysisFallback('Carregando a leitura da ErpIa')
+  )
+  const opportunities =
+    ready || analysisSlot === 'loading' ? (
+      ready ? (
+        <OpportunitiesPanel oportunidades={oportunidades} />
+      ) : (
+        <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
+      )
+    ) : null
+  const cash = (
+    <CashPanel
+      saldo={overview.saldo}
+      fluxo={overview.fluxo_caixa}
+      oportunidades={oportunidades}
+      analysisPending={analysisSlot === 'loading'}
+    />
+  )
+  const kpis = (
+    <section aria-label="Indicadores dos últimos 30 dias">
+      <StatStrip stats={kpiStats(overview)} columns={wide ? 'three' : 'auto'} />
+    </section>
+  )
+  const score = ready ? (
+    <ScorePanel analysis={analysis} />
+  ) : analysisSlot === 'analyzing' ? null : (
+    analysisFallback('Carregando o score e a saúde do negócio')
+  )
+
+  // Desktop (≥ 1280 px): à esquerda caixa e indicadores; à direita leitura e ofertas (fixas no
+  // scroll); o score ocupa a largura toda embaixo. Telas menores: Leitura → Caixa → Indicadores → Oportunidades → Score.
+  if (wide) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-12 items-start gap-4">
+          <div className="col-span-7 space-y-4">
+            {cash}
+            {kpis}
           </div>
-        )}
+          <aside
+            aria-label="Leitura e crédito"
+            className="sticky top-[4.5rem] col-span-5 space-y-4"
+          >
+            {reading}
+            {opportunities}
+          </aside>
+        </div>
+        {score}
       </div>
-
-      <section aria-label="Indicadores dos últimos 30 dias">
-        <StatStrip stats={kpiStats(overview)} />
-      </section>
-
-      {ready ? (
-        <ScorePanel analysis={analysis} />
-      ) : analysisSlot === 'analyzing' ? null : (
-        analysisFallback('Carregando o score e a saúde do negócio')
-      )}
-    </>
+    )
+  }
+  return (
+    <div className="space-y-4">
+      {reading}
+      {cash}
+      {kpis}
+      {opportunities}
+      {score}
+    </div>
   )
 }
 
@@ -295,39 +319,61 @@ function Analyzing({ onRefresh, refreshing }: { onRefresh: () => void; refreshin
 
 /** Esqueleto no mesmo desenho da página carregada (gráfico 8 + ofertas 4, faixa, score). */
 function OverviewSkeleton() {
-  return (
-    <>
-      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
-        <div className="xl:col-span-4 xl:col-start-9 xl:row-start-1">
-          <PanelSkeleton rows={4} label="Carregando a leitura da ErpIa" />
+  const wide = useMediaQuery('(min-width: 1280px)')
+  const reading = <PanelSkeleton rows={4} label="Carregando a leitura da ErpIa" />
+  const cash = (
+    <div
+      role="status"
+      aria-label="Carregando o caixa projetado"
+      className="rounded-panel border border-line bg-surface p-5 shadow-raised"
+    >
+      <Skeleton className="h-4 w-48" />
+      <Skeleton className="mt-2 h-3 w-72 max-w-full" />
+      <Skeleton className="mt-6 h-3 w-20" />
+      <Skeleton className="mt-2 h-9 w-56" />
+      <Skeleton className="mt-6 h-[280px] w-full" />
+    </div>
+  )
+  const kpis = (
+    <StatStrip
+      loading
+      columns={wide ? 'three' : 'auto'}
+      stats={[
+        'Receita 30 dias',
+        'Ticket médio',
+        'Recebíveis 90 dias',
+        'A pagar 30 dias',
+        'Em atraso',
+        'Estoque',
+      ].map((label) => ({ label, value: null }))}
+    />
+  )
+  const opportunities = <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
+  const score = <PanelSkeleton rows={6} label="Carregando o score e a saúde do negócio" />
+  if (wide) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-12 items-start gap-4">
+          <div className="col-span-7 space-y-4">
+            {cash}
+            {kpis}
+          </div>
+          <div className="col-span-5 space-y-4">
+            {reading}
+            {opportunities}
+          </div>
         </div>
-        <div
-          role="status"
-          aria-label="Carregando o caixa projetado"
-          className="rounded-panel border border-line bg-surface p-5 shadow-raised xl:col-span-8 xl:col-start-1 xl:row-span-2 xl:row-start-1"
-        >
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="mt-2 h-3 w-72 max-w-full" />
-          <Skeleton className="mt-6 h-3 w-20" />
-          <Skeleton className="mt-2 h-9 w-56" />
-          <Skeleton className="mt-6 h-[280px] w-full" />
-        </div>
-        <div className="xl:col-span-4 xl:col-start-9 xl:row-start-2">
-          <PanelSkeleton rows={6} label="Carregando as oportunidades de crédito" />
-        </div>
+        {score}
       </div>
-      <StatStrip
-        loading
-        stats={[
-          'Receita 30 dias',
-          'Ticket médio',
-          'Recebíveis 90 dias',
-          'A pagar 30 dias',
-          'Em atraso',
-          'Estoque',
-        ].map((label) => ({ label, value: null }))}
-      />
-      <PanelSkeleton rows={6} label="Carregando o score e a saúde do negócio" />
-    </>
+    )
+  }
+  return (
+    <div className="space-y-4">
+      {reading}
+      {cash}
+      {kpis}
+      {opportunities}
+      {score}
+    </div>
   )
 }
