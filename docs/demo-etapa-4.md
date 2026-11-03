@@ -57,15 +57,16 @@ Grafana, Prometheus e Swagger. Na home, os **indicadores** (clientes, contas, cr
 
 1. **Clientes → Novo cliente**: cadastrar com endereço e perfil financeiro (renda alta para aprovar).
    - Evento `customer.created` → o Transactions consome e **abre uma conta corrente automaticamente** (saldo
-     zero). Na ficha do cliente, o card **Contas** já mostra a conta sem ninguém tê-la aberto.
+     zero). Na ficha do cliente, **espere ~3 s**: o card **Contas** recarrega sozinho (a cada 3 s enquanto vazio)
+     e mostra a conta sem ninguém tê-la aberto.
 2. Na ficha 360°, registrar a **anamnese** (dívidas baixas) e **calcular o score** (strategy `weighted`).
 3. **Contas**: lançar um crédito (depósito) na conta → evento `transaction.created`.
 4. Na ficha, **solicitar crédito** → a Transactions consulta o Score, decide (APROVADO/REVISAO/NEGADO) e publica
    `credit.decided`.
 5. Em até ~5 s (o card faz polling), **"Decisões registradas via evento"** mostra a decisão que chegou ao Score pelo
    RabbitMQ (com `event_id`, `occurred_at` e `received_at`) — prova da comunicação assíncrona.
-6. Alterar a anamnese (aumentar as dívidas) → evento `customer.anamnesis_updated` → aparece o aviso
-   **"Score desatualizado — reavalie"**. Recalcular o score faz o aviso sumir.
+6. Alterar a anamnese (aumentar as dívidas) → evento `customer.anamnesis_updated` → **em ~5 s** (o status faz
+   polling) aparece o aviso **"Score desatualizado — reavalie"**. Recalcular o score faz o aviso sumir.
 
 ### 5. Observabilidade (3 min) — João Vivacqua
 
