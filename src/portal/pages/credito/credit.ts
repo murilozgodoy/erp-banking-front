@@ -63,11 +63,12 @@ export function useSimulation(input: SimulationRequest | null) {
 }
 
 /** `POST /me/credit/requests`; aprovado muda saldo, contas e recebíveis. */
-export function useContract() {
+export function useContract({ onError }: { onError?: (error: Error) => void } = {}) {
   const api = usePortalApi()
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (simulationId: string) => api.erp.requestCredit({ simulation_id: simulationId }),
+    onError,
     onSuccess: async (request) => {
       // A simulação usada não serve mais: a próxima contratação precisa de uma nova.
       void queryClient.invalidateQueries({ queryKey: SIMULATION_ROOT })
@@ -89,7 +90,7 @@ const MENSAGENS: Record<string, string> = {
     'Esta simulação já virou uma proposta. Confira em Propostas e contratos ou simule de novo.',
   SIMULACAO_NAO_ENCONTRADA: 'Não encontramos esta simulação. Simule de novo para contratar.',
   RECEBIVEL_INDISPONIVEL:
-    'Um dos recebíveis selecionados já foi recebido ou antecipado. Atualize a seleção e simule de novo.',
+    'Um dos recebíveis selecionados já foi recebido ou antecipado. Atualizamos a lista: escolha de novo e simule.',
   RECEBIVEL_NAO_ENCONTRADO:
     'Um dos recebíveis selecionados não existe mais. Atualize a seleção e simule de novo.',
 }

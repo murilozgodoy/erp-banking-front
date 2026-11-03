@@ -1,3 +1,4 @@
+import { useCallback, useLayoutEffect, useRef } from 'react'
 import { AlertTriangle, RotateCw } from 'lucide-react'
 
 import { fullDate, money, pct } from '../../lib/format'
@@ -28,10 +29,15 @@ interface ContractSheetProps {
 /** Confirmação da contratação: revisa as condições, envia a proposta e mostra o resultado. */
 export function ContractSheet({ simulation, onClose, onResimulate }: ContractSheetProps) {
   const contract = useContract()
-  const close = () => {
-    contract.reset()
-    onClose()
-  }
+  // O Sheet refaz o foco quando `onClose` muda: a referência precisa ser estável.
+  const latest = useRef(() => {})
+  useLayoutEffect(() => {
+    latest.current = () => {
+      contract.reset()
+      onClose()
+    }
+  })
+  const close = useCallback(() => latest.current(), [])
   const code = contract.error ? errorCode(contract.error) : null
   const n = simulation?.parcelas.length ?? 0
   const done = contract.data

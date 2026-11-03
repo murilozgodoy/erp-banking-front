@@ -79,8 +79,8 @@ describe('CreditPage', () => {
     renderCredit('/app/credito?produto=CAPITAL_DE_GIRO&valor=10000')
     await waitFor(() => expect(bodies).toHaveLength(1))
     const valor = screen.getByLabelText('Valor')
-    await user.clear(valor)
-    await user.type(valor, '15000')
+    // Duas mudanças seguidas (valor e prazo) dentro de 300 ms viram uma simulação só.
+    fireEvent.change(valor, { target: { value: '15.000' } })
     await user.click(screen.getByRole('radio', { name: '6x' }))
     await waitFor(() => expect(bodies).toHaveLength(2))
     expect(bodies[1]).toEqual({ produto: 'CAPITAL_DE_GIRO', valor: 15000, prazo_meses: 6 })
@@ -156,6 +156,41 @@ describe('CreditPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Enviar para análise' }))
     expect(await within(dialog).findByText('Proposta enviada para análise')).toBeInTheDocument()
     expect(within(dialog).getAllByText('Em análise').length).toBeGreaterThan(0)
+  })
+
+  it('pré-aprovado que não cabe mais no limite volta em revisão, com o motivo', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${API}/me/credit/requests`, () =>
+        HttpResponse.json(
+          {
+            id: 900,
+            customerId: 1,
+            valorSolicitado: 10000,
+            prazoMeses: 12,
+            scoreSnapshot: 742,
+            status: 'REVISAO',
+            motivo: 'valor acima do limite pré-aprovado de R$ 8.000,00',
+            valorAprovado: null,
+            taxaJuros: 0.0249,
+            criadoEm: new Date().toISOString(),
+          },
+          { status: 201 },
+        ),
+      ),
+    )
+    renderCredit('/app/credito?produto=CAPITAL_DE_GIRO&valor=10000')
+    await screen.findByText(/Parcela mensal · 12x/)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Contratar' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'Contratar' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar contratação' }))
+    expect(await within(dialog).findByText('Proposta enviada para análise')).toBeInTheDocument()
+    expect(
+      within(dialog).getByText('valor acima do limite pré-aprovado de R$ 8.000,00'),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByText('2,49% a.m.')).toBeInTheDocument()
+    expect(within(dialog).queryByText('Valor aprovado')).not.toBeInTheDocument()
   })
 
   it('simulação expirada: explica e oferece simular de novo', async () => {

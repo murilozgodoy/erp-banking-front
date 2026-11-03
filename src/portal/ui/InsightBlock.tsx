@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn'
 import { money, pct } from '../lib/format'
 import type { Insight, InsightSeveridade, ProdutoCredito } from '../types'
 
-import { ButtonLink } from './Button'
+import { Button, ButtonLink } from './Button'
 import { PRODUTO_LABEL, simulatorHref } from './credit'
 
 const severity: Record<InsightSeveridade, { icon: ReactNode; label: string; tone: string }> = {
@@ -33,6 +33,8 @@ export interface InsightOffer {
   racional?: string
   /** Rótulo do botão; padrão "Simular". */
   cta?: string
+  /** Ação na própria página (ex.: selecionar recebíveis) em vez do link para o simulador. */
+  onAction?: () => void
 }
 
 interface InsightBlockProps {
@@ -105,15 +107,22 @@ export function InsightBlock({ insight, offer, className }: InsightBlockProps) {
               </p>
             )}
           </div>
-          <ButtonLink
-            to={simulatorHref(offer.produto, offer.valor)}
-            variant="credit"
-            size="sm"
-            className="self-start"
-          >
-            {offer.cta ?? 'Simular'}
-            <ArrowRight aria-hidden className="size-4" />
-          </ButtonLink>
+          {offer.onAction ? (
+            <Button variant="credit" size="sm" className="self-start" onClick={offer.onAction}>
+              {offer.cta ?? 'Simular'}
+              <ArrowRight aria-hidden className="size-4" />
+            </Button>
+          ) : (
+            <ButtonLink
+              to={simulatorHref(offer.produto, offer.valor)}
+              variant="credit"
+              size="sm"
+              className="self-start"
+            >
+              {offer.cta ?? 'Simular'}
+              <ArrowRight aria-hidden className="size-4" />
+            </ButtonLink>
+          )}
         </div>
       )}
     </motion.aside>

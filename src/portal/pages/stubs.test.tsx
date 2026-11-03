@@ -8,7 +8,6 @@ import { OnboardingPage } from './onboarding/OnboardingPage'
 import { OverviewPage } from './overview/OverviewPage'
 import { PaymentsPage } from './pagamentos/PaymentsPage'
 import { PendenciasPage } from './pendencias/PendenciasPage'
-import { ReceivablesPage } from './recebiveis/ReceivablesPage'
 import { StatusPage } from './status/StatusPage'
 import { SalesPage } from './vendas/SalesPage'
 
@@ -17,7 +16,6 @@ describe('páginas do portal (esqueleto)', () => {
   it.each([
     [OverviewPage, 'Visão geral'],
     [SalesPage, 'Vendas'],
-    [ReceivablesPage, 'Recebíveis'],
     [PaymentsPage, 'Pagamentos'],
     [PendenciasPage, 'Pendências'],
     [InventoryPage, 'Estoque'],
