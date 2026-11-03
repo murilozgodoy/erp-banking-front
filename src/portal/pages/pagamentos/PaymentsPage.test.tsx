@@ -43,7 +43,12 @@ describe('PaymentsPage', () => {
     const overview = db.overview()
     renderPage()
     expect(screen.getByRole('heading', { name: 'Pagamentos' })).toBeInTheDocument()
-    expect(await screen.findByText(`Ag. 0001 · CC ${overview.conta!.numero}`)).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        (_, el) =>
+          el?.tagName === 'SPAN' && el.textContent === `Ag. 0001 · CC ${overview.conta!.numero}`,
+      ),
+    ).toBeInTheDocument()
     expect(screen.getAllByText(brl(overview.saldo)).length).toBeGreaterThan(0)
     expect(await screen.findByText('Semana apertada')).toBeInTheDocument()
     const contas = screen.getByRole('region', { name: 'Contas a pagar' })

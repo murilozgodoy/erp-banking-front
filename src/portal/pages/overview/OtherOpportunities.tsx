@@ -45,7 +45,7 @@ export function OtherOpportunities({ oportunidades }: { oportunidades: Oportunid
             className="-mt-px -ml-px flex min-w-0 flex-col gap-1 border-t border-l border-line px-5 py-4"
           >
             <div className="flex items-baseline justify-between gap-3">
-              <h3 className="min-w-0 truncate text-sm font-semibold text-ink" title={o.titulo}>
+              <h3 className="min-w-0 text-sm font-semibold text-pretty text-ink" title={o.titulo}>
                 {PRODUTO_LABEL[o.tipo]}
               </h3>
               <p className="tabular shrink-0 text-sm font-semibold whitespace-nowrap text-ink">
@@ -61,7 +61,7 @@ export function OtherOpportunities({ oportunidades }: { oportunidades: Oportunid
               <Link
                 to={simulatorHref(o.tipo, o.valor_maximo)}
                 aria-label={`Simular ${PRODUTO_LABEL[o.tipo].toLowerCase()}`}
-                className="inline-flex shrink-0 items-center gap-1 rounded-sm text-sm font-medium text-accent underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none"
+                className="inline-flex shrink-0 items-center gap-1 rounded-sm text-sm font-medium text-accent underline-offset-4 hover:underline"
               >
                 Simular
                 <ArrowRight aria-hidden className="size-3.5" />

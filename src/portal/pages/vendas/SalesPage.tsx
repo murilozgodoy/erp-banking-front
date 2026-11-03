@@ -102,7 +102,7 @@ function SummaryStrip({
     },
     {
       label: 'Número de vendas',
-      value: <span className="text-xl">{number(now.quantidade)}</span>,
+      value: number(now.quantidade),
       detail: delta((s) => s.quantidade),
     },
     {
@@ -247,7 +247,7 @@ export function SalesPage() {
   const offer = antecipacaoOffer(analysis.data, report)
 
   return (
-    <div className="space-y-4">
+    <>
       <PageHeader
         title="Vendas"
         description="Faturamento, formas de pagamento, canais e produtos, direto do seu ERP."
@@ -268,18 +268,20 @@ export function SalesPage() {
           </>
         }
       />
-      {!pending &&
-        (analysis.isPending ? (
-          <Skeleton className="h-24 rounded-panel" />
-        ) : (
-          <InsightBlock insight={insight} offer={offer} />
-        ))}
-      {body}
-      {report && report.total > 0 && (
-        <p className="sr-only" aria-live="polite">
-          {`Faturamento de ${money(report.total)} nos últimos ${periodDays(period)} dias.`}
-        </p>
-      )}
-    </div>
+      <div className="space-y-4">
+        {!pending &&
+          (analysis.isPending ? (
+            <Skeleton className="h-24 rounded-panel" />
+          ) : (
+            <InsightBlock insight={insight} offer={offer} />
+          ))}
+        {body}
+        {report && report.total > 0 && (
+          <p className="sr-only" aria-live="polite">
+            {`Faturamento de ${money(report.total)} nos últimos ${periodDays(period)} dias.`}
+          </p>
+        )}
+      </div>
+    </>
   )
 }

@@ -38,7 +38,7 @@ function Autoria({ payment }: { payment: Payment }) {
   if (!autor && !decisao) return null
   return (
     <>
-      <p className="truncate text-xs text-ink-faint">
+      <p className="text-xs text-ink-faint">
         {[autor && `feito por ${autor}`, decisao].filter(Boolean).join(' · ')}
       </p>
       {payment.motivo_rejeicao && (
@@ -55,7 +55,12 @@ export function HistoryPanel({ onNew }: { onNew: () => void }) {
   const items = history.data ?? []
 
   return (
-    <Panel id="historico" title="Histórico de pagamentos" flush>
+    <Panel
+      id="historico"
+      title="Histórico de pagamentos"
+      description="Feitos pela conta PJ, do mais recente ao mais antigo."
+      flush
+    >
       {history.isPending ? (
         <RowsSkeleton rows={4} label="Carregando histórico de pagamentos" />
       ) : history.isError ? (
@@ -87,8 +92,8 @@ export function HistoryPanel({ onNew }: { onNew: () => void }) {
               return (
                 <li key={p.id} className="flex items-start justify-between gap-3 px-5 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">{p.destinatario}</p>
-                    <p className="truncate text-xs text-ink-muted">
+                    <p className="text-sm font-medium text-pretty text-ink">{p.destinatario}</p>
+                    <p className="tabular line-clamp-2 text-xs text-ink-muted">
                       {TIPO_LABEL[p.tipo]} · {dayMonth(isoDay(new Date(p.criado_em)))}
                       {p.descricao ? ` · ${p.descricao}` : ''}
                     </p>

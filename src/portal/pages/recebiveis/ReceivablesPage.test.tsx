@@ -33,6 +33,12 @@ function linhas() {
   return within(tabela()).getAllByRole('row').slice(1)
 }
 
+/** O esqueleto já mostra os rótulos dos indicadores: espera a agenda sair do carregamento. */
+const carregado = () =>
+  waitFor(() =>
+    expect(screen.queryByRole('status', { name: 'Carregando agenda' })).not.toBeInTheDocument(),
+  )
+
 describe('ReceivablesPage', () => {
   const server = useMockApi('APROVADO')
 
@@ -43,7 +49,8 @@ describe('ReceivablesPage', () => {
   it('mostra indicadores, agenda, insight e a tabela de recebíveis a receber', async () => {
     renderPage()
     expect(screen.getByRole('heading', { name: 'Recebíveis' })).toBeInTheDocument()
-    expect(await screen.findByText('A receber em 90 dias')).toBeInTheDocument()
+    await carregado()
+    expect(screen.getByText('A receber em 90 dias')).toBeInTheDocument()
     expect(screen.getByText('Próximos 7 dias')).toBeInTheDocument()
     expect(screen.getByText('Já antecipado')).toBeInTheDocument()
     expect(screen.getByText('Taxa média do adquirente')).toBeInTheDocument()
@@ -56,7 +63,7 @@ describe('ReceivablesPage', () => {
   it('filtra por status e adquirente', async () => {
     const user = userEvent.setup()
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     await user.click(screen.getByRole('radio', { name: 'Recebidos' }))
     for (const row of linhas()) expect(within(row).getByText('Recebido')).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'A receber' }))
@@ -68,7 +75,7 @@ describe('ReceivablesPage', () => {
 
   it('clicar numa barra filtra a tabela pela semana', async () => {
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     const antes = linhas().length
     const chart = screen.getByRole('img', { name: 'Valor líquido a receber por semana' })
     const alvos = chart.querySelectorAll('rect')
@@ -95,7 +102,7 @@ describe('ReceivablesPage', () => {
     )
     const itens = db.recebiveis({}).itens.filter((r) => r.status === 'PREVISTO')
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     const [a, b] = [...itens].sort((x, y) => x.vencimento.localeCompare(y.vencimento))
     await user.click(screen.getByRole('checkbox', { name: `Selecionar ${a.id}` }))
     await user.click(screen.getByRole('checkbox', { name: `Selecionar ${b.id}` }))
@@ -150,7 +157,7 @@ describe('ReceivablesPage', () => {
       ),
     )
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     await user.click(screen.getAllByRole('checkbox', { name: /^Selecionar \d/ })[0])
     await user.click(screen.getByRole('button', { name: 'Simular antecipação' }))
     const dialog = await screen.findByRole('dialog')
@@ -178,7 +185,7 @@ describe('ReceivablesPage', () => {
       }),
     )
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     await user.click(screen.getAllByRole('checkbox', { name: /^Selecionar \d/ })[0])
     await user.click(screen.getByRole('button', { name: 'Simular antecipação' }))
     const dialog = await screen.findByRole('dialog')
@@ -208,7 +215,7 @@ describe('ReceivablesPage', () => {
       ),
     )
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     await user.click(screen.getAllByRole('checkbox', { name: /^Selecionar \d/ })[0])
     await user.click(screen.getByRole('button', { name: 'Simular antecipação' }))
     const dialog = await screen.findByRole('dialog')
@@ -244,7 +251,7 @@ describe('ReceivablesPage', () => {
   it('pagina a agenda em blocos de 50', async () => {
     const user = userEvent.setup()
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     const total = db.recebiveis({}).itens.filter((r) => r.status === 'PREVISTO').length
     expect(linhas()).toHaveLength(50)
     expect(screen.getByText(`50 de ${total} recebíveis`)).toBeInTheDocument()
@@ -273,7 +280,7 @@ describe('ReceivablesPage', () => {
       ),
     )
     renderPage()
-    await screen.findByText('A receber em 90 dias')
+    await carregado()
     expect(screen.getByText('Nada a receber nas próximas semanas.')).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'Antecipados' }))
     expect(screen.getByText('Nada com esses filtros')).toBeInTheDocument()
@@ -299,7 +306,8 @@ describe('ReceivablesPage', () => {
     )
     renderPage()
     await user.click(await screen.findByRole('button', { name: 'Tentar de novo' }))
-    expect(await screen.findByText('A receber em 90 dias')).toBeInTheDocument()
+    await carregado()
+    expect(screen.getByText('A receber em 90 dias')).toBeInTheDocument()
   })
 })
 

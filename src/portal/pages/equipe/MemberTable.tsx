@@ -122,7 +122,7 @@ function Person({ member, self }: { member: TeamMember; self: boolean }) {
             </span>
           )}
         </p>
-        <p className="truncate text-xs text-ink-muted">{member.email}</p>
+        <p className="text-xs [overflow-wrap:anywhere] text-ink-muted">{member.email}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted sm:hidden">
           {PAPEIS[member.papel].label}
           <Pill tone={view.tone}>{view.detail ? `${view.label}, ${view.detail}` : view.label}</Pill>

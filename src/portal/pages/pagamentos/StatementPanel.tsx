@@ -59,11 +59,21 @@ export function StatementPanel() {
     {
       key: 'data',
       header: 'Data',
-      cell: (e) => (
-        <span className="tabular whitespace-nowrap text-ink-muted">
-          {when.format(new Date(e.data)).replace('.', '')}
-        </span>
-      ),
+      cell: (e) => {
+        // "02 de nov, 09:20": no celular a hora desce para a linha de baixo, sem partir a data.
+        const [dia, hora] = when.format(new Date(e.data)).replace('.', '').split(', ')
+        return (
+          <span className="tabular text-ink-muted">
+            <span className="block whitespace-nowrap sm:inline">{dia}</span>
+            {hora && (
+              <>
+                <span className="hidden sm:inline">, </span>
+                <span className="whitespace-nowrap">{hora}</span>
+              </>
+            )}
+          </span>
+        )
+      },
     },
     {
       key: 'descricao',
@@ -85,7 +95,10 @@ export function StatementPanel() {
       hideBelow: 'sm',
       cell: (e) => (
         <span
-          className={cn('whitespace-nowrap', e.saldo_apos < 0 ? 'text-negative' : 'text-ink-muted')}
+          className={cn(
+            'tabular whitespace-nowrap',
+            e.saldo_apos < 0 ? 'text-negative' : 'text-ink-muted',
+          )}
         >
           {money(e.saldo_apos)}
         </span>

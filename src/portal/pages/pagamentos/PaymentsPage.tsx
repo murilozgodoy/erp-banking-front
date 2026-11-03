@@ -83,7 +83,7 @@ export function PaymentsPage() {
       <>
         <PageHeader
           title="Pagamentos"
-          description="Saldo, contas a pagar, PIX, boletos e extrato."
+          description="Saldo, contas a pagar, PIX, boletos e extrato da conta PJ."
         />
         <OnboardingPendingState area="A conta PJ, com pagamentos e extrato," />
       </>
@@ -96,7 +96,8 @@ export function PaymentsPage() {
       value: saldo !== undefined ? <Money value={saldo} size="lg" /> : '—',
       detail: conta ? (
         <span className="tabular">
-          Ag. {conta.agencia} · CC {conta.numero}
+          <span className="whitespace-nowrap">Ag. {conta.agencia}</span> ·{' '}
+          <span className="whitespace-nowrap">CC {conta.numero}</span>
         </span>
       ) : (
         'Conta PJ em abertura'
@@ -166,7 +167,7 @@ export function PaymentsPage() {
         }
       />
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         <ApprovalTray />
 
         {overview.isError ? (

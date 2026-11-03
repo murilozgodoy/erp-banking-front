@@ -56,7 +56,7 @@ export function OverviewPage() {
   const emAnalise = analysis.data?.status === 'EM_ANALISE'
 
   return (
-    <div className="space-y-4">
+    <>
       <PageHeader
         title={nome ? `${greeting(now)}, ${nome}` : greeting(now)}
         description={
@@ -64,51 +64,52 @@ export function OverviewPage() {
         }
         actions={overview.data && <PendenciasTeaser count={overview.data.pendencias_count} />}
       />
-
-      {overview.isPending ? (
-        <OverviewSkeleton />
-      ) : overview.isError ? (
-        isOnboardingPendente(overview.error) ? (
-          <Panel>
-            <EmptyState
-              icon={<Hourglass className="size-5" />}
-              title="Seu cadastro ainda está em análise"
-              action={
-                <ButtonLink to="/app/status" variant="primary">
-                  Acompanhar a análise
-                </ButtonLink>
-              }
-            >
-              O caixa, as vendas e o crédito aparecem aqui assim que a análise aprovar o cadastro da
-              empresa.
-            </EmptyState>
-          </Panel>
+      <div className="space-y-4">
+        {overview.isPending ? (
+          <OverviewSkeleton />
+        ) : overview.isError ? (
+          isOnboardingPendente(overview.error) ? (
+            <Panel>
+              <EmptyState
+                icon={<Hourglass className="size-5" />}
+                title="Seu cadastro ainda está em análise"
+                action={
+                  <ButtonLink to="/app/status" variant="primary">
+                    Acompanhar a análise
+                  </ButtonLink>
+                }
+              >
+                O caixa, as vendas e o crédito aparecem aqui assim que a análise aprovar o cadastro
+                da empresa.
+              </EmptyState>
+            </Panel>
+          ) : (
+            <ErrorState
+              title="Não conseguimos carregar a visão geral"
+              message={errorMessage(overview.error)}
+              onRetry={() => void overview.refetch()}
+            />
+          )
         ) : (
-          <ErrorState
-            title="Não conseguimos carregar a visão geral"
-            message={errorMessage(overview.error)}
-            onRetry={() => void overview.refetch()}
+          <Loaded
+            overview={overview.data}
+            analysis={analysis.data}
+            analysisSlot={
+              analysis.isPending
+                ? 'loading'
+                : analysis.isError
+                  ? 'error'
+                  : emAnalise
+                    ? 'analyzing'
+                    : 'ready'
+            }
+            analysisError={analysis.isError ? errorMessage(analysis.error) : undefined}
+            retryAnalysis={() => void analysis.refetch()}
+            refreshing={analysis.isFetching}
           />
-        )
-      ) : (
-        <Loaded
-          overview={overview.data}
-          analysis={analysis.data}
-          analysisSlot={
-            analysis.isPending
-              ? 'loading'
-              : analysis.isError
-                ? 'error'
-                : emAnalise
-                  ? 'analyzing'
-                  : 'ready'
-          }
-          analysisError={analysis.isError ? errorMessage(analysis.error) : undefined}
-          retryAnalysis={() => void analysis.refetch()}
-          refreshing={analysis.isFetching}
-        />
-      )}
-    </div>
+        )}
+      </div>
+    </>
   )
 }
 
