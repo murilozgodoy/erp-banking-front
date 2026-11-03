@@ -5,7 +5,8 @@ Trabalho semestral da disciplina **Projeto de Software** (Insper, prof. Eduardo 
 
 ## Arquitetura
 
-Três serviços de negócio independentes que se comunicam por HTTP/JSON, e um frontend React:
+Três serviços de negócio independentes que se comunicam por HTTP/JSON e por eventos (RabbitMQ), atrás de um
+API Gateway, e um frontend React:
 
 | Serviço          | Stack                     | Porta local | Responsabilidade                                                                              |
 | ---------------- | ------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
@@ -14,19 +15,26 @@ Três serviços de negócio independentes que se comunicam por HTTP/JSON, e um f
 | Transactions API | Java 21 + Spring Boot 3.3 | 8080        | Registra contas, transações e contratos de crédito; consulta o Score antes de aprovar crédito |
 | Frontend         | React 19 + Vite           | 5173        | Interface; login no Auth0 e chamadas autenticadas às 3 APIs                                   |
 
-As portas 8080, 8081 e 8082 são as abertas na instância EC2 da AWS.
+As portas da tabela são as de cada serviço rodando sozinho (dev sem gateway). No Docker Compose do
+[erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra) as APIs ficam só na rede interna e a EC2
+publica **8080 = API Gateway**, **8081 = Grafana** e **8082 = Prometheus**.
 
 ```
-              ┌──► Onboarding API ◄──────────── Credit Score API ◄──── Transactions API
-Frontend ─────┼──► Credit Score API                (token relay)          (token relay)
- (Auth0)      └──► Transactions API
+                         ┌──► /onboarding   → Onboarding API ◄──── Credit Score API ◄──── Transactions API
+Frontend ──► API Gateway ┼──► /score        → Credit Score API     (token relay)          (token relay)
+ (Auth0)     (nginx)     └──► /transactions → Transactions API
+
+Eventos (RabbitMQ, exchange erp.events): Transactions → Score (credit.decided), Onboarding → Score (customer.anamnesis_updated)
+Métricas: Prometheus coleta os 3 serviços, o gateway e o RabbitMQ; Grafana mostra os dashboards
 ```
 
 - **Autenticação/autorização:** Auth0 (OAuth 2.0 + JWT). O front obtém o access token; as APIs
   validam o JWT e checam as permissões (RBAC). Ver [auth0.md](auth0.md).
 - **Banco:** um único PostgreSQL com 3 schemas (`onboarding`, `credit_score`, `transactions`), um por serviço. Cada serviço acessa somente o próprio schema; dados de outro serviço vêm sempre pela API dele, nunca por SQL direto.
 - **Dev/testes:** SQLite/H2 em memória. **Produção:** PostgreSQL via variável `DATABASE_URL`.
-- **Plano final (Etapa 4):** containers Docker numa EC2 AWS (back) e Vercel (front), com API Gateway e Prometheus/Grafana.
+- **Produção (Etapa 4):** back em containers Docker numa EC2 AWS (`3.235.6.136`) e front na Vercel
+  (<https://erp-banking-front.vercel.app>), com API Gateway, RabbitMQ e Prometheus/Grafana. Ver
+  [etapa-4.md](etapa-4.md).
 
 ### Padrões de projeto
 
@@ -36,12 +44,13 @@ Frontend ─────┼──► Credit Score API                (token rela
 
 ## Repositórios
 
-| Repositório                                                                                  | Cobertura | Status            |
-| -------------------------------------------------------------------------------------------- | --------- | ----------------- |
-| [erp-banking-onboarding-api](https://github.com/murilozgodoy/erp-banking-onboarding-api)     | ~98%      | Etapa 3 concluída |
-| [erp-banking-credit-score-api](https://github.com/murilozgodoy/erp-banking-credit-score-api) | ~99%      | Etapa 3 concluída |
-| [erp-banking-transactions-api](https://github.com/murilozgodoy/erp-banking-transactions-api) | ~98%      | Etapa 3 concluída |
-| [erp-banking-front](https://github.com/murilozgodoy/erp-banking-front)                       | ~100%     | Etapa 3 concluída |
+| Repositório                                                                                  | Cobertura | Status  |
+| -------------------------------------------------------------------------------------------- | --------- | ------- |
+| [erp-banking-onboarding-api](https://github.com/murilozgodoy/erp-banking-onboarding-api)     | ~98%      | Etapa 4 |
+| [erp-banking-credit-score-api](https://github.com/murilozgodoy/erp-banking-credit-score-api) | ~99%      | Etapa 4 |
+| [erp-banking-transactions-api](https://github.com/murilozgodoy/erp-banking-transactions-api) | ~98%      | Etapa 4 |
+| [erp-banking-front](https://github.com/murilozgodoy/erp-banking-front)                       | ~100%     | Etapa 4 |
+| [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra)                       | —         | Etapa 4 |
 
 ## Cronograma
 
@@ -50,8 +59,6 @@ Frontend ─────┼──► Credit Score API                (token rela
 | 1     | 09/09/2026 | Documento de arquitetura + repositórios configurados                                            | ✅ Entregue |
 | 2     | 28/09/2026 | 3 serviços + testes com cobertura ≥ 80%                                                         | ✅ Entregue |
 | 3     | 21/10/2026 | Auth0 (OAuth2/JWT + RBAC) + Frontend                                                            | ✅ Entregue |
-| 4     | 04/11/2026 | API Gateway + testes de carga + Prometheus/Grafana + deploy AWS/Vercel + comunicação assíncrona | ⏳          |
+| 4     | 04/11/2026 | API Gateway + testes de carga + Prometheus/Grafana + deploy AWS/Vercel + comunicação assíncrona | ✅ Entregue |
 
-## Fora de escopo até a etapa correspondente
-
-- API Router/Gateway, Prometheus/Grafana, deploy (EC2 e Vercel) e comunicação assíncrona → **Etapa 4**.
+O que foi entregue em cada etapa: [etapa-3.md](etapa-3.md) e [etapa-4.md](etapa-4.md).
