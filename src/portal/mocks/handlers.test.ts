@@ -531,7 +531,8 @@ describe('transactions /me', () => {
       expect(negado.data).toMatchObject({ status: 'NEGADO', valorAprovado: null, taxaJuros: null })
 
       const lista = await chamar<PortalCreditRequest[]>(`${T}/me/credit/requests`)
-      expect(lista.data).toHaveLength(4)
+      // 2 iniciais (uma aprovada, uma em revisão) + 3 contratadas no teste.
+      expect(lista.data).toHaveLength(5)
       expect(lista.data[0].id).toBe(negado.data.id)
     })
 

@@ -571,6 +571,19 @@ function gerarErp(): Erp {
         taxaJuros: 0.0209,
         criadoEm: new Date(criado.getTime() + 11 * 3_600_000).toISOString(),
       },
+      {
+        // Proposta acima do pré-aprovado, em revisão: vira a pendência PROPOSTA_CREDITO.
+        id: 802,
+        customerId: CUSTOMER_ID,
+        valorSolicitado: r2(60_000 * escala),
+        prazoMeses: 12,
+        scoreSnapshot: SCORE_CLIENTE,
+        status: 'REVISAO',
+        motivo: 'Valor acima do limite pré-aprovado: em análise pelo time de crédito.',
+        valorAprovado: null,
+        taxaJuros: null,
+        criadoEm: addDias(base, -2).toISOString(),
+      },
     ],
     simulations: new Map(),
     rng,
@@ -993,7 +1006,7 @@ export function estoque(): InventoryReport {
       (item) => item.quantidade * item.custo_unitario,
     ),
     abaixo_minimo: m.abaixoMinimo,
-    cobertura_media_dias: Math.round(m.coberturaEstoque),
+    cobertura_media_dias: Math.round(m.coberturaEstoque * 10) / 10,
   }
 }
 
@@ -1101,19 +1114,6 @@ export function pendencias(): Pendencia[] {
       acao: { label: 'Acompanhar', rota: '/app/credito' },
     })
   }
-  lista.push({
-    id: 'credit-offer-capital-de-giro',
-    tipo: 'PROPOSTA_CREDITO',
-    titulo: 'Capital de giro pré-aprovado',
-    descricao: `Até ${mil(m.limites.CAPITAL_DE_GIRO)} a ${String(taxaMensal(faixaDoScore(SCORE_CLIENTE), 'CAPITAL_DE_GIRO')).replace('.', ',')}% ao mês, em até ${PRAZO_MAX_MESES.CAPITAL_DE_GIRO} meses.`,
-    valor: m.limites.CAPITAL_DE_GIRO,
-    data: e.dia,
-    acao: {
-      label: 'Simular',
-      rota: '/app/credito',
-      credito: { produto: 'CAPITAL_DE_GIRO', valor: m.limites.CAPITAL_DE_GIRO },
-    },
-  })
   return lista
 }
 

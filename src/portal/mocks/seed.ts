@@ -726,7 +726,8 @@ const ESTOQUE: ItemEstoque[] = [
 ]
 
 export function gerarEstoque(base: Date, escala: number): InventoryItem[] {
-  return ESTOQUE.map((item) => ({
+  return ESTOQUE.map((item, index) => ({
+    id: index + 1,
     sku: item.sku,
     nome: item.nome,
     quantidade: Math.max(1, Math.round(item.quantidade * 2 * escala)),

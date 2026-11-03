@@ -117,7 +117,9 @@ export function ScorePanel({
       description={
         <span className="inline-flex flex-wrap items-center gap-1.5">
           {analysis.gerado_por === 'llm+regras' && <Faisca label={null} />}
-          {origem} · atualizada {relativeDay(analysis.atualizado_em.slice(0, 10))}
+          {origem}
+          {analysis.atualizado_em &&
+            ` · atualizada ${relativeDay(analysis.atualizado_em.slice(0, 10))}`}
         </span>
       }
       flush
@@ -125,7 +127,9 @@ export function ScorePanel({
     >
       <div className="grid xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="space-y-6 px-5 pb-5">
-          <ScoreScale score={analysis.score} faixa={analysis.faixa_risco} />
+          {analysis.score !== null && analysis.faixa_risco && (
+            <ScoreScale score={analysis.score} faixa={analysis.faixa_risco} />
+          )}
           <div className="grid gap-5 border-t border-line pt-4 sm:grid-cols-2 xl:grid-cols-1">
             <ReadingList title="Pontos fortes" items={analysis.pontos_fortes} tone="positive" />
             <ReadingList title="Riscos" items={analysis.riscos} tone="warning" />

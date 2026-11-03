@@ -121,9 +121,11 @@ function ReviewDetail({ item }: { item: ReviewItem }) {
           <div className="space-y-3">
             <ScoreFigure analysis={item.analise} size="md" />
             <p className="text-sm text-ink-muted">
-              {GERADO_POR_LABEL[item.analise.gerado_por] ?? item.analise.gerado_por} · enviado{' '}
-              {relativeInstant(item.submitted_at)}, {dateTime(item.submitted_at)} · na fila há{' '}
-              <span className="tabular">{waitingTime(item.submitted_at)}</span>
+              {item.analise.gerado_por
+                ? (GERADO_POR_LABEL[item.analise.gerado_por] ?? item.analise.gerado_por)
+                : 'Análise em andamento'}{' '}
+              · enviado {relativeInstant(item.submitted_at)}, {dateTime(item.submitted_at)} · na
+              fila há <span className="tabular">{waitingTime(item.submitted_at)}</span>
             </p>
           </div>
         ) : (

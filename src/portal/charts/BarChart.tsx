@@ -37,8 +37,8 @@ export function BarChart({
   data,
   height = 220,
   formatValue = (v) => money(v, { compact: true }),
-  color = 'var(--color-series-1)',
-  highlightColor = 'var(--color-credit)',
+  color = 'var(--erpia-series-1)',
+  highlightColor = 'var(--erpia-credit)',
   onSelect,
   className,
 }: BarChartProps) {
