@@ -44,10 +44,11 @@ function Marker({ state }: { state: StepState }) {
       {state === 'failed' && <X className="size-3.5" strokeWidth={3} />}
       {state === 'current' && (
         <motion.span
+          data-pulse={reduce ? 'static' : 'animated'}
           className="size-2 rounded-full bg-accent"
           // Respiração lenta só no passo em andamento: diz "está rodando" sem fingir progresso.
           animate={reduce ? undefined : { opacity: [1, 0.35, 1] }}
-          transition={reduce ? undefined : { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          transition={reduce ? undefined : { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}
     </motion.span>
