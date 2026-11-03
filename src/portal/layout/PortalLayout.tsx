@@ -1,7 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeftRight, Building2, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 
 import { ErpIaLogo } from '@/components/brand/Logo'
@@ -9,6 +9,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { cn } from '@/lib/cn'
 
 import { formatCnpj, money } from '../lib/format'
+import { SkipLink } from '../ui/SkipLink'
 import { Skeleton } from '../ui/Surface'
 
 import { PORTAL_NAV } from './nav'
@@ -65,6 +66,18 @@ export function PortalLayout() {
     setMenuPath(location.pathname)
     setMenuOpen(false)
   }
+  const menuButton = useRef<HTMLButtonElement>(null)
+  // Esc fecha a gaveta e devolve o foco ao botão que a abriu.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setMenuOpen(false)
+      menuButton.current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menuOpen])
 
   const empresa = me.data?.empresa
   const conta = overview.data?.conta
@@ -140,6 +153,7 @@ export function PortalLayout() {
 
   return (
     <div className="min-h-dvh bg-paper text-ink lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
+      <SkipLink />
       <aside className="sticky top-0 hidden h-dvh bg-rail lg:block">{rail}</aside>
 
       {/* Telas estreitas: barra no topo + gaveta com o mesmo rail. */}
@@ -148,6 +162,7 @@ export function PortalLayout() {
           <ErpIaLogo onDark />
         </Link>
         <button
+          ref={menuButton}
           type="button"
           aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={menuOpen}
@@ -174,7 +189,11 @@ export function PortalLayout() {
             )}
           </p>
         </div>
-        <main className="mx-auto w-full max-w-[84rem] px-4 py-6 sm:px-8 sm:py-8">
+        <main
+          id="conteudo"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-[84rem] px-4 py-6 outline-none sm:px-8 sm:py-8"
+        >
           <Outlet />
         </main>
       </div>
