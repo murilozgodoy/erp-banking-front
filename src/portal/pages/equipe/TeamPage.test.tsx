@@ -208,9 +208,15 @@ describe('TeamPage', () => {
     expect(within(rafael).queryByRole('button', { name: /Ações/ })).not.toBeInTheDocument()
 
     const dialog = await openInvite(user)
+    // Hierarquia: o próprio papel e os de cima ficam bloqueados.
     expect(within(dialog).getByRole('radio', { name: /Administrador/ })).toBeDisabled()
+    expect(within(dialog).getByRole('radio', { name: /Financeiro/ })).toBeDisabled()
+    expect(
+      within(dialog).getByText(/só convida e gerencia papéis abaixo do seu/),
+    ).toBeInTheDocument()
+    // Operador traz gerenciar_estoque, que o financeiro não tem.
     expect(within(dialog).getByRole('radio', { name: /Operador/ })).toBeDisabled()
-    await user.click(within(dialog).getByRole('radio', { name: /Financeiro/ }))
+    await user.click(within(dialog).getByRole('radio', { name: /Leitura/ }))
     expect(toggle(dialog, 'Contratar crédito')).toBeDisabled()
     expect(toggle(dialog, 'Gerenciar estoque')).toBeDisabled()
     expect(toggle(dialog, 'Contratar crédito')).toHaveAccessibleDescription(
@@ -218,6 +224,15 @@ describe('TeamPage', () => {
     )
     expect(toggle(dialog, 'Pagar')).toBeEnabled()
     expect(toggle(dialog, 'Gerenciar equipe')).toBeEnabled()
+    // Com pagar ligado, o limite começa no próprio limite (R$ 20.000) e não pode passar dele.
+    await user.click(toggle(dialog, 'Pagar'))
+    const limite = within(dialog).getByRole('textbox', { name: /Paga sem aprovação até/ })
+    expect(limite).toHaveValue('20.000,00')
+    expect(within(dialog).queryByRole('checkbox', { name: 'Sem limite' })).not.toBeInTheDocument()
+    await user.clear(limite)
+    await user.type(limite, '25000')
+    await user.click(within(dialog).getByRole('button', { name: 'Criar convite' }))
+    expect(await within(dialog).findByText(/no máximo R\$\s20\.000,00/)).toBeInTheDocument()
     expect(within(dialog).getByText(/Você só concede o que também pode fazer/)).toBeInTheDocument()
   })
 
@@ -228,7 +243,9 @@ describe('TeamPage', () => {
     const dialog = await openInvite(user)
     await user.click(within(dialog).getByRole('radio', { name: /Leitura/ }))
     for (const sw of within(dialog).getAllByRole('switch')) expect(sw).toBeEnabled()
-    expect(within(dialog).getByRole('radio', { name: /Administrador/ })).toBeEnabled()
+    // ADMIN não convida outro ADMIN (hierarquia).
+    expect(within(dialog).getByRole('radio', { name: /Administrador/ })).toBeDisabled()
+    expect(within(dialog).getByRole('radio', { name: /Financeiro/ })).toBeEnabled()
   })
 
   it('sem gerenciar_equipe, explica que a área é de quem gerencia a equipe', async () => {

@@ -225,6 +225,10 @@ export function convidar(req: Partial<InviteRequest>): ResultadoEquipe<InviteRes
   if (Object.keys(campos).length) return invalido(campos)
 
   const papel = req.papel!
+  if (acimaDaHierarquia(papel)) return erro(403, 'SEM_PERMISSAO', { permissao: 'hierarquia' })
+  if (acimaDoLimite(req.limite_pagamento)) {
+    return erro(403, 'SEM_PERMISSAO', { permissao: 'limite_pagamento' })
+  }
   const permissoes = req.permissoes ? [...req.permissoes] : [...PAPEIS[papel].permissoes]
   const falta = alemDoQueTem(papel === 'ADMIN' ? [...PERMISSOES] : permissoes)
   if (falta) return erro(403, 'SEM_PERMISSAO', { permissao: falta })
@@ -258,11 +262,29 @@ export function convidar(req: Partial<InviteRequest>): ResultadoEquipe<InviteRes
 }
 
 /** Regras comuns de PATCH e DELETE: existe, não é o DONO, não é a própria pessoa. */
+const NIVEL: Record<Papel, number> = { DONO: 0, ADMIN: 1, FINANCEIRO: 2, OPERADOR: 3, LEITURA: 4 }
+
+/** Bloqueio de escalada (onboarding #20): fora o DONO, só papéis estritamente abaixo. */
+function acimaDaHierarquia(papel: Papel): boolean {
+  const ator = membroAtual()
+  return ator.papel !== 'DONO' && NIVEL[papel] <= NIVEL[ator.papel]
+}
+
+/** Quem tem limite manda sempre um limite ≤ o próprio (omitir = sem limite = recusado). */
+function acimaDoLimite(limite: number | null | undefined): boolean {
+  const ator = membroAtual()
+  if (ator.papel === 'DONO' || ator.limite_pagamento === null) return false
+  return limite === null || limite === undefined || limite > ator.limite_pagamento
+}
+
 function alvo(id: number): ResultadoEquipe<Registro> {
   const registro = registros().find((m) => m.id === id)
   if (!registro) return erro(404, 'MEMBRO_NAO_ENCONTRADO')
   if (registro.papel === 'DONO') return erro(403, 'DONO_PROTEGIDO')
   if (registro.id === membroAtual().id) return erro(403, 'AUTO_EDICAO')
+  if (acimaDaHierarquia(registro.papel)) {
+    return erro(403, 'SEM_PERMISSAO', { permissao: 'hierarquia' })
+  }
   return { tipo: 'ok', valor: registro }
 }
 
@@ -281,6 +303,10 @@ export function atualizar(
     return invalido({ permissoes: 'Permissão desconhecida.' })
   }
   const papel = patch.papel ?? registro.papel
+  if (acimaDaHierarquia(papel)) return erro(403, 'SEM_PERMISSAO', { permissao: 'hierarquia' })
+  if (acimaDoLimite(patch.limite_pagamento)) {
+    return erro(403, 'SEM_PERMISSAO', { permissao: 'limite_pagamento' })
+  }
   const permissoes =
     patch.permissoes ?? (patch.papel ? PAPEIS[patch.papel].permissoes : registro.permissoes)
   const limite =

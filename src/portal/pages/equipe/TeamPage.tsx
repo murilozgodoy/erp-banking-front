@@ -11,6 +11,7 @@ import { GatedButton } from '../../ui/Gated'
 import { EmptyState, ErrorState, PageHeader, Panel, Skeleton } from '../../ui/Surface'
 import { MemberSheet, type AccessAction, type SheetTarget } from './MemberSheet'
 import { MemberTable } from './MemberTable'
+import { ATOR_DONO, type Ator } from './model'
 import { useTeam } from './queries'
 
 const DESCRIPTION = 'Quem acessa o portal da empresa e o que cada pessoa pode fazer.'
@@ -27,6 +28,8 @@ function isSemPermissao(error: unknown) {
 export function TeamPage() {
   const { membro, pode } = useMembro()
   const allowed = pode('gerenciar_equipe')
+  // Sem membro (API antiga) conta como DONO: sem hierarquia nem teto de limite.
+  const ator: Ator = membro ? { papel: membro.papel, limite: membro.limite_pagamento } : ATOR_DONO
   const team = useTeam(allowed)
   const [sheet, setSheet] = useState<{ open: boolean; target: SheetTarget; key: number }>({
     open: false,
@@ -122,7 +125,7 @@ export function TeamPage() {
           }
           flush
         >
-          <MemberTable members={members} selfId={membro?.id ?? null} onEdit={edit} />
+          <MemberTable members={members} selfId={membro?.id ?? null} ator={ator} onEdit={edit} />
           {soDono && (
             <div className="border-t border-line">
               <EmptyState
@@ -154,6 +157,7 @@ export function TeamPage() {
         target={sheet.target}
         onClose={closeSheet}
         grantable={pode}
+        ator={ator}
         onDone={(message) => {
           closeSheet()
           setNotice(message)
