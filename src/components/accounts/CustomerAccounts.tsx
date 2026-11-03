@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { Can } from '@/components/auth/Can'
-import { Alert } from '@/components/ui/Alert'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Spinner } from '@/components/ui/Spinner'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
+import { ErrorState, PanelSkeleton } from '@/portal/ui/Surface'
 import { pollWhileEmpty } from '@/lib/polling'
 
 import { AccountsTable } from './AccountsTable'
@@ -26,9 +25,13 @@ export function CustomerAccounts({ customerId }: { customerId: number }) {
     <Card title="Contas" description="Contas correntes na Transactions API">
       <div className="space-y-4">
         {accounts.isPending ? (
-          <Spinner label="Carregando contas…" />
+          <PanelSkeleton label="Carregando contas…" />
         ) : accounts.isError ? (
-          <Alert tone="error">{errorMessage(accounts.error)}</Alert>
+          <ErrorState
+            title="Não conseguimos carregar as contas"
+            message={errorMessage(accounts.error)}
+            onRetry={() => void accounts.refetch()}
+          />
         ) : accounts.data.length === 0 ? (
           <EmptyState>Nenhuma conta aberta para este cliente.</EmptyState>
         ) : (

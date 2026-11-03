@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 const tones = {
-  info: 'border-sky-200 bg-sky-50 text-sky-900',
+  info: 'border-info/30 bg-info-soft text-info',
   success: 'border-positive/30 bg-positive-soft text-positive',
   warning: 'border-warning/30 bg-warning-soft text-warning',
   error: 'border-negative/30 bg-negative-soft text-negative',
