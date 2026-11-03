@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { clampPrazo, CREDIT_PRODUCTS, parcelaPrice, simular } from './simulator'
+import { clampPrazo, CREDIT_PRODUCTS, parcelaPrice, simular, tabelaPrice } from './simulator'
 
 const produto = (id: string) => CREDIT_PRODUCTS.find((p) => p.id === id)!
 
@@ -37,5 +37,18 @@ describe('simulador ilustrativo', () => {
     expect(clampPrazo(produto('antecipacao'), 24)).toBe(12)
     expect(clampPrazo(produto('alavancagem'), 2)).toBe(6)
     expect(clampPrazo(produto('estoque'), 10)).toBe(10)
+  })
+
+  it('decompõe a tabela Price com juros caindo e saldo fechando em zero', () => {
+    const linhas = tabelaPrice(80_000, 0.0219, 12)
+    expect(linhas).toHaveLength(12)
+    expect(linhas[0]).toEqual({ mes: 1, juros: 1752, amortizacao: 5901.32 })
+    expect(linhas.every((l, i) => i === 0 || l.juros < linhas[i - 1].juros)).toBe(true)
+    const amortizado = linhas.reduce((soma, l) => soma + l.amortizacao, 0)
+    expect(Math.round(amortizado * 100) / 100).toBe(80_000)
+  })
+
+  it('todo produto tem rótulo curto para o celular', () => {
+    for (const p of CREDIT_PRODUCTS) expect(p.rotulo.length).toBeLessThanOrEqual(16)
   })
 })
