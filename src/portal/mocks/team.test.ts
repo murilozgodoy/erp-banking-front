@@ -1,6 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { PAPEIS } from '../team/permissions'
 import type {
+  AcceptInviteResponse,
   InviteResponse,
   Me,
   Payment,
@@ -40,12 +42,28 @@ describe('mocks da equipe (seção 11)', () => {
     expect(data.membro!.permissoes).toContain('gerenciar_equipe')
   })
 
-  it('lista, convida (com link), edita, suspende e remove; o DONO é imutável', async () => {
+  it('lista, convida (com link), edita, suspende e remove; o DONO é protegido', async () => {
     const lista = await chamar<TeamMember[]>(`${O}/me/team`)
     expect(lista.data.map((m) => m.papel)).toEqual(['DONO', 'FINANCEIRO', 'OPERADOR', 'LEITURA'])
+    expect(lista.data[3]).toMatchObject({ status: 'CONVIDADO' })
+    expect(lista.data[3].convite_expira_em).toBeTruthy()
+    expect(lista.data[0].convite_expira_em).toBeNull()
 
-    const invalido = await chamar(`${O}/me/team/invites`, 'POST', { nome: '', email: 'x' })
-    expect(invalido.status).toBe(400)
+    const invalido = await chamar<{ campos: Record<string, string> }>(
+      `${O}/me/team/invites`,
+      'POST',
+      { nome: '', email: 'x' },
+    )
+    expect(invalido.status).toBe(422)
+    expect(Object.keys(invalido.data.campos)).toEqual(['nome', 'email', 'papel'])
+
+    const semLimite = await chamar<{ campos: Record<string, string> }>(
+      `${O}/me/team/invites`,
+      'POST',
+      { nome: 'Bia', email: 'bia@aurorapaes.com.br', papel: 'OPERADOR' },
+    )
+    expect(semLimite.status).toBe(422)
+    expect(semLimite.data.campos).toHaveProperty('limite_pagamento')
 
     const convite = await chamar<InviteResponse>(`${O}/me/team/invites`, 'POST', {
       nome: 'Bia Rocha',
@@ -61,28 +79,89 @@ describe('mocks da equipe (seção 11)', () => {
       email: 'bia@aurorapaes.com.br',
       papel: 'LEITURA',
     })
-    expect(repetido.status).toBe(409)
+    expect(repetido).toMatchObject({ status: 409, data: { error: 'CONVITE_PENDENTE' } })
+    const cadastrado = await chamar(`${O}/me/team/invites`, 'POST', {
+      nome: 'Rafael',
+      email: 'Financeiro@aurorapaes.com.br',
+      papel: 'LEITURA',
+    })
+    expect(cadastrado).toMatchObject({ status: 409, data: { error: 'EMAIL_JA_CADASTRADO' } })
 
     const id = convite.data.membro.id
     const editado = await chamar<TeamMember>(`${O}/me/team/${id}`, 'PATCH', { papel: 'FINANCEIRO' })
     expect(editado.data.permissoes).toContain('aprovar_pagamentos')
-    const suspenso = await chamar<TeamMember>(`${O}/me/team/${id}`, 'PATCH', { status: 'SUSPENSO' })
+    expect(await chamar(`${O}/me/team/${id}`, 'PATCH', { papel: 'DONO' })).toMatchObject({
+      status: 409,
+      data: { error: 'DONO_UNICO' },
+    })
+    expect(
+      (await chamar(`${O}/me/team/2`, 'PATCH', { papel: 'OPERADOR', limite_pagamento: null }))
+        .status,
+    ).toBe(422)
+    const suspenso = await chamar<TeamMember>(`${O}/me/team/2`, 'PATCH', { status: 'SUSPENSO' })
     expect(suspenso.data.status).toBe('SUSPENSO')
-    expect((await chamar(`${O}/me/team/1`, 'PATCH', { status: 'SUSPENSO' })).status).toBe(422)
-    expect((await chamar(`${O}/me/team/1`, 'DELETE')).status).toBe(422)
+    expect(await chamar(`${O}/me/team/1`, 'PATCH', { status: 'SUSPENSO' })).toMatchObject({
+      status: 403,
+      data: { error: 'DONO_PROTEGIDO' },
+    })
+    expect((await chamar(`${O}/me/team/1`, 'DELETE')).status).toBe(403)
     expect((await chamar(`${O}/me/team/${id}`, 'DELETE')).status).toBe(204)
-    expect((await chamar(`${O}/me/team/${id}`, 'DELETE')).status).toBe(404)
+    expect(await chamar(`${O}/me/team/${id}`, 'DELETE')).toMatchObject({
+      status: 404,
+      data: { error: 'MEMBRO_NAO_ENCONTRADO' },
+    })
 
     const token = convite.data.convite_url.split('/convite/')[1]
-    expect((await chamar(`${O}/me/team/invites/${token}/accept`, 'POST')).status).toBe(404)
+    expect(await chamar(`${O}/me/team/invites/${token}/accept`, 'POST')).toMatchObject({
+      status: 404,
+      data: { error: 'CONVITE_NAO_ENCONTRADO' },
+    })
   })
 
-  it('aceita convite e devolve os erros do contrato', async () => {
-    const ok = await chamar<TeamMember>(`${O}/me/team/invites/convite-demo-contador/accept`, 'POST')
-    expect(ok.data.status).toBe('ATIVO')
-    expect((await chamar(`${O}/me/team/invites/convite-expirado/accept`, 'POST')).status).toBe(410)
-    expect((await chamar(`${O}/me/team/invites/convite-outra-empresa/accept`, 'POST')).status).toBe(
-      409,
+  it('quem não é DONO só concede o que tem e não edita a si mesmo', async () => {
+    await chamar(`${O}/me/team/2`, 'PATCH', {
+      permissoes: [...PAPEIS.FINANCEIRO.permissoes, 'gerenciar_equipe'],
+    })
+    setMembroLogado('FINANCEIRO')
+    expect(await chamar(`${O}/me/team/2`, 'PATCH', { limite_pagamento: 1 })).toMatchObject({
+      status: 403,
+      data: { error: 'AUTO_EDICAO' },
+    })
+    expect(
+      await chamar(`${O}/me/team/invites`, 'POST', {
+        nome: 'Leo',
+        email: 'leo@aurorapaes.com.br',
+        papel: 'LEITURA',
+        permissoes: ['ver_financeiro', 'contratar_credito'],
+      }),
+    ).toMatchObject({
+      status: 403,
+      data: { error: 'SEM_PERMISSAO', permissao: 'contratar_credito' },
+    })
+    expect(
+      (
+        await chamar(`${O}/me/team/invites`, 'POST', {
+          nome: 'Leo',
+          email: 'leo@aurorapaes.com.br',
+          papel: 'LEITURA',
+        })
+      ).status,
+    ).toBe(201)
+  })
+
+  it('aceita convite ({customer_id, membro}) e devolve os erros do contrato', async () => {
+    const ok = await chamar<AcceptInviteResponse>(
+      `${O}/me/team/invites/convite-demo-contador/accept`,
+      'POST',
+    )
+    expect(ok.data.customer_id).toBe(1042)
+    expect(ok.data.membro).toMatchObject({ status: 'ATIVO', convite_expira_em: null })
+    expect(await chamar(`${O}/me/team/invites/convite-expirado/accept`, 'POST')).toMatchObject({
+      status: 410,
+      data: { error: 'CONVITE_EXPIRADO' },
+    })
+    expect(await chamar(`${O}/me/team/invites/convite-outra-empresa/accept`, 'POST')).toMatchObject(
+      { status: 409, data: { error: 'JA_VINCULADO' } },
     )
   })
 
