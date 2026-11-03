@@ -87,3 +87,34 @@ export function creditBridge(minimo: number, oportunidades: Oportunidade[]): Bri
 export function shortMoney(valor: number): string {
   return money(valor, { compact: true }).replace(/\s/g, ' ')
 }
+
+export interface MainOffer {
+  oportunidade: Oportunidade
+  /** Valor sugerido: o que cobre o vale, ou o limite pré-aprovado. */
+  valor: number
+  /** Frase da oferta no card da Leitura. */
+  headline: string
+}
+
+/**
+ * A oportunidade principal da Visão geral: a ponte do vale de caixa, se houver; senão a primeira
+ * do ranking da análise. `null` sem ofertas.
+ */
+export function mainOffer(fluxo: FluxoCaixaDia[], oportunidades: Oportunidade[]): MainOffer | null {
+  const low = lowestPoint(fluxo)
+  const [vale] = findVales(fluxo)
+  const bridge = low && vale ? creditBridge(low.valor, oportunidades) : null
+  if (bridge && vale) {
+    const verbo = bridge.oportunidade.tipo === 'ANTECIPACAO_RECEBIVEIS' ? 'Antecipar' : 'Tomar'
+    return {
+      oportunidade: bridge.oportunidade,
+      valor: bridge.valor,
+      headline: `Seu caixa fica negativo ${valeRange(vale)}. ${verbo} ${shortMoney(bridge.valor)} ${
+        bridge.cobre ? 'cobre o vale' : 'reduz o vale'
+      }.`,
+    }
+  }
+  const [primeira] = oportunidades
+  if (!primeira) return null
+  return { oportunidade: primeira, valor: primeira.valor_maximo, headline: primeira.titulo }
+}
