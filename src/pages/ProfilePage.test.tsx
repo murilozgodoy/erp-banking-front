@@ -1,7 +1,9 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { ALL_PERMISSIONS } from '@/auth/permissions'
 
 import { auth0State } from '@/test/auth0'
 import { renderPage } from '@/test/render'
@@ -11,6 +13,8 @@ import { ProfilePage } from './ProfilePage'
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }))
 
 describe('ProfilePage', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
   it('mostra a conta e as permissões concedidas', async () => {
     vi.mocked(useAuth0).mockReturnValue(
       auth0State({ permissions: ['read:customers', 'write:scores'] }),
@@ -40,6 +44,27 @@ describe('ProfilePage', () => {
 
     expect(writeText).toHaveBeenCalledWith(await state.getAccessTokenSilently())
     expect(screen.getByRole('button', { name: 'Token copiado!' })).toBeInTheDocument()
+    expect(screen.getByText(/Não compartilhe/)).toBeInTheDocument()
+  })
+
+  it('em produção mostra o botão do token só para admin', async () => {
+    vi.stubEnv('DEV', false)
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: [...ALL_PERMISSIONS] }))
+    renderPage(<ProfilePage />)
+
+    expect(await screen.findByRole('button', { name: 'Copiar access token' })).toBeInTheDocument()
+    expect(screen.getByText(/Não compartilhe/)).toBeInTheDocument()
+  })
+
+  it('em produção esconde o botão do token para quem não é admin', async () => {
+    vi.stubEnv('DEV', false)
+    vi.mocked(useAuth0).mockReturnValue(auth0State({ permissions: ['read:customers'] }))
+    renderPage(<ProfilePage />)
+
+    expect(
+      await screen.findByText('1 de 8 permissões concedidas pelo seu perfil'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copiar access token' })).not.toBeInTheDocument()
   })
 
   it('mostra erro ao ler permissões', async () => {
