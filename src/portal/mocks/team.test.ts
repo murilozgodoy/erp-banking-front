@@ -132,6 +132,7 @@ describe('mocks da equipe (seção 11)', () => {
         email: 'leo@aurorapaes.com.br',
         papel: 'LEITURA',
         permissoes: ['ver_financeiro', 'contratar_credito'],
+        limite_pagamento: 1000,
       }),
     ).toMatchObject({
       status: 403,
@@ -143,6 +144,7 @@ describe('mocks da equipe (seção 11)', () => {
           nome: 'Leo',
           email: 'leo@aurorapaes.com.br',
           papel: 'LEITURA',
+          limite_pagamento: 1000,
         })
       ).status,
     ).toBe(201)
@@ -208,5 +210,38 @@ describe('mocks da equipe (seção 11)', () => {
     setMembroLogado('DONO')
     const rejeitado = await chamar<Payment>(`${T}/me/payments/${meu.data.id}/reject`, 'POST')
     expect(rejeitado.data.status).toBe('REJEITADO')
+  })
+
+  it('bloqueio de escalada: hierarquia e teto do limite (onboarding #20)', async () => {
+    setMembroLogado('ADMIN')
+    expect(
+      await chamar(`${O}/me/team/invites`, 'POST', {
+        nome: 'Outro admin',
+        email: 'admin2@aurorapaes.com.br',
+        papel: 'ADMIN',
+      }),
+    ).toMatchObject({ status: 403, data: { permissao: 'hierarquia' } })
+
+    await chamar(`${O}/me/team/2`, 'PATCH', {
+      permissoes: [...PAPEIS.FINANCEIRO.permissoes, 'gerenciar_equipe'],
+    })
+    setMembroLogado('FINANCEIRO')
+    const convite = (limite?: number) =>
+      chamar(`${O}/me/team/invites`, 'POST', {
+        nome: 'Ana',
+        email: `ana${limite ?? 0}@aurorapaes.com.br`,
+        papel: 'LEITURA',
+        ...(limite === undefined ? {} : { limite_pagamento: limite }),
+      })
+    expect(await convite()).toMatchObject({ status: 403, data: { permissao: 'limite_pagamento' } })
+    expect(await convite(30_000)).toMatchObject({
+      status: 403,
+      data: { permissao: 'limite_pagamento' },
+    })
+    expect((await convite(5_000)).status).toBe(201)
+    expect(await chamar(`${O}/me/team/3`, 'PATCH', { papel: 'FINANCEIRO' })).toMatchObject({
+      status: 403,
+      data: { permissao: 'hierarquia' },
+    })
   })
 })
