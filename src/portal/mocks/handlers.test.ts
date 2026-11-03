@@ -413,15 +413,46 @@ describe('transactions /me', () => {
       const abertas = await chamar<PayablesReport>(`${T}/me/payables?status=ABERTO`)
       const conta = abertas.data.itens.at(-1)!
       const agendado = await chamar<PaymentResponse>(`${T}/me/payments`, 'POST', {
-        tipo: 'BOLETO',
+        tipo: 'PIX',
         valor: data.saldo + 100,
-        destinatario: conta.fornecedor,
+        destinatario: 'Moinho Paulista',
         descricao: '',
-        payable_id: conta.id,
         agendado_para: conta.vencimento,
       })
       expect(agendado.data.status).toBe('AGENDADO')
       expect(agendado.data.saldo_apos).toBe(data.saldo)
+    })
+
+    it('conta a pagar: valor igual ao da conta e um agendamento só', async () => {
+      const abertas = await chamar<PayablesReport>(`${T}/me/payables?status=ABERTO`)
+      const conta = abertas.data.itens.at(-1)!
+      const pedido = {
+        tipo: 'BOLETO',
+        valor: conta.valor,
+        destinatario: conta.fornecedor,
+        payable_id: conta.id,
+        agendado_para: conta.vencimento,
+      }
+      const divergente = await chamar<{ error: string }>(`${T}/me/payments`, 'POST', {
+        ...pedido,
+        valor: conta.valor + 1,
+      })
+      expect(divergente.status).toBe(422)
+      expect(divergente.data.error).toBe('VALOR_DIVERGENTE')
+
+      const passado = await chamar<{ error: string; campos: object }>(
+        `${T}/me/payments`,
+        'POST',
+        { ...pedido, agendado_para: '2000-01-01' },
+      )
+      expect(passado.status).toBe(400)
+      expect(Object.keys(passado.data.campos)).toEqual(['agendado_para'])
+
+      const agendado = await chamar<PaymentResponse>(`${T}/me/payments`, 'POST', pedido)
+      expect(agendado.data.status).toBe('AGENDADO')
+      const repetido = await chamar<{ error: string }>(`${T}/me/payments`, 'POST', pedido)
+      expect(repetido.status).toBe(422)
+      expect(repetido.data.error).toBe('CONTA_JA_AGENDADA')
     })
 
     it('400 validation_failed e 404 para pagamento inválido', async () => {
