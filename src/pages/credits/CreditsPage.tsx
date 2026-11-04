@@ -6,15 +6,14 @@ import { Can } from '@/components/auth/Can'
 import { RequirePermission } from '@/components/auth/RequirePermission'
 import { CreditRequestForm } from '@/components/credits/CreditRequestForm'
 import { CreditsTable } from '@/components/credits/CreditsTable'
-import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { InputField } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Spinner } from '@/components/ui/Spinner'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
+import { ErrorState, PanelSkeleton } from '@/portal/ui/Surface'
 
 export function CreditsPage() {
   return (
@@ -68,9 +67,13 @@ function CreditsList() {
       </form>
 
       {credits.isPending ? (
-        <Spinner label="Carregando pedidos…" />
+        <PanelSkeleton label="Carregando pedidos…" />
       ) : credits.isError ? (
-        <Alert tone="error">{errorMessage(credits.error)}</Alert>
+        <ErrorState
+          title="Não conseguimos carregar os pedidos de crédito"
+          message={errorMessage(credits.error)}
+          onRetry={() => void credits.refetch()}
+        />
       ) : credits.data.length === 0 ? (
         <EmptyState>
           {customerId

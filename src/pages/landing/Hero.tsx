@@ -19,14 +19,21 @@ export function LandingHeader() {
   return (
     <header className="border-b border-line">
       <div className={`${container} flex h-16 items-center justify-between gap-4`}>
-        <a href="#topo" className="rounded-control" aria-label="ErpIa, início da página">
+        <a
+          href="#topo"
+          className="inline-flex items-center rounded-control pointer-coarse:min-h-11"
+          aria-label="ErpIa, início da página"
+        >
           <ErpIaLogo className="pointer-events-none" />
         </a>
         <nav aria-label="Seções" className="hidden md:block">
           <ul className="flex gap-7 text-sm text-ink-muted">
             {NAV.map((item) => (
               <li key={item.href}>
-                <a href={item.href} className="transition-colors hover:text-ink">
+                <a
+                  href={item.href}
+                  className="inline-flex items-center rounded-control transition-colors hover:text-ink pointer-coarse:min-h-11"
+                >
                   {item.label}
                 </a>
               </li>
@@ -37,14 +44,14 @@ export function LandingHeader() {
           <button
             type="button"
             onClick={login}
-            className="h-10 rounded-control px-3 text-sm font-medium text-ink transition-colors hover:bg-sunken"
+            className="h-10 rounded-control px-3 text-sm font-medium text-ink transition-colors hover:bg-sunken pointer-coarse:h-11"
           >
             Entrar
           </button>
           <button
             type="button"
             onClick={signup}
-            className="h-10 rounded-control bg-accent px-4 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
+            className="h-10 rounded-control bg-accent px-4 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover pointer-coarse:h-11"
           >
             Criar conta
           </button>

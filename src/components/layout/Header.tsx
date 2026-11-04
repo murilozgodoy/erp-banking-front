@@ -5,6 +5,7 @@ import { Link, NavLink } from 'react-router'
 import type { Permission } from '@/auth/permissions'
 import { ErpIaLogo } from '@/components/brand/Logo'
 import { Button } from '@/components/ui/Button'
+import { cn } from '@/lib/cn'
 import { usePermissions } from '@/hooks/usePermissions'
 
 /** Itens do menu; os que têm `permission` só aparecem para quem pode acessá-los. */
@@ -47,7 +48,10 @@ export function Header() {
                     to={to}
                     end={to === '/'}
                     className={({ isActive }) =>
-                      isActive ? 'font-medium text-accent' : 'text-ink-muted hover:text-ink'
+                      cn(
+                        'inline-flex items-center rounded-control pointer-coarse:min-h-11',
+                        isActive ? 'font-medium text-accent' : 'text-ink-muted hover:text-ink',
+                      )
                     }
                   >
                     {label}
@@ -66,18 +70,24 @@ export function Header() {
               >
                 <span
                   aria-current="page"
-                  className="rounded-[5px] bg-surface px-2.5 py-1 text-ink shadow-sm"
+                  className="rounded-[5px] bg-surface px-2.5 py-1 text-ink shadow-sm pointer-coarse:py-3"
                 >
                   Backoffice
                 </span>
-                <Link to="/app" className="rounded-[5px] px-2.5 py-1 text-ink-muted hover:text-ink">
+                <Link
+                  to="/app"
+                  className="rounded-[5px] px-2.5 py-1 text-ink-muted hover:text-ink pointer-coarse:py-3"
+                >
                   Portal
                 </Link>
               </nav>
             )}
-            <Link to="/perfil" className="flex items-center gap-2 text-sm text-ink hover:text-ink">
+            <Link
+              to="/perfil"
+              className="flex items-center gap-2 rounded-control text-sm text-ink hover:text-accent pointer-coarse:min-h-11"
+            >
               {user?.picture && (
-                <img src={user.picture} alt="" className="size-8 rounded-full border" />
+                <img src={user.picture} alt="" className="size-8 rounded-full border border-line" />
               )}
               <span>{user?.name ?? user?.email}</span>
             </Link>
