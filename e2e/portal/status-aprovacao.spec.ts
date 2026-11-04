@@ -21,12 +21,12 @@ test.describe('Status da análise → aprovação', () => {
     // A página leva sozinha à visão geral (ou pelo botão, se o usuário for mais rápido).
     await expect(page).toHaveURL(/\/app$/, { timeout: 15_000 })
 
-    const kpis = page.getByRole('region', { name: 'Indicadores dos últimos 30 dias' })
+    // A faixa de indicadores trocou de nome e o saldo saiu da barra do topo (fica em Pagamentos).
+    const kpis = page.getByRole('region', { name: 'Indicadores da empresa' })
     await expect(kpis).toBeVisible()
     for (const label of ['Receita 30 dias', 'Recebíveis 90 dias', 'A pagar 30 dias']) {
-      await expect(kpis.getByText(label)).toBeVisible()
+      await expect(kpis.getByText(label, { exact: true })).toBeVisible()
     }
-    await expect(page.getByText('Saldo disponível').locator('span.tabular')).toHaveText(/R\$/)
   })
 
   test('aprovado entra direto na visão geral', async ({ page }) => {

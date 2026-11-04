@@ -1,15 +1,13 @@
 import { expect, test } from '@playwright/test'
 
-import { collectErrors, openPortal, parseBrl } from './helpers.ts'
+import { collectErrors, openPortal, saldoDisponivel } from './helpers.ts'
 
 test('paga um PIX, recebe o comprovante com autenticação e o saldo cai', async ({ page }) => {
   const errors = collectErrors(page)
   await openPortal(page, '/app/pagamentos')
   await expect(page.getByRole('heading', { name: 'Pagamentos', level: 1 })).toBeVisible()
 
-  const saldoTopo = page.getByText('Saldo disponível').first().locator('span.tabular')
-  await expect(saldoTopo).toHaveText(/R\$/)
-  const saldoAntes = parseBrl(await saldoTopo.innerText())
+  const saldoAntes = await saldoDisponivel(page)
 
   await page.getByRole('button', { name: 'Novo pagamento' }).click()
   const sheet = page.getByRole('dialog', { name: 'Novo pagamento' })
@@ -32,8 +30,6 @@ test('paga um PIX, recebe o comprovante com autenticação e o saldo cai', async
   await sheet.getByRole('button', { name: 'Concluir' }).click()
   await expect(sheet).toBeHidden()
 
-  await expect
-    .poll(async () => parseBrl(await saldoTopo.innerText()))
-    .toBeCloseTo(saldoAntes - 150, 2)
+  await expect.poll(() => saldoDisponivel(page)).toBeCloseTo(saldoAntes - 150, 2)
   expect(errors).toEqual([])
 })
