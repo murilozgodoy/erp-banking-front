@@ -4,6 +4,8 @@ Frontend do projeto **ERP Banking e Crédito** (Projeto de Software, Insper). Ve
 
 **Stack:** React 19 · Vite · TypeScript · Tailwind CSS v4 · React Router · TanStack Query · Axios · Auth0 · Vitest · ESLint · Prettier
 
+**Infra e deploy:** [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra) (compose, gateway, observabilidade, carga, deploy e carga de demo)
+
 ## Como rodar
 
 ```bash
