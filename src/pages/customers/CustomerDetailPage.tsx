@@ -12,11 +12,11 @@ import { Alert } from '@/components/ui/Alert'
 import { ButtonLink } from '@/components/ui/ButtonLink'
 import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Spinner } from '@/components/ui/Spinner'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
 import { formatCpf, formatCurrency, formatDate } from '@/lib/format'
 import type { Customer } from '@/types/api'
+import { PanelSkeleton } from '@/portal/ui/Surface'
 
 export function CustomerDetailPage() {
   return (
@@ -34,7 +34,7 @@ function CustomerDetail() {
     queryFn: () => api.customers.get(customerId),
   })
 
-  if (customer.isPending) return <Spinner label="Carregando cliente…" />
+  if (customer.isPending) return <PanelSkeleton rows={6} label="Carregando cliente…" />
   if (customer.isError) {
     return (
       <div className="space-y-4">

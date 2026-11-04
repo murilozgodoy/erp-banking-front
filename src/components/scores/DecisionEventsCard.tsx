@@ -5,11 +5,11 @@ import { DecisionBadge } from '@/components/DecisionBadge'
 import { Alert } from '@/components/ui/Alert'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Spinner } from '@/components/ui/Spinner'
 import { Table } from '@/components/ui/Table'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
 import { formatCurrency, formatDateTime, formatNumber, formatPercent } from '@/lib/format'
+import { SkeletonRows } from '@/components/ui/SkeletonRows'
 
 import { RiskBadge } from './RiskBadge'
 
@@ -34,7 +34,7 @@ export function DecisionEventsCard({ customerId }: { customerId: number }) {
       description="Recebidas pela Credit Score API no evento credit.decided (RabbitMQ)"
     >
       {decisions.isPending ? (
-        <Spinner label="Carregando decisões…" />
+        <SkeletonRows label="Carregando decisões…" rows={3} />
       ) : decisions.isError ? (
         isAxiosError(decisions.error) && decisions.error.response?.status === 404 ? (
           <EmptyState>

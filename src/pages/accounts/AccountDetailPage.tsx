@@ -13,12 +13,13 @@ import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { InputField, SelectField } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Spinner } from '@/components/ui/Spinner'
 import { Table } from '@/components/ui/Table'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
 import { formatCurrency, formatDateTime } from '@/lib/format'
 import type { Account, TransactionInput, TransactionType } from '@/types/api'
+import { ErrorState, PanelSkeleton } from '@/portal/ui/Surface'
+import { SkeletonRows } from '@/components/ui/SkeletonRows'
 
 export function AccountDetailPage() {
   return (
@@ -36,7 +37,7 @@ function AccountDetail() {
     queryFn: () => api.accounts.get(accountId),
   })
 
-  if (account.isPending) return <Spinner label="Carregando conta…" />
+  if (account.isPending) return <PanelSkeleton rows={5} label="Carregando conta…" />
   if (account.isError) {
     return (
       <div className="space-y-4">
@@ -154,9 +155,13 @@ function Statement({ accountId }: { accountId: number }) {
   return (
     <Card title="Extrato" description="Lançamentos do mais recente para o mais antigo">
       {statement.isPending ? (
-        <Spinner label="Carregando extrato…" />
+        <SkeletonRows label="Carregando extrato…" />
       ) : statement.isError ? (
-        <Alert tone="error">{errorMessage(statement.error)}</Alert>
+        <ErrorState
+          title="Não conseguimos carregar o extrato"
+          message={errorMessage(statement.error)}
+          onRetry={() => void statement.refetch()}
+        />
       ) : statement.data.length === 0 ? (
         <EmptyState>Nenhuma transação registrada.</EmptyState>
       ) : (

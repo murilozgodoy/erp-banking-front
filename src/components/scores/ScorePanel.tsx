@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SelectField } from '@/components/ui/Field'
-import { Spinner } from '@/components/ui/Spinner'
 import { Table } from '@/components/ui/Table'
 import { useApi } from '@/hooks/useApi'
 import { errorMessage } from '@/lib/errors'
 import { formatDateTime, formatNumber, humanize } from '@/lib/format'
 import type { ScoreEvaluation } from '@/types/api'
+import { ErrorState } from '@/portal/ui/Surface'
+import { SkeletonRows } from '@/components/ui/SkeletonRows'
 
 import { RiskBadge } from './RiskBadge'
 
@@ -50,9 +51,13 @@ export function ScorePanel({ customerId }: { customerId: number }) {
         </Can>
 
         {latest.isPending ? (
-          <Spinner label="Carregando score…" />
+          <SkeletonRows label="Carregando score…" rows={3} />
         ) : latest.isError ? (
-          <Alert tone="error">{errorMessage(latest.error)}</Alert>
+          <ErrorState
+            title="Não conseguimos carregar o score"
+            message={errorMessage(latest.error)}
+            onRetry={() => void latest.refetch()}
+          />
         ) : latest.data ? (
           <>
             {status.data?.desatualizado && (
