@@ -13,7 +13,8 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
-  workers: process.env.CI ? 2 : undefined,
+  // Mais workers disputam o Vite (dev, sem build) e estouram os timeouts no primeiro acesso.
+  workers: process.env.CI ? 2 : 3,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {

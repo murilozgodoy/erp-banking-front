@@ -96,11 +96,20 @@ com `?perfil=cliente&mock=<status>`. Cobre o wizard de onboarding, status →
 aprovação, simulação e contratação de capital de giro, pagamento PIX com comprovante, antecipação de recebíveis
 e um teste de fumaça de todas as abas (sem erro de console, tema claro e escuro, sem rolagem horizontal em 360 px).
 
+`e2e/portal/jornada.spec.ts` é a jornada completa em série, numa aba só (o estado do MSW vive na página): cadastro
+do zero → visão geral → antecipação → boleto → operador acima do limite (`?membro=operador`) → aprovação pelo
+financeiro → proposta de crédito aguardando contratação → contratação pelo dono → movimentação de estoque →
+equipe (convite, edição, hierarquia como admin) → assistente (Ctrl+K e histórico) → perfil. A troca de membro
+muda a URL sem recarregar e adianta o relógio (`Date`) para o `/me` ser buscado de novo. Cada passo salva um
+print `NN-passo.png` em `test-results/`.
+
 ```bash
 npm run test:e2e:portal
+npx playwright test -c playwright.portal.config.ts jornada   # só a jornada (~1,5 min)
 ```
 
-Workflow manual **E2E portal** (Actions → E2E portal → Run workflow); o relatório sobe como artefato se falhar.
+Workflow manual **E2E portal** (Actions → E2E portal → Run workflow): os prints e o relatório HTML sobem sempre
+no artefato `portal-e2e-screenshots`.
 
 ## Deploy (Vercel)
 

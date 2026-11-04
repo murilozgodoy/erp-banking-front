@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 /** Status do onboarding aceitos pelo `?mock=` (src/portal/mocks/db.ts). */
 export type MockStatus =
@@ -13,12 +13,21 @@ export async function openPortal(page: Page, path: string, status: MockStatus = 
   await page.goto(`${path}${separator}perfil=cliente&mock=${status}`)
 }
 
-/** Lê o "Saldo disponível" da barra do topo como número (R$ 1.234,56 → 1234.56). */
+/** O valor do "Saldo disponível" na faixa de indicadores de Pagamentos. */
+export function saldoLocator(page: Page): Locator {
+  return page
+    .locator('dl > div')
+    .filter({ has: page.getByText('Saldo disponível', { exact: true }) })
+    .locator('dd')
+    .first()
+}
+
+/** Lê o "Saldo disponível" de Pagamentos como número (R$ 1.234,56 → 1234.56). */
 export async function saldoDisponivel(page: Page): Promise<number> {
-  const barra = page.getByText('Saldo disponível', { exact: false }).first()
-  const valor = barra.locator('span.tabular')
-  await expect(valor).toBeVisible()
-  return parseBrl(await valor.innerText())
+  const valor = saldoLocator(page)
+  await expect(valor).toHaveText(/R\$/)
+  // O Money repete o valor para leitores de tela: vale a primeira linha.
+  return parseBrl((await valor.innerText()).split(/\n/)[0])
 }
 
 export function parseBrl(texto: string): number {

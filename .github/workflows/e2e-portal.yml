@@ -27,12 +27,22 @@ jobs:
       - name: Run E2E portal
         run: npm run test:e2e:portal
 
-      - name: Upload report
+      # Sempre: os prints de cada passo da jornada servem para a apresentação, não só para depurar.
+      - name: Upload screenshots e relatório
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-e2e-screenshots
+          path: |
+            test-results/**/*.png
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload traces
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-portal
-          path: |
-            playwright-report/
-            test-results/
+          name: playwright-traces-portal
+          path: test-results/**/*.zip
           retention-days: 7
