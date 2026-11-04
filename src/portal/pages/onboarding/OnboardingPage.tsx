@@ -49,9 +49,13 @@ import { ErrorSummary, SaveIndicator, StepProgress } from './WizardChrome'
 const TITLE = 'Cadastro da empresa'
 const DESCRIPTION =
   'Quatro passos, cerca de cinco minutos. O rascunho é salvo enquanto você preenche.'
+const DESCRIPTION_LEITURA =
+  'O cadastro é preenchido pelo dono da empresa. Você pode consultar os passos, sem editar.'
 
 /** Wizard de onboarding (PORTAL_CLIENTE.md, seções 1 e 3): empresa, segmento, perguntas, revisão. */
 export function OnboardingPage() {
+  const { membro: membroAtual } = useMembro()
+  const readOnlyHeader = membroAtual !== null && membroAtual.papel !== 'DONO'
   const api = usePortalApi()
   const templates = useQuery({
     queryKey: portalKeys.templates,
@@ -97,7 +101,7 @@ export function OnboardingPage() {
 
   return (
     <div>
-      <PageHeader title={TITLE} description={DESCRIPTION} />
+      <PageHeader title={TITLE} description={readOnlyHeader ? DESCRIPTION_LEITURA : DESCRIPTION} />
       {body}
     </div>
   )
@@ -514,7 +518,7 @@ function Wizard({ templates, draft }: WizardProps) {
                         state={state}
                         template={template}
                         errors={errors}
-                        onEdit={edit}
+                        onEdit={readOnly ? undefined : edit}
                         onObservacoes={(observacoes) =>
                           setState((atual) => ({ ...atual, observacoes }))
                         }

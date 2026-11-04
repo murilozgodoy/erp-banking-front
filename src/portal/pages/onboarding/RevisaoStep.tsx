@@ -15,7 +15,8 @@ interface RevisaoStepProps {
   template: OnboardingTemplate | null
   errors: Errors
   onObservacoes: (value: string) => void
-  onEdit: (step: number) => void
+  /** Ausente no modo só leitura: sem botões de editar. */
+  onEdit?: (step: number) => void
 }
 
 function Block({
@@ -25,7 +26,7 @@ function Block({
   children,
 }: {
   title: string
-  onEdit: () => void
+  onEdit?: () => void
   editLabel: string
   children: ReactNode
 }) {
@@ -33,15 +34,17 @@ function Block({
     <section className="border-t border-line pt-4" aria-label={title}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-ink">{title}</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<PencilLine aria-hidden className="size-3.5" />}
-          aria-label={editLabel}
-          onClick={onEdit}
-        >
-          Editar
-        </Button>
+        {onEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<PencilLine aria-hidden className="size-3.5" />}
+            aria-label={editLabel}
+            onClick={onEdit}
+          >
+            Editar
+          </Button>
+        )}
       </div>
       {children}
     </section>
@@ -91,7 +94,11 @@ export function RevisaoStep({ state, template, errors, onObservacoes, onEdit }: 
 
       <div className="space-y-5">
         <h3 className="sr-only">Resumo do cadastro</h3>
-        <Block title="Empresa" editLabel="Editar dados da empresa" onEdit={() => onEdit(0)}>
+        <Block
+          title="Empresa"
+          editLabel="Editar dados da empresa"
+          onEdit={onEdit && (() => onEdit(0))}
+        >
           <Rows
             rows={[
               { label: 'Razão social', value: ou(empresa.razao_social), error: e('razao_social') },
@@ -124,7 +131,7 @@ export function RevisaoStep({ state, template, errors, onObservacoes, onEdit }: 
           />
         </Block>
 
-        <Block title="Segmento" editLabel="Trocar o segmento" onEdit={() => onEdit(1)}>
+        <Block title="Segmento" editLabel="Trocar o segmento" onEdit={onEdit && (() => onEdit(1))}>
           {template ? (
             <div className="flex items-center gap-3">
               <span className="grid size-9 place-items-center rounded-control bg-sunken text-ink-muted">
@@ -146,7 +153,7 @@ export function RevisaoStep({ state, template, errors, onObservacoes, onEdit }: 
           <Block
             title="Respostas do segmento"
             editLabel="Editar respostas do segmento"
-            onEdit={() => onEdit(2)}
+            onEdit={onEdit && (() => onEdit(2))}
           >
             <div className="space-y-4">
               {template.secoes.map((secao) => {
