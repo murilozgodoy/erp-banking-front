@@ -26,7 +26,11 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn('inline-flex rounded-control border border-line bg-sunken p-0.5', className)}
+      // Sem quebrar o rótulo: com pouco espaço o grupo rola na horizontal (e o foco fica por dentro).
+      className={cn(
+        'inline-flex max-w-full overflow-x-auto rounded-control border border-line bg-sunken p-0.5',
+        className,
+      )}
     >
       {options.map((option) => {
         const active = option.value === value
@@ -51,7 +55,7 @@ export function Segmented<T extends string>({
               )
             }}
             className={cn(
-              'relative h-7 rounded-[5px] px-3 text-xs font-medium transition-colors duration-150 pointer-coarse:h-11',
+              'relative h-7 shrink-0 rounded-[5px] px-3 text-xs font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline-offset-[-2px] pointer-coarse:h-11',
               active ? 'text-ink' : 'text-ink-muted hover:text-ink',
             )}
           >

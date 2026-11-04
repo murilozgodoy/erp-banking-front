@@ -13,7 +13,8 @@ interface MoneyProps {
 const sizes = {
   sm: ['text-sm', 'text-xs'],
   md: ['text-base', 'text-sm'],
-  lg: ['text-xl', 'text-base'],
+  // No celular o lg desce um degrau: cabe em meia coluna de 360 px sem cortar os centavos.
+  lg: ['text-lg sm:text-xl', 'text-sm sm:text-base'],
   xl: ['text-3xl tracking-[-0.02em]', 'text-xl'],
   display: ['text-4xl tracking-[-0.03em]', 'text-2xl'],
 } as const

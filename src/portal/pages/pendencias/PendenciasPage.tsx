@@ -209,7 +209,7 @@ function Queue({ lista }: { lista: Pendencia[] }) {
         initial={reduce ? false : { opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="space-y-5"
+        className="space-y-4"
       >
         {visiveis.map(({ grupo, itens }) => (
           <Panel
@@ -275,7 +275,7 @@ export function PendenciasPage() {
     return (
       <>
         {header}
-        <div className="space-y-5">
+        <div className="space-y-4">
           <StatStrip
             loading
             stats={['Em atraso', 'Vence hoje', 'Pendências abertas'].map((label) => ({
@@ -334,7 +334,7 @@ export function PendenciasPage() {
   return (
     <>
       {header}
-      <div className="space-y-5">
+      <div className="space-y-4">
         <StatStrip
           stats={[
             {
@@ -355,7 +355,7 @@ export function PendenciasPage() {
             },
             {
               label: 'Pendências abertas',
-              value: <span className="text-xl">{lista.length}</span>,
+              value: lista.length,
               detail: agora > 0 ? `${agora} para resolver agora` : 'Nada urgente',
             },
           ]}

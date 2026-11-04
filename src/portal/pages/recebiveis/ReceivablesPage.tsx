@@ -91,7 +91,16 @@ const columns: Column<Receivable>[] = [
 function ReceivablesSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      <PanelSkeleton rows={2} label="Carregando indicadores" />
+      {/* Mesma faixa de indicadores da página carregada: só os valores esperam. */}
+      <StatStrip
+        loading
+        stats={[
+          'A receber em 90 dias',
+          'Próximos 7 dias',
+          'Já antecipado',
+          'Taxa média do adquirente',
+        ].map((label) => ({ label, value: null }))}
+      />
       <PanelSkeleton rows={5} label="Carregando agenda" />
     </div>
   )
@@ -219,11 +228,7 @@ export function ReceivablesPage() {
             },
             {
               label: 'Taxa média do adquirente',
-              value: (
-                <span className="tabular text-xl font-semibold text-ink">
-                  {pct(bruto > 0 ? (taxas / bruto) * 100 : 0, 2)}
-                </span>
-              ),
+              value: pct(bruto > 0 ? (taxas / bruto) * 100 : 0, 2),
               detail: `${money(taxas)} em taxas a receber`,
             },
           ]}

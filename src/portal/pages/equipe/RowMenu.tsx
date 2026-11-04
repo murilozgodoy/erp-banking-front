@@ -120,7 +120,7 @@ export function RowMenu({ label, actions }: { label: string; actions: MenuAction
                   action.onSelect()
                 }}
                 className={cn(
-                  'flex h-9 w-full items-center gap-2.5 rounded-[5px] px-2.5 text-left text-sm outline-none pointer-coarse:h-11',
+                  'flex h-9 w-full items-center gap-2.5 rounded-[5px] px-2.5 text-left text-sm focus-visible:outline-offset-[-2px] pointer-coarse:h-11',
                   '[&_svg]:size-4 [&_svg]:shrink-0',
                   action.danger
                     ? 'text-negative hover:bg-negative-soft focus-visible:bg-negative-soft'

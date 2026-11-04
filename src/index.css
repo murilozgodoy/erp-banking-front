@@ -89,7 +89,7 @@
   --erpia-line-strong: #c9cdc2;
   --erpia-ink: #0f1310;
   --erpia-ink-muted: #4f5650;
-  --erpia-ink-faint: #6a716b;
+  --erpia-ink-faint: #646b65; /* 4,69:1 sobre sunken, 5,05:1 sobre paper, 5,48:1 sobre surface */
 
   --erpia-rail: #0c110e;
   --erpia-rail-raised: #161d18;

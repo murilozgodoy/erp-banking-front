@@ -124,7 +124,7 @@ export function LeituraCard({
           aria-expanded={expanded}
           aria-controls="leitura-erpia-resumo leitura-erpia-sinais"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 inline-flex items-center gap-1 self-start rounded-sm text-sm font-medium text-accent underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none"
+          className="mt-2 inline-flex items-center gap-1 self-start rounded-sm text-sm font-medium text-accent underline-offset-4 hover:underline"
         >
           {expanded ? 'Mostrar menos' : 'Ler análise completa'}
           <ChevronDown

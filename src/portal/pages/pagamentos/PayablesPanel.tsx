@@ -91,6 +91,15 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
     [itens, filtro],
   )
 
+  const quando = (c: Payable) =>
+    c.status === 'PAGO' && c.pago_em
+      ? `paga em ${dayMonth(c.pago_em)}`
+      : c.status === 'ATRASADO'
+        ? `atrasada ${relativeDay(c.vencimento)}`
+        : relativeDay(c.vencimento)
+  const tomQuando = (c: Payable) =>
+    c.status === 'ATRASADO' ? 'font-medium text-negative' : 'text-ink-muted'
+
   const columns: Column<Payable>[] = [
     {
       key: 'fornecedor',
@@ -98,10 +107,14 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
       sort: (c) => c.fornecedor,
       cell: (c) => (
         <div className="min-w-0">
-          <p className="truncate font-medium text-ink">{c.fornecedor}</p>
+          <p className="font-medium text-pretty text-ink">{c.fornecedor}</p>
           <p className="text-xs text-ink-muted">
             {CATEGORIA_LABEL[c.categoria]}
             {c.codigo_barras ? ' · boleto' : ''}
+          </p>
+          {/* No celular a coluna de vencimento sai e a data vem aqui: valor e "Pagar" cabem na tela. */}
+          <p className={cn('tabular text-xs whitespace-nowrap sm:hidden', tomQuando(c))}>
+            {dayMonth(c.vencimento)} · {quando(c)}
           </p>
         </div>
       ),
@@ -109,22 +122,12 @@ export function PayablesPanel({ query, onPay, onNew }: PayablesPanelProps) {
     {
       key: 'vencimento',
       header: 'Vencimento',
+      hideBelow: 'sm',
       sort: (c) => c.vencimento,
       cell: (c) => (
         <div className="tabular whitespace-nowrap">
           <p className="text-ink">{dayMonth(c.vencimento)}</p>
-          <p
-            className={cn(
-              'text-xs',
-              c.status === 'ATRASADO' ? 'font-medium text-negative' : 'text-ink-muted',
-            )}
-          >
-            {c.status === 'PAGO' && c.pago_em
-              ? `paga em ${dayMonth(c.pago_em)}`
-              : c.status === 'ATRASADO'
-                ? `atrasada ${relativeDay(c.vencimento)}`
-                : relativeDay(c.vencimento)}
-          </p>
+          <p className={cn('text-xs', tomQuando(c))}>{quando(c)}</p>
         </div>
       ),
     },

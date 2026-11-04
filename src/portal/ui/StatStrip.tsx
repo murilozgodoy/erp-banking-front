@@ -41,13 +41,15 @@ export function StatStrip({
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="-mt-px -ml-px flex min-w-0 flex-col gap-1 border-t border-l border-line px-4 py-3.5"
+          className="-mt-px -ml-px flex min-w-0 flex-col gap-1 border-t border-l border-line px-3.5 py-3.5 sm:px-4"
         >
-          <dt className="truncate text-xs font-medium text-ink-muted">{stat.label}</dt>
-          <dd className="tabular text-lg font-semibold text-ink">
+          <dt className="text-xs font-medium text-pretty text-ink-muted">{stat.label}</dt>
+          <dd className="tabular text-lg font-semibold text-ink sm:text-xl">
             {loading ? <Skeleton className="mt-1 h-5 w-24" /> : stat.value}
           </dd>
-          {stat.detail && !loading && <dd className="text-xs text-ink-muted">{stat.detail}</dd>}
+          {stat.detail && !loading && (
+            <dd className="tabular text-xs text-ink-muted">{stat.detail}</dd>
+          )}
         </div>
       ))}
     </dl>

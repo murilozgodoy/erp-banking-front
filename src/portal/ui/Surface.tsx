@@ -54,7 +54,7 @@ export function Panel({ title, description, actions, children, className, flush,
             )}
             {description && <p className="mt-0.5 text-sm text-ink-muted">{description}</p>}
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && <div className="flex max-w-full min-w-0 items-center gap-2">{actions}</div>}
         </div>
       )}
       <div className={flush ? undefined : cn('px-5 pb-5', !(title || actions) && 'pt-5')}>

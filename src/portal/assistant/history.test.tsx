@@ -75,7 +75,7 @@ describe('Histórico do assistente', () => {
     const user = userEvent.setup()
     renderAssistant()
     await user.click(launcher())
-    expect(composer()).toHaveAttribute('placeholder', 'Converse com a ErpIa…')
+    expect(composer()).toHaveAttribute('placeholder', 'Pergunte sobre os números da sua empresa…')
     await user.click(history())
     expect(screen.getByRole('status', { name: 'Carregando as conversas' })).toBeInTheDocument()
     release()

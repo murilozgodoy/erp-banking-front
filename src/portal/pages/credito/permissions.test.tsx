@@ -96,7 +96,8 @@ describe('Crédito com permissões (seção 11)', () => {
     const sheet = await screen.findByRole('dialog', { name: 'Contratar proposta' })
     expect(within(sheet).getByText('Rafael Lima')).toBeInTheDocument()
     await user.click(within(sheet).getByRole('button', { name: 'Confirmar contratação' }))
-    expect(await within(sheet).findByText('Crédito contratado')).toBeVisible()
+    // O resultado entra com fade (opacity 0 → 1): sob carga o primeiro quadro ainda está invisível.
+    await waitFor(() => expect(within(sheet).getByText('Crédito contratado')).toBeVisible())
     await user.click(within(sheet).getByRole('button', { name: 'Concluir' }))
     await waitFor(() => expect(within(propostas).queryByText('Aguardando contratação')).toBeNull())
   })

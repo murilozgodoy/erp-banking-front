@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn'
 
 import { money, number, pct } from '../../lib/format'
 import { Delta } from '../../ui/Delta'
+import { Money } from '../../ui/Money'
 import { Skeleton } from '../../ui/Surface'
 import type { BusinessAnalysis, KpiId, Overview } from '../../types'
 
@@ -34,7 +35,7 @@ function primary(o: Overview, analysis: BusinessAnalysis | undefined, pending: b
   return [
     {
       label: 'Receita 30 dias',
-      value: money(o.receita_30d),
+      value: <Money value={o.receita_30d} size="lg" />,
       note:
         o.receita_30d_variacao_pct === null ? (
           'sem base de comparação'
@@ -80,7 +81,7 @@ function SecondaryLink({ to, children }: { to: string; children: ReactNode }) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-1 rounded-sm font-medium text-accent underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none"
+      className="inline-flex items-center gap-1 rounded-sm font-medium text-accent underline-offset-4 hover:underline"
     >
       {children}
       <ArrowRight aria-hidden className="size-3" />
@@ -123,17 +124,17 @@ function secondary(o: Overview): Item[] {
 
 function Cell({ item, size }: { item: Item; size: 'lg' | 'sm' }) {
   return (
-    <div className={cn('min-w-0 bg-surface', size === 'lg' ? 'px-4 py-3.5' : 'px-4 py-2.5')}>
-      <dt className="truncate text-xs text-ink-muted">{item.label}</dt>
+    <div className={cn('min-w-0 bg-surface px-3.5 sm:px-4', size === 'lg' ? 'py-3.5' : 'py-2.5')}>
+      <dt className="text-xs text-pretty text-ink-muted">{item.label}</dt>
       <dd
         className={cn(
           'tabular font-semibold text-ink',
-          size === 'lg' ? 'mt-1 text-xl' : 'mt-0.5 text-base',
+          size === 'lg' ? 'mt-1 text-lg sm:text-xl' : 'mt-0.5 text-base',
         )}
       >
         {item.value}
       </dd>
-      {item.note && <dd className="mt-0.5 truncate text-xs text-ink-muted">{item.note}</dd>}
+      {item.note && <dd className="tabular mt-0.5 truncate text-xs text-ink-muted">{item.note}</dd>}
     </div>
   )
 }
