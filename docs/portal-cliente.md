@@ -246,6 +246,8 @@ persistentes. Todos os consumidores são **idempotentes por `event_id`** e as s�
 
 ## Infraestrutura
 
+Repositório: [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra) (compose, gateway, observabilidade, carga, deploy e carga de demo).
+
 - **Front** na Vercel (`https://erp-banking-front.vercel.app`). O `vercel.json` reescreve `/api/onboarding/*`,
   `/api/score/*` e `/api/transactions/*` para o gateway na EC2.
 - **EC2** (`3.235.6.136`) com `docker compose`: API Gateway nginx na porta **8080** (prefixos `/onboarding`,

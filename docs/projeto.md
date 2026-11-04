@@ -54,6 +54,8 @@ Métricas: Prometheus coleta os 3 serviços, o gateway (nginx-exporter) e o Rabb
 | [erp-banking-front](https://github.com/murilozgodoy/erp-banking-front)                       | ~100%     | Etapa 4 |
 | [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra)                       | —         | Etapa 4 |
 
+O 5º repositório, [erp-banking-infra](https://github.com/GabrielRosa1/erp-banking-infra), é a **infraestrutura**: compose, gateway, observabilidade, carga, deploy e carga de demo.
+
 ## Cronograma
 
 | Etapa | Entrega    | Escopo                                                                                          | Status      |
