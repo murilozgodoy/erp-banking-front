@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
-import { Spinner } from '@/components/ui/Spinner'
 import { useApi } from '@/hooks/useApi'
 import { usePermissions } from '@/hooks/usePermissions'
 import { errorMessage } from '@/lib/errors'
 import { formatCurrency, formatNumber } from '@/lib/format'
+import { Skeleton } from '@/portal/ui/Surface'
 import type { CreditStatus } from '@/types/api'
 
 /** Máximo aceito pelo `GET /customers` da Onboarding API (sem total na resposta). */
@@ -45,7 +45,14 @@ function Indicator({ title, query, children }: IndicatorProps) {
     <section aria-label={title} className="rounded-xl border border-line bg-surface p-5 shadow-sm">
       <p className="text-sm text-ink-muted">{title}</p>
       {query.isPending ? (
-        <Spinner label="Carregando…" />
+        <div
+          role="status"
+          aria-label={`Carregando ${title.toLowerCase()}…`}
+          className="mt-2 space-y-2"
+        >
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-3 w-32" />
+        </div>
       ) : query.isError ? (
         <p role="alert" className="mt-2 text-sm text-negative">
           {errorMessage(query.error)}
@@ -70,11 +77,13 @@ function CustomersIndicator() {
         const withAnamnesis = customers.data?.filter((c) => c.anamnesis).length ?? 0
         return (
           <>
-            <p className="mt-1 text-3xl font-bold text-ink">
+            <p className="tabular mt-1 text-3xl font-bold text-ink">
               {formatNumber(total)}
               {total >= CUSTOMERS_PAGE_LIMIT ? '+' : ''}
             </p>
-            <p className="text-xs text-ink-muted">{formatNumber(withAnamnesis)} com anamnese</p>
+            <p className="tabular text-xs text-ink-muted">
+              {formatNumber(withAnamnesis)} com anamnese
+            </p>
           </>
         )
       }}
@@ -93,8 +102,8 @@ function AccountsIndicator() {
         const balance = list.reduce((sum, account) => sum + account.saldo, 0)
         return (
           <>
-            <p className="mt-1 text-3xl font-bold text-ink">{formatNumber(list.length)}</p>
-            <p className="text-xs text-ink-muted">
+            <p className="tabular mt-1 text-3xl font-bold text-ink">{formatNumber(list.length)}</p>
+            <p className="tabular text-xs text-ink-muted">
               {formatNumber(active)} ativas · saldo total {formatCurrency(balance)}
             </p>
           </>
@@ -118,8 +127,10 @@ function CreditsIndicator() {
         }))
         return (
           <>
-            <p className="mt-1 text-3xl font-bold text-ink">{formatNumber(list.length)}</p>
-            <p className="text-xs text-ink-muted">{formatCurrency(approvedValue)} aprovados</p>
+            <p className="tabular mt-1 text-3xl font-bold text-ink">{formatNumber(list.length)}</p>
+            <p className="tabular text-xs text-ink-muted">
+              {formatCurrency(approvedValue)} aprovados
+            </p>
             {list.length > 0 && (
               <div
                 className="mt-3 flex h-2 overflow-hidden rounded-full bg-sunken"
@@ -134,7 +145,7 @@ function CreditsIndicator() {
                 ))}
               </div>
             )}
-            <ul className="mt-2 space-y-0.5 text-xs text-ink-muted">
+            <ul className="tabular mt-2 space-y-0.5 text-xs text-ink-muted">
               {counts.map(({ status, count }) => (
                 <li key={status} className="flex items-center gap-2">
                   <span className={`size-2 rounded-full ${statusStyles[status].bar}`} />

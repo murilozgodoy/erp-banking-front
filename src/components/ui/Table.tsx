@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 export function Table({ headers, children }: { headers: string[]; children: ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+      <table className="tabular w-full text-left text-sm">
         <thead className="border-b border-line text-xs text-ink-muted uppercase">
           <tr>
             {headers.map((header) => (
