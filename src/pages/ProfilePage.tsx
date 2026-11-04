@@ -78,7 +78,7 @@ export function ProfilePage() {
 
       {showToken && (
         <Card
-          title="Access token"
+          title="Token de acesso"
           description="Para chamar as APIs pelo Swagger, pelo smoke test ou pelo k6"
         >
           <div className="space-y-3">

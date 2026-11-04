@@ -62,6 +62,10 @@ describe('OnboardingPage: quem não é o dono só lê (seção 11)', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Enviar para análise/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /Próximo passo/ })).toBeNull()
+    // Sem botões de editar na revisão e sem a promessa de salvar rascunho.
+    expect(screen.queryByRole('button', { name: /Editar dados da empresa/ })).toBeNull()
+    expect(screen.getByText(/preenchido pelo dono da empresa/)).toBeInTheDocument()
+    expect(screen.queryByText(/O rascunho é salvo/)).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Voltar' }))
     await new Promise((resolve) => setTimeout(resolve, 900))
     expect(puts).toBe(0)
